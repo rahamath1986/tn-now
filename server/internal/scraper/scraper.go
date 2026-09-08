@@ -62,6 +62,7 @@ type rssItem struct {
 	Link        string `xml:"link"`
 	Description string `xml:"description"`
 	PubDate     string `xml:"pubDate"`
+	Image       string `xml:"image"`
 	Enclosure   struct {
 		URL  string `xml:"url,attr"`
 		Type string `xml:"type,attr"`
@@ -1413,8 +1414,14 @@ func parseRSSItem(it rssItem) *ScrapedItem {
 	if it.MediaThumbnail.URL != "" {
 		item.ImageURLs = append(item.ImageURLs, it.MediaThumbnail.URL)
 	}
-	if it.MediaContent.URL != "" && (it.MediaContent.Medium == "image" || strings.Contains(it.MediaContent.URL, ".jpg") || strings.Contains(it.MediaContent.URL, ".png")) {
+	if it.MediaContent.URL != "" && (it.MediaContent.Medium == "image" || strings.Contains(it.MediaContent.URL, ".jpg") || strings.Contains(it.MediaContent.URL, ".png") || strings.Contains(it.MediaContent.URL, ".webp")) {
 		item.ImageURLs = append(item.ImageURLs, it.MediaContent.URL)
+	}
+	if it.Image != "" {
+		item.ImageURLs = append(item.ImageURLs, it.Image)
+	}
+	if it.Enclosure.URL != "" && (strings.Contains(it.Enclosure.Type, "image") || strings.Contains(it.Enclosure.URL, ".jpg") || strings.Contains(it.Enclosure.URL, ".jpeg") || strings.Contains(it.Enclosure.URL, ".png") || strings.Contains(it.Enclosure.URL, ".webp")) {
+		item.ImageURLs = append(item.ImageURLs, it.Enclosure.URL)
 	}
 
 	// Check for videos

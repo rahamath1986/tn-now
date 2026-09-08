@@ -1478,8 +1478,9 @@ func RenderAdminDashboard() string {
                 <div style="font-weight: 600; font-size: 12px; margin-bottom: 6px; color: #94a3b8;">POPULAR TAMIL NADU FEEDS (CLICK TO ADD):</div>
                 <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                     <button class="action-btn" style="font-size: 11px;" onclick="quickAddSource('https://www.thehindu.com/news/national/tamil-nadu/feeder/default.rss')">+ The Hindu Tamil Nadu RSS</button>
+                    <button class="action-btn" style="font-size: 11px;" onclick="quickAddSource('https://feeds.bbci.co.uk/tamil/rss.xml')">+ BBC News தமிழ் RSS</button>
                     <button class="action-btn" style="font-size: 11px;" onclick="quickAddSource('https://tamil.oneindia.com/rss/tamil-news-fb.xml')">+ OneIndia Tamil News RSS</button>
-                    <button class="action-btn" style="font-size: 11px;" onclick="quickAddSource('https://www.dinamalar.com')">+ Dinamalar State Portal</button>
+                    <button class="action-btn" style="font-size: 11px;" onclick="quickAddSource('https://news.google.com/rss/search?q=Tamil+Nadu&hl=ta&gl=IN&ceid=IN:ta')">+ Google News Tamil Nadu RSS</button>
                 </div>
             </div>
 

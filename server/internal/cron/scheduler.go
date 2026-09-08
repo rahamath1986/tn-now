@@ -76,6 +76,18 @@ func (s *Scheduler) loadPersistedJobs() {
 
 	_, _ = s.conn.Exec(ctx, "ALTER TABLE cron_jobs ADD COLUMN IF NOT EXISTS source_urls TEXT[] DEFAULT '{}'")
 
+	// Ensure tn_live_news_cron has multi-source regional coverage if empty or single source
+	_, _ = s.conn.Exec(ctx, `
+		UPDATE cron_jobs
+		SET source_urls = ARRAY[
+			'https://www.thehindu.com/news/national/tamil-nadu/feeder/default.rss',
+			'https://feeds.bbci.co.uk/tamil/rss.xml',
+			'https://tamil.oneindia.com/rss/tamil-news-fb.xml',
+			'https://news.google.com/rss/search?q=Tamil+Nadu&hl=ta&gl=IN&ceid=IN:ta'
+		]
+		WHERE id = 'tn_live_news_cron' AND (source_urls IS NULL OR cardinality(source_urls) < 2)
+	`)
+
 	// Ensure all registered default jobs exist in PostgreSQL cron_jobs table
 	s.mu.RLock()
 	for _, job := range s.jobs {
@@ -186,6 +198,12 @@ func (s *Scheduler) registerDefaultTasks() {
 		ScheduleInterval: "30m",
 		JobType:          "INGESTION",
 		IsActive:         true,
+		SourceURLs: []string{
+			"https://www.thehindu.com/news/national/tamil-nadu/feeder/default.rss",
+			"https://feeds.bbci.co.uk/tamil/rss.xml",
+			"https://tamil.oneindia.com/rss/tamil-news-fb.xml",
+			"https://news.google.com/rss/search?q=Tamil+Nadu&hl=ta&gl=IN&ceid=IN:ta",
+		},
 		Handler:          s.runLiveNewsScraper,
 	})
 
@@ -705,6 +723,9 @@ func (s *Scheduler) runLiveNewsScraper(ctx context.Context) (string, error) {
 
 	sources := []string{
 		"https://www.thehindu.com/news/national/tamil-nadu/feeder/default.rss",
+		"https://feeds.bbci.co.uk/tamil/rss.xml",
+		"https://tamil.oneindia.com/rss/tamil-news-fb.xml",
+		"https://news.google.com/rss/search?q=Tamil+Nadu&hl=ta&gl=IN&ceid=IN:ta",
 	}
 
 	if job != nil && len(job.SourceURLs) > 0 {

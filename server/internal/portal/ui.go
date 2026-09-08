@@ -3080,13 +3080,17 @@ func RenderPortalPage() string {
                 const u = new URL(url);
                 let host = u.hostname.replace(/^www\./, '');
                 if (host.includes('thehindu.com')) return 'தி இந்து (The Hindu)';
-                if (host.includes('dinamalar.com')) return 'தினமலர்';
+                if (host.includes('bbc.com') || host.includes('bbci.co.uk')) return 'பிபிசி தமிழ் (BBC Tamil)';
                 if (host.includes('oneindia.com')) return 'ஒன்இந்தியா தமிழ்';
+                if (host.includes('news18.com')) return 'News18 தமிழ்நாடு';
+                if (host.includes('dinamalar.com')) return 'தினமலர்';
                 if (host.includes('dailythanthi.com')) return 'தினத்தந்தி';
                 if (host.includes('polimernews.com')) return 'பாலிமர் செய்திகள்';
                 if (host.includes('dinamani.com')) return 'தினமணி';
                 if (host.includes('puthiyathalaimurai.com')) return 'புதிய தலைமுறை';
                 if (host.includes('maalaimalar.com')) return 'மாலை மலர்';
+                if (host.includes('vikatan.com')) return 'விகடன்';
+                if (host.includes('google.com')) return 'கூகுள் செய்திகள்';
                 if (host.includes('youtube.com') || host.includes('youtu.be')) return 'யூடியூப் நேரலை';
                 return host;
             } catch(e) {
