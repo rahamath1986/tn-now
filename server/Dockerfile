@@ -19,7 +19,6 @@ COPY . .
 
 # Build target binaries
 RUN go build -o /app/bin/api ./cmd/api/main.go
-RUN go build -o /app/bin/worker ./cmd/worker/main.go
 RUN go build -o /app/bin/migrate ./cmd/migrate/main.go
 
 # --- Final Stage ---
@@ -31,13 +30,22 @@ WORKDIR /app
 
 # Run as non-root user for security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-USER appuser
 
 # Copy binaries from builder stage
 COPY --from=builder /app/bin/api ./api
-COPY --from=builder /app/bin/worker ./worker
 COPY --from=builder /app/bin/migrate ./migrate
+
+# Copy migrations folder so migrate binary can find SQL files
+COPY --from=builder /app/migrations ./migrations
+
+# Copy startup script
+COPY --from=builder /app/start.sh ./start.sh
+
+RUN chmod +x ./start.sh ./api ./migrate
+
+USER appuser
 
 EXPOSE 8080
 
-CMD ["./api"]
+# Run migrations then start API
+CMD ["./start.sh"]
