@@ -76,17 +76,37 @@ func (s *Scheduler) loadPersistedJobs() {
 
 	_, _ = s.conn.Exec(ctx, "ALTER TABLE cron_jobs ADD COLUMN IF NOT EXISTS source_urls TEXT[] DEFAULT '{}'")
 
-	// Ensure tn_live_news_cron has the 4 verified working regional feeds
-	_, _ = s.conn.Exec(ctx, `
-		UPDATE cron_jobs
-		SET source_urls = ARRAY[
-			'https://www.thehindu.com/news/national/tamil-nadu/feeder/default.rss',
-			'https://feeds.bbci.co.uk/tamil/rss.xml',
-			'https://tamil.oneindia.com/rss/tamil-news-fb.xml',
-			'https://news.google.com/rss/search?q=Tamil+Nadu&hl=ta&gl=IN&ceid=IN:ta'
-		], updated_at = NOW()
-		WHERE id = 'tn_live_news_cron'
-	`)
+	// Automatically normalize any website homepage URLs in tn_live_news_cron to their official RSS feeds
+	var currentSources []string
+	_ = s.conn.QueryRow(ctx, "SELECT source_urls FROM cron_jobs WHERE id = 'tn_live_news_cron'").Scan(&currentSources)
+	if len(currentSources) > 0 {
+		var resolvedSources []string
+		seen := make(map[string]bool)
+		for _, u := range currentSources {
+			resolved := scraper.ResolveToRSSFeed(u)
+			if resolved != "" && !seen[resolved] {
+				seen[resolved] = true
+				resolvedSources = append(resolvedSources, resolved)
+			}
+		}
+		_, _ = s.conn.Exec(ctx, `
+			UPDATE cron_jobs
+			SET source_urls = $1, updated_at = NOW()
+			WHERE id = 'tn_live_news_cron'
+		`, resolvedSources)
+	} else {
+		// If empty, seed with core regional feeds
+		_, _ = s.conn.Exec(ctx, `
+			UPDATE cron_jobs
+			SET source_urls = ARRAY[
+				'https://www.thehindu.com/news/national/tamil-nadu/feeder/default.rss',
+				'https://feeds.bbci.co.uk/tamil/rss.xml',
+				'https://tamil.oneindia.com/rss/tamil-news-fb.xml',
+				'https://news.google.com/rss/search?q=Tamil+Nadu&hl=ta&gl=IN&ceid=IN:ta'
+			], updated_at = NOW()
+			WHERE id = 'tn_live_news_cron'
+		`)
+	}
 
 	// Ensure all registered default jobs exist in PostgreSQL cron_jobs table
 	s.mu.RLock()
@@ -598,7 +618,7 @@ func (s *Scheduler) AddSource(ctx context.Context, jobID, sourceURL string) erro
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	sourceURL = strings.TrimSpace(sourceURL)
+	sourceURL = scraper.ResolveToRSSFeed(strings.TrimSpace(sourceURL))
 	if sourceURL == "" {
 		return fmt.Errorf("source URL cannot be empty")
 	}
@@ -668,7 +688,7 @@ func (s *Scheduler) UpdateSource(ctx context.Context, jobID, oldURL, newURL stri
 	defer s.mu.Unlock()
 
 	oldURL = strings.TrimSpace(oldURL)
-	newURL = strings.TrimSpace(newURL)
+	newURL = scraper.ResolveToRSSFeed(strings.TrimSpace(newURL))
 	if newURL == "" {
 		return fmt.Errorf("new source URL cannot be empty")
 	}
@@ -769,7 +789,7 @@ func (s *Scheduler) runLiveNewsScraper(ctx context.Context) (string, error) {
 	var cleanSources []string
 	seen := make(map[string]bool)
 	for _, u := range sources {
-		u = strings.TrimSpace(u)
+		u = scraper.ResolveToRSSFeed(strings.TrimSpace(u))
 		if u == "" || strings.HasPrefix(u, "https://www.dinamalar.com") || strings.HasPrefix(u, "http://www.dinamalar.com") {
 			continue // skip client-rendered JS homepage
 		}

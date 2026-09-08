@@ -511,11 +511,48 @@ func IsViralContentExported(title, description, urlStr, contentType string) bool
 // DBMu guarantees thread-safe serialization for PostgreSQL queries across concurrent HTTP requests
 var DBMu sync.Mutex
 
+// ResolveToRSSFeed automatically translates general website homepage/category URLs into their official, working RSS XML feeds
+func ResolveToRSSFeed(targetURL string) string {
+	targetURL = strings.TrimSpace(targetURL)
+	if targetURL == "" {
+		return targetURL
+	}
+	cleanURL := strings.TrimRight(targetURL, "/")
+	lower := strings.ToLower(cleanURL)
+
+	if strings.Contains(lower, "news7tamil.live") && !strings.Contains(lower, "/feed") {
+		return "https://news7tamil.live/feed"
+	}
+	if strings.Contains(lower, "tamil.news18.com") && !strings.Contains(lower, ".xml") && !strings.Contains(lower, "rss") {
+		return "https://tamil.news18.com/commonfeeds/v1/tam/rss/latest.xml"
+	}
+	if strings.Contains(lower, "puthiyathalaimurai.com") && !strings.Contains(lower, ".rss") && !strings.Contains(lower, "feed") {
+		return "https://www.puthiyathalaimurai.com/stories.rss"
+	}
+	if strings.Contains(lower, "tamil.indianexpress.com") && !strings.Contains(lower, "/rss") {
+		return "https://tamil.indianexpress.com/rss"
+	}
+	if strings.Contains(lower, "thehindu.com") && !strings.Contains(lower, ".rss") {
+		return "https://www.thehindu.com/news/national/tamil-nadu/feeder/default.rss"
+	}
+	if (strings.Contains(lower, "bbc.com/tamil") || strings.Contains(lower, "bbc.co.uk/tamil")) && !strings.Contains(lower, ".xml") {
+		return "https://feeds.bbci.co.uk/tamil/rss.xml"
+	}
+	if strings.Contains(lower, "tamil.oneindia.com") && !strings.Contains(lower, ".xml") && !strings.Contains(lower, "rss") {
+		return "https://tamil.oneindia.com/rss/tamil-news-fb.xml"
+	}
+
+	return targetURL
+}
+
 // ScrapeAndStage fetches content from siteURL, parses text/images/video, and stages into PostgreSQL with status='PENDING'
 func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (*ScrapeResult, error) {
 	if strings.TrimSpace(targetURL) == "" {
 		return nil, fmt.Errorf("target URL cannot be empty")
 	}
+
+	// Auto-resolve known portal homepages directly to their official RSS feed
+	targetURL = ResolveToRSSFeed(targetURL)
 
 	slog.Info("Scraper starting fetch", slog.String("url", targetURL))
 
@@ -585,6 +622,43 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 				scraped := parseAtomEntry(e)
 				if scraped != nil {
 					items = append(items, scraped)
+				}
+			}
+		}
+	}
+
+	// 2.5 Auto-discover RSS link from HTML head if available
+	if len(items) == 0 && (strings.Contains(contentType, "text/html") || strings.Contains(bodyStr, "<html")) {
+		rssLinkRe := regexp.MustCompile(`(?i)<link[^>]+(?:type=["']application/rss\+xml["'][^>]+href=["']([^"']+)["']|href=["']([^"']+)["'][^>]+type=["']application/rss\+xml["'])`)
+		if m := rssLinkRe.FindStringSubmatch(bodyStr); len(m) > 1 {
+			rssURL := m[1]
+			if rssURL == "" && len(m) > 2 {
+				rssURL = m[2]
+			}
+			if rssURL != "" {
+				if baseParsed, err := url.Parse(targetURL); err == nil {
+					if ref, err := url.Parse(rssURL); err == nil {
+						rssURL = baseParsed.ResolveReference(ref).String()
+					}
+				}
+				slog.Info("Auto-discovered RSS feed from HTML page", slog.String("discovered", rssURL), slog.String("source", targetURL))
+				if subReq, err := http.NewRequestWithContext(ctx, http.MethodGet, rssURL, nil); err == nil {
+					subReq.Header.Set("User-Agent", req.Header.Get("User-Agent"))
+					if subResp, err := client.Do(subReq); err == nil && subResp.StatusCode == http.StatusOK {
+						defer subResp.Body.Close()
+						if subBytes, err := io.ReadAll(subResp.Body); err == nil {
+							var rss rssFeed
+							if err := xml.Unmarshal(subBytes, &rss); err == nil && len(rss.Channel.Items) > 0 {
+								slog.Info("Successfully parsed auto-discovered RSS items", slog.Int("count", len(rss.Channel.Items)), slog.String("url", rssURL))
+								for _, it := range rss.Channel.Items {
+									scraped := parseRSSItem(it)
+									if scraped != nil {
+										items = append(items, scraped)
+									}
+								}
+							}
+						}
+					}
 				}
 			}
 		}
