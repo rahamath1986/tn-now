@@ -93,6 +93,7 @@ func main() {
 	// Register OpenAPI static endpoint
 	swagger.RegisterRoutes(mux)
 
+	var portalHandler *portal.PortalHandler
 	// Initialize database accessors & auth modules if connection succeeded
 	if pool != nil {
 		queries := db.New(pool)
@@ -146,7 +147,7 @@ func main() {
 		adminHandler.RegisterRoutes(mux)
 
 		// Public news & editorial portal handler registration
-		portalHandler := portal.NewPortalHandler(queries, pool)
+		portalHandler = portal.NewPortalHandler(queries, pool)
 		portalHandler.RegisterRoutes(mux)
 	}
 
@@ -156,7 +157,15 @@ func main() {
 			http.NotFound(w, r)
 			return
 		}
-		if strings.Contains(r.Header.Get("Accept"), "text/html") {
+		ua := r.Header.Get("User-Agent")
+		isCrawler := strings.Contains(ua, "WhatsApp") || strings.Contains(ua, "facebookexternalhit") ||
+			strings.Contains(ua, "Twitterbot") || strings.Contains(ua, "TelegramBot") ||
+			strings.Contains(ua, "Instagram") || strings.Contains(ua, "LinkedInBot")
+		if strings.Contains(r.Header.Get("Accept"), "text/html") || isCrawler || r.URL.Query().Get("post") != "" {
+			if portalHandler != nil {
+				portalHandler.HandlePortalPage(w, r)
+				return
+			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 			w.WriteHeader(http.StatusOK)

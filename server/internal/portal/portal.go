@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
+	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -80,6 +83,7 @@ type PortalFeedResponse struct {
 func (h *PortalHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/portal", h.HandlePortalPage)
 	mux.HandleFunc("/api/portal/feed", h.HandlePortalFeed)
+	mux.HandleFunc("/api/portal/post", h.HandleGetSinglePost)
 	mux.HandleFunc("/portal/assets/brand/", h.HandleBrandAssets)
 	mux.HandleFunc("/portal/assets/", h.HandleBrandAssets)
 	mux.HandleFunc("/assets/", h.HandleBrandAssets)
@@ -97,8 +101,171 @@ func (h *PortalHandler) HandlePortalPage(w http.ResponseWriter, r *http.Request)
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+
+	postID := strings.TrimSpace(r.URL.Query().Get("post"))
+	pageHTML := RenderPortalPage()
+
+	if postID != "" && h.conn != nil {
+		pageHTML = h.injectPostMetadata(r.Context(), pageHTML, postID, r)
+	}
+
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(RenderPortalPage()))
+	_, _ = w.Write([]byte(pageHTML))
+}
+
+func (h *PortalHandler) HandleGetSinglePost(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Method not allowed"})
+		return
+	}
+
+	postID := strings.TrimSpace(r.URL.Query().Get("id"))
+	if postID == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Missing article id"})
+		return
+	}
+
+	if h.conn == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Database not connected"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	var it ArticleItem
+	var cid pgtype.UUID
+	err := h.conn.QueryRow(ctx, `
+		SELECT c.id, c.title, COALESCE(c.description, ''), c.content_type, COALESCE(c.source_url, ''),
+		       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'), c.status,
+		       COALESCE(vl.external_video_id, ''), COALESCE(vl.canonical_url, ''), COALESCE(vl.platform, ''),
+		       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
+		       c.created_at, COALESCE(c.is_viral, false)
+		FROM content c
+		LEFT JOIN districts d ON c.district_id = d.id
+		LEFT JOIN categories cat ON c.category_id = cat.id
+		LEFT JOIN video_links vl ON c.id = vl.content_id
+		LEFT JOIN stories s ON c.id = s.content_id
+		LEFT JOIN photos p ON c.id = p.content_id
+		WHERE c.id::text = $1
+		LIMIT 1
+	`, postID).Scan(&cid, &it.Title, &it.Description, &it.ContentType, &it.SourceURL,
+		&it.District, &it.Category, &it.Status, &it.VideoID, &it.VideoURL, &it.VideoType, &it.Thumbnail, &it.CreatedAt, &it.IsViral)
+
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Article not found"})
+		return
+	}
+
+	it.ID = fmtUUID(cid)
+	it.Title = scraper.CleanHTML(it.Title)
+	it.Description = sanitizeEditorialDescription(scraper.CleanHTML(it.Description), it.Title, it.District)
+	it.Language = scraper.DetectLanguage(it.Title + " " + it.Description)
+	if strings.TrimSpace(it.Thumbnail) == "" {
+		it.Thumbnail = scraper.GetFallbackImageWithPerson(it.Title, it.District, it.Category)
+	}
+	it.Author = "TN24 செய்திக் குழு"
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"data":    it,
+	})
+}
+
+func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string, postID string, r *http.Request) string {
+	var title, desc, thumb, district, category string
+	err := h.conn.QueryRow(ctx, `
+		SELECT c.title, COALESCE(c.description, ''),
+		       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
+		       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News')
+		FROM content c
+		LEFT JOIN video_links vl ON c.id = vl.content_id
+		LEFT JOIN stories s ON c.id = s.content_id
+		LEFT JOIN photos p ON c.id = p.content_id
+		LEFT JOIN districts d ON c.district_id = d.id
+		LEFT JOIN categories cat ON c.category_id = cat.id
+		WHERE c.id::text = $1
+		LIMIT 1
+	`, postID).Scan(&title, &desc, &thumb, &district, &category)
+
+	if err != nil || strings.TrimSpace(title) == "" {
+		return baseHTML
+	}
+
+	cleanTitle := scraper.CleanHTML(title)
+	cleanTitleEscaped := html.EscapeString(cleanTitle)
+
+	cleanDesc := scraper.CleanHTML(desc)
+	cleanDesc = strings.Join(strings.Fields(cleanDesc), " ")
+	runes := []rune(cleanDesc)
+	if len(runes) > 180 {
+		cleanDesc = string(runes[:180]) + "..."
+	}
+	cleanDescEscaped := html.EscapeString(cleanDesc)
+
+	scheme := "https"
+	host := r.Host
+	if host == "" {
+		host = "tn-now.onrender.com"
+	}
+	fullPostURL := fmt.Sprintf("%s://%s/portal?post=%s", scheme, host, url.QueryEscape(postID))
+
+	if strings.TrimSpace(thumb) == "" {
+		thumb = scraper.GetFallbackImageWithPerson(cleanTitle, district, category)
+	}
+	if strings.HasPrefix(thumb, "/") {
+		thumb = fmt.Sprintf("%s://%s%s", scheme, host, thumb)
+	}
+
+	// 1. Replace <title>
+	reTitle := regexp.MustCompile(`(?i)<title>.*?</title>`)
+	baseHTML = reTitle.ReplaceAllString(baseHTML, fmt.Sprintf("<title>%s &mdash; TN24 News</title>", cleanTitleEscaped))
+
+	// 2. Replace meta description
+	reDesc := regexp.MustCompile(`(?i)<meta name="description" content=".*?">`)
+	baseHTML = reDesc.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="description" content="%s">`, cleanDescEscaped))
+
+	// 3. Replace og:title
+	reOgTitle := regexp.MustCompile(`(?i)<meta property="og:title" content=".*?">`)
+	baseHTML = reOgTitle.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta property="og:title" content="%s | TN24">`, cleanTitleEscaped))
+
+	// 4. Replace og:description
+	reOgDesc := regexp.MustCompile(`(?i)<meta property="og:description" content=".*?">`)
+	baseHTML = reOgDesc.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta property="og:description" content="%s">`, cleanDescEscaped))
+
+	// 5. Replace og:url
+	reOgURL := regexp.MustCompile(`(?i)<meta property="og:url" content=".*?">`)
+	baseHTML = reOgURL.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta property="og:url" content="%s">`, fullPostURL))
+
+	// 6. Replace og:image
+	reOgImg := regexp.MustCompile(`(?i)<meta property="og:image" content=".*?">`)
+	baseHTML = reOgImg.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta property="og:image" content="%s">`, html.EscapeString(thumb)))
+
+	// 7. Replace twitter tags
+	reTwTitle := regexp.MustCompile(`(?i)<meta name="twitter:title" content=".*?">`)
+	baseHTML = reTwTitle.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="twitter:title" content="%s">`, cleanTitleEscaped))
+
+	reTwDesc := regexp.MustCompile(`(?i)<meta name="twitter:description" content=".*?">`)
+	baseHTML = reTwDesc.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="twitter:description" content="%s">`, cleanDescEscaped))
+
+	reTwImg := regexp.MustCompile(`(?i)<meta name="twitter:image" content=".*?">`)
+	baseHTML = reTwImg.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="twitter:image" content="%s">`, html.EscapeString(thumb)))
+
+	// 8. Inject script with window.INITIAL_POST_ID
+	scriptTag := fmt.Sprintf(`<script>window.INITIAL_POST_ID = %q;</script></head>`, postID)
+	baseHTML = strings.Replace(baseHTML, "</head>", scriptTag, 1)
+
+	return baseHTML
 }
 
 func (h *PortalHandler) HandlePortalFeed(w http.ResponseWriter, r *http.Request) {

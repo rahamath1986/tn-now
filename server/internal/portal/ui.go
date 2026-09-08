@@ -1328,6 +1328,12 @@ func RenderPortalPage() string {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 12px;
+        }
+        .modal-btn-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
         }
         .btn-modal-action {
             background: var(--nav-blue);
@@ -1339,8 +1345,47 @@ func RenderPortalPage() string {
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.15s;
         }
         .btn-modal-action:hover { background: var(--nav-blue-hover); }
+        .btn-share-whatsapp {
+            background: #25D366 !important;
+            color: #ffffff !important;
+        }
+        .btn-share-whatsapp:hover { background: #1ebe5d !important; }
+        .btn-share-native {
+            background: #0284c7 !important;
+            color: #ffffff !important;
+        }
+        .btn-share-native:hover { background: #0369a1 !important; }
+        .btn-copy-link {
+            background: #475569 !important;
+            color: #ffffff !important;
+        }
+        .btn-copy-link:hover { background: #334155 !important; }
+        .btn-source-link {
+            background: #1e293b !important;
+            color: #94a3b8 !important;
+            border: 1px solid #334155 !important;
+        }
+        .btn-source-link:hover { color: #f8fafc !important; }
+        .modal-back-btn {
+            display: none;
+            background: #f1f5f9;
+            color: #0f172a;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background 0.15s;
+        }
+        .modal-back-btn:hover { background: #e2e8f0; }
 
         /* Toast */
         .toast-notify {
@@ -1358,7 +1403,7 @@ func RenderPortalPage() string {
             z-index: 2000;
         }
 
-        /* ---------------- RESPONSIVE ---------------- */
+        /* ---------------- RESPONSIVE / MOBILE ENHANCEMENTS ---------------- */
         @media (max-width: 1080px) {
             .main-container {
                 grid-template-columns: minmax(0, 1fr) 280px;
@@ -1367,24 +1412,205 @@ func RenderPortalPage() string {
                 display: none;
             }
         }
-        @media (max-width: 800px) {
-            .top-banner-inner { flex-direction: column; gap: 12px; }
-            .ticker-inner { flex-direction: column; align-items: flex-start; }
-            .ticker-stats { flex-wrap: wrap; gap: 12px; }
+        @media (max-width: 768px) {
+            /* Compact Header */
+            .top-banner {
+                padding: 8px 12px;
+            }
+            .top-banner-inner {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                gap: 8px;
+            }
+            .top-left {
+                font-size: 11px;
+                font-weight: 700;
+                color: #64748b;
+            }
+            .brand-logo img {
+                height: 34px !important;
+            }
+            .social-icons {
+                display: none;
+            }
+
+            /* Horizontally Scrollable Nav Bar with Smooth Touch Momentum */
+            .primary-nav {
+                position: sticky;
+                top: 0;
+                z-index: 100;
+            }
+            .nav-inner {
+                padding: 0 8px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+            .nav-inner::-webkit-scrollbar {
+                display: none;
+            }
+            .nav-links {
+                display: flex;
+                flex-wrap: nowrap;
+                white-space: nowrap;
+                gap: 2px;
+            }
+            .nav-link {
+                padding: 9px 12px;
+                font-size: 12px;
+                letter-spacing: 0.2px;
+                border-radius: 4px;
+            }
+
+            /* Single-line Ticker */
+            .ticker-ribbon {
+                padding: 6px 10px;
+            }
+            .ticker-inner {
+                flex-direction: row;
+                align-items: center;
+                gap: 8px;
+            }
+            .ticker-badge {
+                font-size: 9px;
+                padding: 3px 6px;
+                flex-shrink: 0;
+            }
+            .ticker-stats {
+                display: none;
+            }
+
+            /* 1-Column Feed */
             .main-container {
                 grid-template-columns: 1fr;
+                padding: 10px 8px;
+                gap: 14px;
             }
             .right-col {
                 order: 3;
             }
-            .editorial-grid {
-                grid-template-columns: 1fr;
+
+            /* Hero Card Mobile Optimizations */
+            .hero-feature-card {
+                border-radius: 10px;
+                margin-bottom: 12px;
             }
+            .hero-image-wrap {
+                height: auto;
+                aspect-ratio: 16/9;
+                max-height: 220px;
+            }
+            .hero-overlay {
+                padding: 14px;
+            }
+            .hero-title {
+                font-size: 17px !important;
+                line-height: 1.4 !important;
+                margin-bottom: 6px;
+            }
+            .hero-desc {
+                font-size: 12.5px !important;
+                line-height: 1.4 !important;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            /* Teasers & Grid Cards */
             .hero-teasers-strip {
                 grid-template-columns: 1fr;
+                gap: 8px;
             }
-            .hero-image-wrap { height: 260px; }
-            .hero-title { font-size: 18px; }
+            .editorial-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .editorial-card {
+                padding: 12px;
+                border-radius: 8px;
+            }
+
+            /* App-like Full Screen Article Reader on Mobile */
+            .modal-backdrop {
+                padding: 0 !important;
+                align-items: flex-start !important;
+            }
+            .modal-card {
+                max-width: 100% !important;
+                width: 100% !important;
+                height: 100vh !important;
+                max-height: 100vh !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                display: flex !important;
+                flex-direction: column !important;
+            }
+            .modal-header {
+                padding: 12px 14px !important;
+                position: sticky !important;
+                top: 0 !important;
+                background: #ffffff !important;
+                z-index: 20 !important;
+                border-bottom: 1px solid #e2e8f0 !important;
+                gap: 10px !important;
+            }
+            .modal-back-btn {
+                display: flex !important;
+            }
+            .modal-close-btn {
+                width: 32px !important;
+                height: 32px !important;
+                font-size: 20px !important;
+            }
+            .modal-title {
+                font-size: 18px !important;
+                line-height: 1.4 !important;
+            }
+            .modal-body {
+                padding: 14px !important;
+                flex: 1 !important;
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                gap: 14px !important;
+            }
+            .modal-media {
+                max-height: 230px !important;
+                border-radius: 8px !important;
+            }
+            .modal-media img, .modal-media iframe {
+                max-height: 230px !important;
+                height: 230px !important;
+            }
+            .modal-text {
+                font-size: 16px !important;
+                line-height: 1.75 !important;
+                color: #1e293b !important;
+            }
+            .modal-actions {
+                position: sticky !important;
+                bottom: 0 !important;
+                background: #ffffff !important;
+                border-top: 1px solid #e2e8f0 !important;
+                padding: 10px 12px !important;
+                flex-direction: column !important;
+                gap: 8px !important;
+                box-shadow: 0 -4px 16px rgba(0,0,0,0.08) !important;
+                z-index: 20 !important;
+            }
+            .modal-btn-row {
+                display: grid !important;
+                grid-template-columns: 1.4fr 1fr 0.9fr 0.9fr !important;
+                gap: 6px !important;
+                width: 100% !important;
+            }
+            .btn-modal-action {
+                justify-content: center !important;
+                padding: 9px 4px !important;
+                font-size: 12px !important;
+                border-radius: 6px !important;
+            }
         }
     </style>
 </head>
@@ -1763,7 +1989,10 @@ func RenderPortalPage() string {
     <div class="modal-backdrop" id="articleModal" onclick="handleBackdropClick(event)">
         <div class="modal-card">
             <div class="modal-header">
-                <div>
+                <button class="modal-back-btn" onclick="closeArticleModal()" title="பின்செல்க">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </button>
+                <div style="flex: 1; min-width: 0;">
                     <div class="modal-meta-bar">
                         <span class="badge-pill" id="modalCategoryBadge" style="position: static;">செய்திகள்</span>
                         <span id="modalDistrict">தமிழ்நாடு</span>
@@ -1782,9 +2011,21 @@ func RenderPortalPage() string {
             </div>
             <div class="modal-actions">
                 <span style="font-size: 11px; font-weight: 700; color: #64748b;" id="modalAuthor">TN24 செய்திக் குழு</span>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn-modal-action" id="modalSourceBtn" onclick="visitOriginalSource()">மூலச் செய்திக்குச் செல்க ↗</button>
-                    <button class="btn-modal-action" style="background: #475569;" onclick="copyShareLink()">பகிர்க 🔗</button>
+                <div class="modal-btn-row">
+                    <button class="btn-modal-action btn-share-whatsapp" onclick="shareToWhatsApp()" title="WhatsApp-ல் பகிர்க">
+                        <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.397 0 .017 5.38.017 12.014c0 2.117.553 4.185 1.603 6.007L0 24l6.166-1.618a11.96 11.96 0 005.865 1.53h.005c6.634 0 12.014-5.38 12.014-12.014 0-3.208-1.25-6.224-3.52-8.495A11.939 11.939 0 0012.031 0zm-.005 21.966h-.004c-1.802 0-3.568-.485-5.107-1.398l-.366-.217-3.795.996 1.013-3.7-.238-.379a9.986 9.986 0 01-1.534-5.254C2.001 6.475 6.495 1.98 12.026 1.98c2.673 0 5.187 1.042 7.078 2.934a9.948 9.948 0 012.928 7.076c0 5.532-4.494 10.026-10.006 10.026z"/></svg>
+                        WhatsApp
+                    </button>
+                    <button class="btn-modal-action btn-share-native" onclick="shareNative()" title="பிற செயலிகளில் பகிர்க">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                        பகிர்க
+                    </button>
+                    <button class="btn-modal-action btn-copy-link" onclick="copyShareLink()" title="இணைப்பை நகலெடு">
+                        🔗 நகல்
+                    </button>
+                    <button class="btn-modal-action btn-source-link" id="modalSourceBtn" onclick="visitOriginalSource()" title="அசல் செய்தி இணைப்பு">
+                        மூலம் ↗
+                    </button>
                 </div>
             </div>
         </div>
@@ -1906,6 +2147,7 @@ func RenderPortalPage() string {
         // On Load
         document.addEventListener('DOMContentLoaded', () => {
             updateDateString();
+            checkUrlPost();
             loadPortalFeed();
             initMarketRates();
             runCalculator();
@@ -2005,6 +2247,7 @@ func RenderPortalPage() string {
                 if (json.success && json.data) {
                     portalData = json.data;
                     renderPortalUI(portalData);
+                    checkUrlPost();
                 }
             } catch (err) {
                 console.error('Failed to load portal feed:', err);
@@ -2383,6 +2626,9 @@ func RenderPortalPage() string {
 
         function showArticleModal(item) {
             currentModalArticle = item;
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, '', '/portal?post=' + encodeURIComponent(item.id));
+            }
             document.getElementById('modalTitle').textContent = decodeHtml(item.title);
             document.getElementById('modalCategoryBadge').textContent = (item.category || 'செய்திகள்').toUpperCase();
             const src = getSourceDomain(item.sourceUrl);
@@ -2417,11 +2663,16 @@ func RenderPortalPage() string {
             }
 
             document.getElementById('articleModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
         }
 
         function closeArticleModal() {
             document.getElementById('articleModal').style.display = 'none';
             document.getElementById('modalMediaContainer').innerHTML = '';
+            document.body.style.overflow = '';
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, '', '/portal');
+            }
         }
 
         function handleBackdropClick(e) {
@@ -2446,6 +2697,28 @@ func RenderPortalPage() string {
             }
         }
 
+        function shareToWhatsApp() {
+            if (!currentModalArticle) return;
+            const title = currentModalArticle.title || '';
+            const url = window.location.origin + '/portal?post=' + encodeURIComponent(currentModalArticle.id);
+            const text = encodeURIComponent('🔥 *' + title + '*\n\nமுழு செய்தி விவரம் படிக்க:\n' + url + '\n\n— TN24 News');
+            window.open('https://api.whatsapp.com/send?text=' + text, '_blank');
+        }
+
+        function shareNative() {
+            if (!currentModalArticle) return;
+            const url = window.location.origin + '/portal?post=' + encodeURIComponent(currentModalArticle.id);
+            if (navigator.share) {
+                navigator.share({
+                    title: currentModalArticle.title,
+                    text: currentModalArticle.title + ' — TN24 News',
+                    url: url
+                }).catch(() => {});
+            } else {
+                copyShareLink();
+            }
+        }
+
         function copyShareLink() {
             if (currentModalArticle) {
                 const shareUrl = window.location.origin + '/portal?post=' + encodeURIComponent(currentModalArticle.id);
@@ -2455,6 +2728,43 @@ func RenderPortalPage() string {
                     showToast('இணைப்பு: ' + shareUrl);
                 });
             }
+        }
+
+        let urlPostChecked = false;
+        function checkUrlPost() {
+            if (urlPostChecked) return;
+            const urlParams = new URLSearchParams(window.location.search);
+            const postId = urlParams.get('post') || (typeof window.INITIAL_POST_ID !== 'undefined' ? window.INITIAL_POST_ID : '');
+            if (!postId) return;
+
+            urlPostChecked = true;
+
+            // Check in portalData
+            if (portalData) {
+                const all = [
+                    ...(portalData.hero ? [portalData.hero] : []),
+                    ...(portalData.heroTeasers || []),
+                    ...(portalData.leftFeed || []),
+                    ...(portalData.pressReleases || []),
+                    ...(portalData.centerArticles || []),
+                    ...(portalData.mostRead || [])
+                ];
+                const found = all.find(item => item.id === postId);
+                if (found) {
+                    showArticleModal(found);
+                    return;
+                }
+            }
+
+            // Fetch from single post API
+            fetch('/api/portal/post?id=' + encodeURIComponent(postId))
+                .then(r => r.json())
+                .then(res => {
+                    if (res.success && res.data) {
+                        showArticleModal(res.data);
+                    }
+                })
+                .catch(() => {});
         }
 
         // Real-time Single Event Modal Logic
