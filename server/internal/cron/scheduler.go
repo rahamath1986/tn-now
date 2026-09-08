@@ -76,6 +76,21 @@ func (s *Scheduler) loadPersistedJobs() {
 
 	_, _ = s.conn.Exec(ctx, "ALTER TABLE cron_jobs ADD COLUMN IF NOT EXISTS source_urls TEXT[] DEFAULT '{}'")
 
+	// Ensure all registered default jobs exist in PostgreSQL cron_jobs table
+	s.mu.RLock()
+	for _, job := range s.jobs {
+		_, _ = s.conn.Exec(ctx, `
+			INSERT INTO cron_jobs (id, name, description, schedule_interval, job_type, is_active, source_urls)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+			ON CONFLICT (id) DO UPDATE SET
+				name = EXCLUDED.name,
+				description = EXCLUDED.description,
+				schedule_interval = EXCLUDED.schedule_interval,
+				job_type = EXCLUDED.job_type
+		`, job.ID, job.Name, job.Description, job.ScheduleInterval, job.JobType, job.IsActive, job.SourceURLs)
+	}
+	s.mu.RUnlock()
+
 	rows, err := s.conn.Query(ctx, `
 		SELECT id, name, description, schedule_interval, job_type, is_active, last_run_at, next_run_at, run_count, failure_count, COALESCE(source_urls, '{}')
 		FROM cron_jobs
@@ -281,6 +296,12 @@ func (s *Scheduler) TriggerJob(ctx context.Context, jobID string) (*JobExecution
 
 	// Persist run history to database
 	if s.conn != nil {
+		_, _ = s.conn.Exec(ctx, `
+			INSERT INTO cron_jobs (id, name, description, schedule_interval, job_type, is_active, source_urls)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+			ON CONFLICT (id) DO NOTHING
+		`, job.ID, job.Name, job.Description, job.ScheduleInterval, job.JobType, job.IsActive, job.SourceURLs)
+
 		_, _ = s.conn.Exec(ctx, `
 			UPDATE cron_jobs
 			SET last_run_at = $1, next_run_at = $2, run_count = run_count + 1, failure_count = failure_count + $3, updated_at = NOW()

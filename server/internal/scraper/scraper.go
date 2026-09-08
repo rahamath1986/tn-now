@@ -689,9 +689,13 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 		return result, nil
 	}
 
-	// 1. Enrich all scraped items in memory (network fetches, media extraction, district/category detection)
+	// 1. Enrich scraped items in parallel (cap at 25 items per run to ensure fast execution under 5s)
 	// NO DATABASE LOCK HELD during network I/O so other HTTP requests are never blocked!
-	for _, item := range items {
+	if len(items) > 25 {
+		items = items[:25]
+	}
+
+	enrichItem := func(item *ScrapedItem) {
 		// Fetch full article webpage to extract complete unabridged text body, all images, and any video
 		if strings.HasPrefix(item.SourceURL, "http") && !strings.Contains(item.SourceURL, "youtube.com") && !strings.Contains(item.SourceURL, "youtu.be") {
 			fullTxt, articleImgs, subVidID, subVidURL, subVidType, pubDate := FetchFullTextAndMediaExported(item.SourceURL)
@@ -750,12 +754,31 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 		}
 	}
 
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, 6) // Max 6 concurrent network fetches
+	for _, itm := range items {
+		wg.Add(1)
+		go func(it *ScrapedItem) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			enrichItem(it)
+		}(itm)
+	}
+	wg.Wait()
+
 	// 2. Fast Database Staging: lock DBMu ONLY for database inserts (takes < 25ms total)
 	DBMu.Lock()
 	defer DBMu.Unlock()
 
 	dbCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	// Ensure required columns exist
+	_, _ = conn.Exec(dbCtx, `
+		ALTER TABLE content ADD COLUMN IF NOT EXISTS is_viral BOOLEAN DEFAULT FALSE;
+		ALTER TABLE content ADD COLUMN IF NOT EXISTS language VARCHAR(20) DEFAULT 'ta';
+	`)
 
 	// Ensure system author exists
 	var authorID string

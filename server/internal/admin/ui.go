@@ -2511,7 +2511,7 @@ func RenderAdminDashboard() string {
         }
 
         function triggerCronJob(jobId) {
-            showToast('Triggering ' + jobId + '...');
+            showToast('⏳ Triggering ' + jobId + ' (fetching feeds)...');
             fetch('/admin/api/cron/trigger', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2520,14 +2520,17 @@ func RenderAdminDashboard() string {
             .then(res => res.json())
             .then(res => {
                 if (res.success) {
-                    showToast('✓ ' + jobId + ' completed successfully');
+                    const msg = (res.data && res.data.message) ? res.data.message : ('✓ ' + jobId + ' completed successfully');
+                    showToast(msg);
                     fetchCronJobs();
                     fetchCronLogs();
+                    if (typeof fetchPendingContent === 'function') fetchPendingContent();
+                    if (typeof fetchStats === 'function') fetchStats();
                 } else {
                     showToast('✗ ' + (res.message || 'Execution error'));
                 }
             })
-            .catch(() => showToast('✗ Failed to trigger job'));
+            .catch(() => showToast('✗ Failed to trigger job (network error or timeout)'));
         }
 
         function toggleCronJob(jobId) {

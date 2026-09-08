@@ -65,6 +65,7 @@ func (h *Handler) cleanExistingDatabaseEntities() {
 	`)
 
 	_, _ = h.conn.Exec(ctx, `
+		ALTER TABLE content ADD COLUMN IF NOT EXISTS is_viral BOOLEAN DEFAULT FALSE;
 		ALTER TABLE content ADD COLUMN IF NOT EXISTS language VARCHAR(20) DEFAULT 'ta';
 		CREATE INDEX IF NOT EXISTS idx_content_status_created ON content (status, created_at DESC);
 		CREATE INDEX IF NOT EXISTS idx_content_created_at ON content (created_at DESC);
