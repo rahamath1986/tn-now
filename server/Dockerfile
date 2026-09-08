@@ -4,8 +4,8 @@ FROM golang:1.23-alpine AS builder
 WORKDIR /app
 
 # Copy Go module manifests
-COPY go.mod ./
-# Download dependencies if any (none yet, but pre-configured)
+COPY go.mod go.sum ./
+# Download dependencies
 RUN go mod download
 
 # Copy source code
