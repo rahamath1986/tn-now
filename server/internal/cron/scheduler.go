@@ -810,23 +810,37 @@ func (s *Scheduler) runLiveNewsScraper(ctx context.Context) (string, error) {
 	totalStaged := 0
 	totalSkipped := 0
 	successCount := 0
+	var mu sync.Mutex
+
+	var wg sync.WaitGroup
+	feedSem := make(chan struct{}, 4) // Scrape up to 4 feeds concurrently in parallel
 
 	for _, feedURL := range cleanSources {
-		feedCtx, feedCancel := context.WithTimeout(ctx, 30*time.Second)
-		slog.Info("Starting scrape for source", slog.String("url", feedURL))
-		res, err := scraper.ScrapeAndStage(feedCtx, s.conn, feedURL)
-		feedCancel()
+		wg.Add(1)
+		go func(urlStr string) {
+			defer wg.Done()
+			feedSem <- struct{}{}
+			defer func() { <-feedSem }()
 
-		if err != nil {
-			slog.Warn("Scraper failed for source", slog.String("url", feedURL), slog.String("err", err.Error()))
-			continue
-		}
-		if res != nil {
-			successCount++
-			totalStaged += res.StagedCount
-			totalSkipped += res.DuplicateCount
-		}
+			feedCtx, feedCancel := context.WithTimeout(ctx, 15*time.Second)
+			defer feedCancel()
+
+			slog.Info("Starting scrape for source", slog.String("url", urlStr))
+			res, err := scraper.ScrapeAndStage(feedCtx, s.conn, urlStr)
+			if err != nil {
+				slog.Warn("Scraper failed for source", slog.String("url", urlStr), slog.String("err", err.Error()))
+				return
+			}
+			if res != nil {
+				mu.Lock()
+				successCount++
+				totalStaged += res.StagedCount
+				totalSkipped += res.DuplicateCount
+				mu.Unlock()
+			}
+		}(feedURL)
 	}
+	wg.Wait()
 
 	return fmt.Sprintf("Scraped %d source(s) (%d active): staged %d new items (%d skipped duplicates). Pending operator review in Control Panel.", len(cleanSources), successCount, totalStaged, totalSkipped), nil
 }

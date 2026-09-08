@@ -454,7 +454,7 @@ func (h *Handler) HandleTriggerCronJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobCtx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	jobCtx, cancel := context.WithTimeout(r.Context(), 75*time.Second)
 	defer cancel()
 	res, err := h.scheduler.TriggerJob(jobCtx, req.JobID)
 	if err != nil {

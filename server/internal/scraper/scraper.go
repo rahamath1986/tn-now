@@ -569,7 +569,7 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 	}
 	client := &http.Client{
 		Transport: tr,
-		Timeout:   25 * time.Second,
+		Timeout:   12 * time.Second,
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL, nil)
 	if err != nil {
@@ -764,23 +764,22 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 		return result, nil
 	}
 
-	// 1. Enrich scraped items in parallel (cap at 25 items per run to ensure fast execution under 5s)
+	// 1. Enrich scraped items in parallel (cap at 15 items per feed to ensure fast execution under 3s)
 	// NO DATABASE LOCK HELD during network I/O so other HTTP requests are never blocked!
-	if len(items) > 25 {
-		items = items[:25]
+	if len(items) > 15 {
+		items = items[:15]
 	}
 
 	enrichItem := func(item *ScrapedItem) {
-		// Fetch full article webpage to extract complete unabridged text body, all images, and any video
-		if strings.HasPrefix(item.SourceURL, "http") && !strings.Contains(item.SourceURL, "youtube.com") && !strings.Contains(item.SourceURL, "youtu.be") {
+		// Only fetch full article webpage if description is too short (< 150 chars) or image is missing
+		needFullFetch := len(item.Description) < 150 || len(item.ImageURLs) == 0
+		if needFullFetch && strings.HasPrefix(item.SourceURL, "http") && !strings.Contains(item.SourceURL, "youtube.com") && !strings.Contains(item.SourceURL, "youtu.be") {
 			fullTxt, articleImgs, subVidID, subVidURL, subVidType, pubDate := FetchFullTextAndMediaExported(item.SourceURL)
 			if item.PublishedAt.IsZero() && !pubDate.IsZero() {
 				item.PublishedAt = pubDate
 			}
-			if len(fullTxt) > len(item.Description) || len(item.Description) < 300 {
-				if fullTxt != "" {
-					item.Description = fullTxt
-				}
+			if fullTxt != "" && (len(fullTxt) > len(item.Description) || len(item.Description) < 300) {
+				item.Description = fullTxt
 			}
 			// Add extracted article images, prioritizing real images over fallback SVG map
 			if len(articleImgs) > 0 {
