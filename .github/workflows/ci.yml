@@ -1,0 +1,67 @@
+name: TN NOW CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  backend-ci:
+    name: Go Backend CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+          cache-dependency-path: server/go.sum
+
+      - name: Check Formatting
+        run: |
+          if [ -n "$(gofmt -l server)" ]; then
+            echo "Go code formatting issues found! Run gofmt."
+            exit 1
+          fi
+
+      - name: Go Vet
+        run: cd server && go vet ./...
+
+      - name: Run Unit Tests
+        run: cd server && go test -v -race ./...
+
+  mobile-ci:
+    name: Flutter Mobile CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.3'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: cd mobile && flutter pub get
+
+      - name: Check Format
+        run: cd mobile && dart format --set-exit-if-changed lib test
+
+      - name: Flutter Analyze
+        run: cd mobile && flutter analyze
+
+      - name: Run Tests
+        run: cd mobile && flutter test
