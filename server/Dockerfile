@@ -1,10 +1,16 @@
 # --- Build Stage ---
-FROM golang:1.23-alpine AS builder
+FROM golang:latest AS builder
+
+# Allow Go to auto-download the required toolchain version if needed
+ENV GOTOOLCHAIN=auto
+ENV CGO_ENABLED=0
+ENV GOOS=linux
 
 WORKDIR /app
 
-# Copy Go module manifests
+# Copy Go module manifests first (better Docker layer caching)
 COPY go.mod go.sum ./
+
 # Download dependencies
 RUN go mod download
 
@@ -12,18 +18,18 @@ RUN go mod download
 COPY . .
 
 # Build target binaries
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/api ./cmd/api/main.go
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/worker ./cmd/worker/main.go
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/migrate ./cmd/migrate/main.go
+RUN go build -o /app/bin/api ./cmd/api/main.go
+RUN go build -o /app/bin/worker ./cmd/worker/main.go
+RUN go build -o /app/bin/migrate ./cmd/migrate/main.go
 
 # --- Final Stage ---
-FROM alpine:3.20
+FROM alpine:latest
 
 RUN apk add --no-cache ca-certificates tzdata
 
 WORKDIR /app
 
-# Run as non-root user for security compliance
+# Run as non-root user for security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 
