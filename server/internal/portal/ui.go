@@ -133,7 +133,6 @@ func RenderPortalPage() string {
           },
           "contactPoint": {
             "@type": "ContactPoint",
-            "telephone": "+91-8124395082",
             "contactType": "News Desk",
             "email": "tn24now@gmail.com",
             "areaServed": "IN-TN",
@@ -1974,9 +1973,6 @@ func RenderPortalPage() string {
             <div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; font-size: 12px; margin-top: 2px;">
                 <a href="mailto:tn24now@gmail.com" style="color: #38bdf8; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; background: rgba(56,189,248,0.1); padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(56,189,248,0.25);">
                     📧 <strong>tn24now@gmail.com</strong>
-                </a>
-                <a href="tel:+918124395082" style="color: #4ade80; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; background: rgba(74,222,128,0.1); padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(74,222,128,0.25);">
-                    📞 <strong>+91 81243 95082</strong>
                 </a>
             </div>
             <div style="font-size: 11px; color: #64748b; margin-top: 6px;">

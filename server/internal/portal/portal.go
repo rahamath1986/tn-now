@@ -960,10 +960,10 @@ func (h *PortalHandler) HandleBrandAssets(w http.ResponseWriter, r *http.Request
 			<text x="89" y="33" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" font-size="10" fill="#091326" text-anchor="middle" letter-spacing="0.5">📢 ADVERTISE WITH US</text>
 			<text x="172" y="34" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" font-size="14" fill="#f8fafc" letter-spacing="0.3">உங்கள் வணிக விளம்பரங்களுக்கு தொடர்பு கொள்ளவும்</text>
 			<text x="20" y="58" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="500" font-size="11.5" fill="#94a3b8">Reach 1.85M+ Daily Readers across 38 Districts in Tamil Nadu • Digital Showcase Leaderboard</text>
-			<text x="20" y="74" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="11.5" fill="#38bdf8">Email: tn24now@gmail.com  |  Call / WhatsApp: +91 81243 95082</text>
+			<text x="20" y="74" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="11.5" fill="#38bdf8">Email: tn24now@gmail.com</text>
 			<rect x="560" y="22" width="148" height="46" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
 			<text x="634" y="42" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" font-size="11.5" fill="#38bdf8" text-anchor="middle">தொடர்புக்கு ↗</text>
-			<text x="634" y="57" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="9.5" fill="#94a3b8" text-anchor="middle">8124395082</text>
+			<text x="634" y="57" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="9" fill="#94a3b8" text-anchor="middle">tn24now@gmail.com</text>
 		</svg>`))
 	case "tn24-sidebar.svg":
 		_, _ = w.Write([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 250 250" width="250" height="250">
@@ -993,7 +993,7 @@ func (h *PortalHandler) HandleBrandAssets(w http.ResponseWriter, r *http.Request
 			<text x="125" y="152" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="500" font-size="10" fill="#94a3b8" text-anchor="middle">தமிழ்நாடு முழுவதும் பிராண்ட் விளம்பரம்</text>
 			<text x="125" y="168" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="600" font-size="9" fill="#64748b" text-anchor="middle">250 × 250 SIDEBAR SPOT</text>
 			<rect x="18" y="190" width="214" height="38" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2"/>
-			<text x="125" y="214" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" font-size="11" fill="#38bdf8" text-anchor="middle">தொடர்புக்கு: +91 81243 95082 ↗</text>
+			<text x="125" y="214" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" font-size="11" fill="#38bdf8" text-anchor="middle">தொடர்புக்கு: tn24now@gmail.com ↗</text>
 		</svg>`))
 	case "tn24-square.svg":
 		_, _ = w.Write([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
@@ -1021,7 +1021,7 @@ func (h *PortalHandler) HandleBrandAssets(w http.ResponseWriter, r *http.Request
 			<text x="100" y="112" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="10" fill="#38bdf8" text-anchor="middle">tn24now@gmail.com</text>
 			<text x="100" y="128" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="500" font-size="8.5" fill="#94a3b8" text-anchor="middle">தொடர்பு கொள்ளவும்</text>
 			<rect x="16" y="148" width="168" height="34" rx="5" fill="#1e293b" stroke="#38bdf8" stroke-width="1"/>
-			<text x="100" y="170" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" font-size="9.5" fill="#38bdf8" text-anchor="middle">+91 81243 95082 ↗</text>
+			<text x="100" y="170" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" font-size="9" fill="#38bdf8" text-anchor="middle">tn24now@gmail.com ↗</text>
 		</svg>`))
 	case "tn24-infeed.svg":
 		_, _ = w.Write([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 728 90" width="728" height="90">
@@ -1045,10 +1045,10 @@ func (h *PortalHandler) HandleBrandAssets(w http.ResponseWriter, r *http.Request
 			<text x="92" y="33" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" font-size="10" fill="#ffffff" text-anchor="middle" letter-spacing="0.5">📢 SPONSORED ADS</text>
 			<text x="176" y="34" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" font-size="14" fill="#f8fafc" letter-spacing="0.3">உங்கள் பிராண்ட் விளம்பரங்களுக்கு தொடர்பு கொள்ளவும்</text>
 			<text x="20" y="58" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="500" font-size="11.5" fill="#cbd5e1">TN24 In-Feed Native Stream Placement • Highest Engagement Advertising Space</text>
-			<text x="20" y="74" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="11.5" fill="#c084fc">Email: tn24now@gmail.com  |  Call: +91 81243 95082</text>
+			<text x="20" y="74" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="11.5" fill="#c084fc">Email: tn24now@gmail.com</text>
 			<rect x="560" y="22" width="148" height="46" rx="6" fill="#1e1b4b" stroke="#a855f7" stroke-width="1.5"/>
 			<text x="634" y="42" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" font-size="11.5" fill="#c084fc" text-anchor="middle">தொடர்புக்கு ↗</text>
-			<text x="634" y="57" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="9.5" fill="#cbd5e1" text-anchor="middle">8124395082</text>
+			<text x="634" y="57" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="9" fill="#cbd5e1" text-anchor="middle">tn24now@gmail.com</text>
 		</svg>`))
 	default:
 		// Universal Fallback Vector Placeholder (handles dummy.svg, missing images, placeholders)
