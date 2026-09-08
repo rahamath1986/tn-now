@@ -76,7 +76,7 @@ func (s *Scheduler) loadPersistedJobs() {
 
 	_, _ = s.conn.Exec(ctx, "ALTER TABLE cron_jobs ADD COLUMN IF NOT EXISTS source_urls TEXT[] DEFAULT '{}'")
 
-	// Ensure tn_live_news_cron has multi-source regional coverage if empty or single source
+	// Ensure tn_live_news_cron has the 4 verified working regional feeds
 	_, _ = s.conn.Exec(ctx, `
 		UPDATE cron_jobs
 		SET source_urls = ARRAY[
@@ -84,8 +84,8 @@ func (s *Scheduler) loadPersistedJobs() {
 			'https://feeds.bbci.co.uk/tamil/rss.xml',
 			'https://tamil.oneindia.com/rss/tamil-news-fb.xml',
 			'https://news.google.com/rss/search?q=Tamil+Nadu&hl=ta&gl=IN&ceid=IN:ta'
-		]
-		WHERE id = 'tn_live_news_cron' AND (source_urls IS NULL OR cardinality(source_urls) < 2)
+		], updated_at = NOW()
+		WHERE id = 'tn_live_news_cron'
 	`)
 
 	// Ensure all registered default jobs exist in PostgreSQL cron_jobs table
@@ -716,6 +716,39 @@ func (s *Scheduler) GetSources(ctx context.Context, jobID string) ([]string, err
 	return job.SourceURLs, nil
 }
 
+func (s *Scheduler) ResetSources(ctx context.Context, jobID string) ([]string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	job, ok := s.jobs[jobID]
+	if !ok {
+		return nil, fmt.Errorf("job %s not found", jobID)
+	}
+
+	defaultSources := []string{
+		"https://www.thehindu.com/news/national/tamil-nadu/feeder/default.rss",
+		"https://feeds.bbci.co.uk/tamil/rss.xml",
+		"https://tamil.oneindia.com/rss/tamil-news-fb.xml",
+		"https://news.google.com/rss/search?q=Tamil+Nadu&hl=ta&gl=IN&ceid=IN:ta",
+	}
+
+	job.SourceURLs = defaultSources
+
+	if s.conn != nil {
+		scraper.DBMu.Lock()
+		defer scraper.DBMu.Unlock()
+		_, err := s.conn.Exec(ctx, `
+			UPDATE cron_jobs
+			SET source_urls = $1, updated_at = NOW()
+			WHERE id = $2
+		`, defaultSources, jobID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return defaultSources, nil
+}
+
 func (s *Scheduler) runLiveNewsScraper(ctx context.Context) (string, error) {
 	s.mu.RLock()
 	job := s.jobs["tn_live_news_cron"]
@@ -732,18 +765,50 @@ func (s *Scheduler) runLiveNewsScraper(ctx context.Context) (string, error) {
 		sources = job.SourceURLs
 	}
 
+	// Clean out empty URLs, duplicates, and non-RSS website homepages
+	var cleanSources []string
+	seen := make(map[string]bool)
+	for _, u := range sources {
+		u = strings.TrimSpace(u)
+		if u == "" || strings.HasPrefix(u, "https://www.dinamalar.com") || strings.HasPrefix(u, "http://www.dinamalar.com") {
+			continue // skip client-rendered JS homepage
+		}
+		if !seen[u] {
+			seen[u] = true
+			cleanSources = append(cleanSources, u)
+		}
+	}
+	if len(cleanSources) == 0 {
+		cleanSources = []string{
+			"https://www.thehindu.com/news/national/tamil-nadu/feeder/default.rss",
+			"https://feeds.bbci.co.uk/tamil/rss.xml",
+			"https://tamil.oneindia.com/rss/tamil-news-fb.xml",
+			"https://news.google.com/rss/search?q=Tamil+Nadu&hl=ta&gl=IN&ceid=IN:ta",
+		}
+	}
+
 	totalStaged := 0
 	totalSkipped := 0
+	successCount := 0
 
-	for _, feedURL := range sources {
-		res, err := scraper.ScrapeAndStage(ctx, s.conn, feedURL)
-		if err == nil && res != nil {
+	for _, feedURL := range cleanSources {
+		feedCtx, feedCancel := context.WithTimeout(ctx, 30*time.Second)
+		slog.Info("Starting scrape for source", slog.String("url", feedURL))
+		res, err := scraper.ScrapeAndStage(feedCtx, s.conn, feedURL)
+		feedCancel()
+
+		if err != nil {
+			slog.Warn("Scraper failed for source", slog.String("url", feedURL), slog.String("err", err.Error()))
+			continue
+		}
+		if res != nil {
+			successCount++
 			totalStaged += res.StagedCount
 			totalSkipped += res.DuplicateCount
 		}
 	}
 
-	return fmt.Sprintf("Scraped %d source(s): staged %d new items (%d skipped duplicates). Pending operator review in Control Panel.", len(sources), totalStaged, totalSkipped), nil
+	return fmt.Sprintf("Scraped %d source(s) (%d active): staged %d new items (%d skipped duplicates). Pending operator review in Control Panel.", len(cleanSources), successCount, totalStaged, totalSkipped), nil
 }
 
 func (s *Scheduler) runContentRetentionCleanup(ctx context.Context) (string, error) {

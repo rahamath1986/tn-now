@@ -169,6 +169,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/admin/api/cron/sources/add", h.RequireAuth(h.HandleAddCronSource))
 	mux.HandleFunc("/admin/api/cron/sources/update", h.RequireAuth(h.HandleUpdateCronSource))
 	mux.HandleFunc("/admin/api/cron/sources/remove", h.RequireAuth(h.HandleRemoveCronSource))
+	mux.HandleFunc("/admin/api/cron/sources/reset", h.RequireAuth(h.HandleResetCronSources))
 
 	// Google OAuth 2.0 & AI Agent routes
 	mux.HandleFunc("/admin/auth/google", h.copilot.HandleInitiateGoogleOAuth)
@@ -750,6 +751,40 @@ func (h *Handler) HandleRemoveCronSource(w http.ResponseWriter, r *http.Request)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
 		"message": fmt.Sprintf("Removed source '%s' from %s", req.URL, req.JobID),
+		"errors":  []interface{}{},
+	})
+}
+
+func (h *Handler) HandleResetCronSources(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	var req struct {
+		JobID string `json:"jobId"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.JobID == "" {
+		req.JobID = "tn_live_news_cron"
+	}
+
+	if h.scheduler == nil {
+		writeError(w, http.StatusServiceUnavailable, "Scheduler not available")
+		return
+	}
+
+	sources, err := h.scheduler.ResetSources(r.Context(), req.JobID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"data":    sources,
+		"message": fmt.Sprintf("Reset %s to %d verified regional feeds", req.JobID, len(sources)),
 		"errors":  []interface{}{},
 	})
 }

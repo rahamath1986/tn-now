@@ -1484,7 +1484,8 @@ func RenderAdminDashboard() string {
                 </div>
             </div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 20px;">
+                <button type="button" class="action-btn" style="color: #38bdf8; border-color: rgba(56,189,248,0.4); font-size: 11px;" onclick="resetSourcesToDefault()">🔄 Reset to 4 Verified Feeds</button>
                 <button type="button" class="btn-primary" onclick="closeSourcesModal()">Done</button>
             </div>
         </div>
@@ -2659,6 +2660,27 @@ func RenderAdminDashboard() string {
         function quickAddSource(url) {
             document.getElementById('new-source-url').value = url;
             addSourceFromModal();
+        }
+
+        function resetSourcesToDefault() {
+            if (!confirm('Reset sources for ' + activeSourcesJobId + ' to the 4 verified regional feeds (The Hindu, BBC Tamil, OneIndia, Google News TN)?')) return;
+            showToast('Resetting sources...');
+            fetch('/admin/api/cron/sources/reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ jobId: activeSourcesJobId })
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success) {
+                    showToast('✓ ' + res.message);
+                    fetchSourcesList();
+                    fetchCronJobs();
+                } else {
+                    showToast('✗ ' + (res.message || 'Failed to reset sources'));
+                }
+            })
+            .catch(() => showToast('✗ Failed to reset sources'));
         }
 
         function removeSourceFromModal(encodedUrl) {
