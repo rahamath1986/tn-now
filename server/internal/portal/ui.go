@@ -1462,6 +1462,46 @@ func RenderPortalPage() string {
                 border-radius: 4px;
             }
 
+            /* District dropdown — fixed full-width bottom sheet on mobile
+               (position:absolute gets clipped by overflow-x:auto scroll container) */
+            .nav-dropdown {
+                position: fixed !important;
+                top: auto !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100vw !important;
+                min-width: unset !important;
+                max-height: 60vh;
+                overflow-y: auto;
+                border-radius: 16px 16px 0 0 !important;
+                box-shadow: 0 -4px 24px rgba(0,0,0,0.35) !important;
+                z-index: 9999 !important;
+                display: none;
+                flex-direction: row !important;
+                flex-wrap: wrap !important;
+                padding: 12px 8px 24px !important;
+                background: #1e293b !important;
+                border-top: 3px solid var(--nav-blue) !important;
+                -webkit-overflow-scrolling: touch;
+            }
+            .nav-item:hover .nav-dropdown,
+            .nav-item.dropdown-open .nav-dropdown { display: flex !important; }
+            .nav-dropdown a {
+                width: 50% !important;
+                box-sizing: border-box;
+                padding: 12px 14px !important;
+                font-size: 14px !important;
+                color: #e2e8f0 !important;
+                border-bottom: 1px solid #334155 !important;
+                white-space: normal !important;
+            }
+            .nav-dropdown a:hover, .nav-dropdown a:active {
+                background: #0f172a !important;
+                color: #38bdf8 !important;
+            }
+
+
             /* Single-line Ticker */
             .ticker-ribbon {
                 padding: 6px 10px;
