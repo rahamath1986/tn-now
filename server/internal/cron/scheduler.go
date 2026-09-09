@@ -636,8 +636,6 @@ func (s *Scheduler) AddSource(ctx context.Context, jobID, sourceURL string) erro
 	job.SourceURLs = append(job.SourceURLs, sourceURL)
 
 	if s.conn != nil {
-		scraper.DBMu.Lock()
-		defer scraper.DBMu.Unlock()
 		_, _ = s.conn.Exec(ctx, "ALTER TABLE cron_jobs ADD COLUMN IF NOT EXISTS source_urls TEXT[] DEFAULT '{}'")
 		_, err := s.conn.Exec(ctx, `
 			UPDATE cron_jobs
@@ -669,8 +667,6 @@ func (s *Scheduler) RemoveSource(ctx context.Context, jobID, sourceURL string) e
 	job.SourceURLs = updated
 
 	if s.conn != nil {
-		scraper.DBMu.Lock()
-		defer scraper.DBMu.Unlock()
 		_, err := s.conn.Exec(ctx, `
 			UPDATE cron_jobs
 			SET source_urls = array_remove(source_urls, $1), updated_at = NOW()
@@ -687,32 +683,24 @@ func (s *Scheduler) UpdateSource(ctx context.Context, jobID, oldURL, newURL stri
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	oldURL = strings.TrimSpace(oldURL)
-	newURL = scraper.ResolveToRSSFeed(strings.TrimSpace(newURL))
-	if newURL == "" {
-		return fmt.Errorf("new source URL cannot be empty")
-	}
-
 	job, ok := s.jobs[jobID]
 	if !ok {
 		return fmt.Errorf("job %s not found", jobID)
 	}
 
-	found := false
+	replaced := false
 	for i, u := range job.SourceURLs {
 		if u == oldURL {
 			job.SourceURLs[i] = newURL
-			found = true
+			replaced = true
 			break
 		}
 	}
-	if !found {
+	if !replaced {
 		job.SourceURLs = append(job.SourceURLs, newURL)
 	}
 
 	if s.conn != nil {
-		scraper.DBMu.Lock()
-		defer scraper.DBMu.Unlock()
 		_, err := s.conn.Exec(ctx, `
 			UPDATE cron_jobs
 			SET source_urls = array_replace(source_urls, $1, $2), updated_at = NOW()
@@ -755,8 +743,6 @@ func (s *Scheduler) ResetSources(ctx context.Context, jobID string) ([]string, e
 	job.SourceURLs = defaultSources
 
 	if s.conn != nil {
-		scraper.DBMu.Lock()
-		defer scraper.DBMu.Unlock()
 		_, err := s.conn.Exec(ctx, `
 			UPDATE cron_jobs
 			SET source_urls = $1, updated_at = NOW()
@@ -850,9 +836,6 @@ func (s *Scheduler) runContentRetentionCleanup(ctx context.Context) (string, err
 		return "Database connection unavailable", nil
 	}
 
-	scraper.DBMu.Lock()
-	defer scraper.DBMu.Unlock()
-
 	// Ensure system_settings table exists
 	_, _ = s.conn.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS system_settings (
@@ -879,7 +862,7 @@ func (s *Scheduler) runContentRetentionCleanup(ctx context.Context) (string, err
 
 	tag, err := s.conn.Exec(ctx, `
 		DELETE FROM content
-		WHERE created_at < NOW() - make_interval(hours => $1)
+		WHERE created_at < NOW() - ($1 * INTERVAL '1 hour')
 		  AND source_type != 'MANUAL_ENTRY'
 		  AND status = 'PUBLISHED'
 	`, hours)

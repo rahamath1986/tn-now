@@ -2022,9 +2022,8 @@ func (h *Handler) HandleServeMapSVG(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleRetentionSettings(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	scraper.DBMu.Lock()
-	defer scraper.DBMu.Unlock()
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
 
 	// Ensure system_settings table exists
 	_, _ = h.conn.Exec(ctx, `
@@ -2056,7 +2055,7 @@ func (h *Handler) HandleRetentionSettings(w http.ResponseWriter, r *http.Request
 
 		var totalCount, staleCount int
 		_ = h.conn.QueryRow(ctx, "SELECT COUNT(*) FROM content WHERE source_type != 'MANUAL_ENTRY'").Scan(&totalCount)
-		_ = h.conn.QueryRow(ctx, "SELECT COUNT(*) FROM content WHERE created_at < NOW() - make_interval(hours => $1) AND source_type != 'MANUAL_ENTRY'", hours).Scan(&staleCount)
+		_ = h.conn.QueryRow(ctx, "SELECT COUNT(*) FROM content WHERE created_at < NOW() - ($1 * INTERVAL '1 hour') AND source_type != 'MANUAL_ENTRY'", hours).Scan(&staleCount)
 
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
@@ -2122,9 +2121,8 @@ func (h *Handler) HandleRetentionCleanupNow(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	ctx := r.Context()
-	scraper.DBMu.Lock()
-	defer scraper.DBMu.Unlock()
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
 
 	var hoursStr string
 	_ = h.conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'content_retention_hours'").Scan(&hoursStr)
@@ -2135,7 +2133,7 @@ func (h *Handler) HandleRetentionCleanupNow(w http.ResponseWriter, r *http.Reque
 
 	tag, err := h.conn.Exec(ctx, `
 		DELETE FROM content
-		WHERE created_at < NOW() - make_interval(hours => $1)
+		WHERE created_at < NOW() - ($1 * INTERVAL '1 hour')
 		  AND source_type != 'MANUAL_ENTRY'
 		  AND status = 'PUBLISHED'
 	`, hours)
@@ -2197,10 +2195,7 @@ func (h *Handler) HandleDeduplicateContent(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *Handler) HandleBannerConfig(w http.ResponseWriter, r *http.Request) {
-	scraper.DBMu.Lock()
-	defer scraper.DBMu.Unlock()
-
-	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
 	if r.Method == http.MethodGet {
@@ -2344,10 +2339,7 @@ func (h *Handler) HandleSetMainBanner(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	scraper.DBMu.Lock()
-	defer scraper.DBMu.Unlock()
-
-	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
 	cleanID := strings.TrimSpace(req.ID)
@@ -2381,7 +2373,7 @@ func (h *Handler) HandleLanguageSettings(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
 	if r.Method == http.MethodGet {
@@ -2420,9 +2412,6 @@ func (h *Handler) HandleLanguageSettings(w http.ResponseWriter, r *http.Request)
 			writeError(w, http.StatusBadRequest, "Invalid request payload")
 			return
 		}
-
-		scraper.DBMu.Lock()
-		defer scraper.DBMu.Unlock()
 
 		defLang := ""
 		if val, ok := raw["defaultLanguage"].(string); ok && val != "" {
