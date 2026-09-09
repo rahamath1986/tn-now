@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -146,7 +147,7 @@ func (h *PortalHandler) HandleGetSinglePost(w http.ResponseWriter, r *http.Reque
 		       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'), c.status,
 		       COALESCE(vl.external_video_id, ''), COALESCE(vl.canonical_url, ''), COALESCE(vl.platform, ''),
 		       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
-		       c.created_at, COALESCE(c.is_viral, false)
+		       COALESCE(c.published_at, c.created_at), COALESCE(c.is_viral, false)
 		FROM content c
 		LEFT JOIN districts d ON c.district_id = d.id
 		LEFT JOIN categories cat ON c.category_id = cat.id
@@ -292,8 +293,8 @@ func (h *PortalHandler) HandlePortalFeed(w http.ResponseWriter, r *http.Request)
 	viralFilter := strings.TrimSpace(r.URL.Query().Get("viral"))
 	langFilter := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("lang")))
 
-	// Portal displays ONLY APPROVED (PUBLISHED) content within the active 48-hour window
-	whereClauses := []string{"c.status = 'PUBLISHED'", "c.created_at >= NOW() - interval '48 hours'"}
+	// Portal displays ONLY APPROVED (PUBLISHED) content within the active 72-hour window
+	whereClauses := []string{"c.status = 'PUBLISHED'", "COALESCE(c.published_at, c.created_at) >= NOW() - interval '72 hours'"}
 	var args []interface{}
 	argIdx := 1
 
@@ -371,7 +372,7 @@ func (h *PortalHandler) HandlePortalFeed(w http.ResponseWriter, r *http.Request)
 		       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'), c.status,
 		       COALESCE(vl.external_video_id, ''), COALESCE(vl.canonical_url, ''), COALESCE(vl.platform, ''),
 		       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
-		       c.created_at, COALESCE(c.is_viral, false)
+		       COALESCE(c.published_at, c.created_at), COALESCE(c.is_viral, false)
 		FROM content c
 		LEFT JOIN districts d ON c.district_id = d.id
 		LEFT JOIN categories cat ON c.category_id = cat.id
@@ -379,8 +380,8 @@ func (h *PortalHandler) HandlePortalFeed(w http.ResponseWriter, r *http.Request)
 		LEFT JOIN stories s ON c.id = s.content_id
 		LEFT JOIN photos p ON c.id = p.content_id
 		WHERE %s
-		ORDER BY c.is_viral DESC, COALESCE(c.updated_at, c.created_at) DESC
-		LIMIT 60
+		ORDER BY COALESCE(c.published_at, c.created_at) DESC, c.id DESC
+		LIMIT 80
 	`, whereSQL)
 
 	rows, err := h.conn.Query(ctx, query, args...)
@@ -455,6 +456,11 @@ func (h *PortalHandler) HandlePortalFeed(w http.ResponseWriter, r *http.Request)
 		}
 		distinctItems = append(distinctItems, it)
 	}
+
+	// Strictly ensure allItems is sorted newest first by CreatedAt / PublishedAt
+	sort.SliceStable(distinctItems, func(i, j int) bool {
+		return distinctItems[i].CreatedAt.After(distinctItems[j].CreatedAt)
+	})
 	allItems = distinctItems
 
 	resp := PortalFeedResponse{
@@ -491,7 +497,7 @@ func (h *PortalHandler) HandlePortalFeed(w http.ResponseWriter, r *http.Request)
 				       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'), c.status,
 				       COALESCE(vl.external_video_id, ''), COALESCE(vl.canonical_url, ''), COALESCE(vl.platform, ''),
 				       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
-				       c.created_at, COALESCE(c.is_viral, false)
+				       COALESCE(c.published_at, c.created_at), COALESCE(c.is_viral, false)
 				FROM content c
 				LEFT JOIN districts d ON c.district_id = d.id
 				LEFT JOIN categories cat ON c.category_id = cat.id
@@ -519,46 +525,27 @@ func (h *PortalHandler) HandlePortalFeed(w http.ResponseWriter, r *http.Request)
 	}
 
 	if heroItem == nil && len(allItems) > 0 {
-		bestIdx := -1
-		bestScore := -1
-
-		for i, it := range allItems {
-			score := 0
+		bestIdx := 0
+		// Pick from the top 5 newest articles the first one that has a clean thumbnail
+		topCheck := 5
+		if len(allItems) < topCheck {
+			topCheck = len(allItems)
+		}
+		for i := 0; i < topCheck; i++ {
+			it := allItems[i]
 			hasRealImage := strings.TrimSpace(it.Thumbnail) != "" &&
 				!strings.Contains(it.Thumbnail, "upload.wikimedia.org") &&
 				!strings.Contains(it.Thumbnail, "/admin/api/maps/svg") &&
 				!strings.Contains(it.Thumbnail, "dummy.svg")
-
-			descLen := len(strings.TrimSpace(it.Description))
-
-			if it.IsViral {
-				score += 1000
-			}
 			if hasRealImage {
-				score += 500
-			}
-			if descLen > 1000 {
-				score += 400
-			} else if descLen > 500 {
-				score += 250
-			} else if descLen > 200 {
-				score += 100
-			}
-
-			if score > bestScore {
-				bestScore = score
 				bestIdx = i
+				break
 			}
 		}
 
-		if bestIdx >= 0 {
-			chosen := allItems[bestIdx]
-			heroItem = &chosen
-			allItems = append(allItems[:bestIdx], allItems[bestIdx+1:]...)
-		} else {
-			heroItem = &allItems[0]
-			allItems = allItems[1:]
-		}
+		chosen := allItems[bestIdx]
+		heroItem = &chosen
+		allItems = append(allItems[:bestIdx], allItems[bestIdx+1:]...)
 	}
 	resp.Hero = heroItem
 
@@ -580,7 +567,7 @@ func (h *PortalHandler) HandlePortalFeed(w http.ResponseWriter, r *http.Request)
 			       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'), c.status,
 			       COALESCE(vl.external_video_id, ''), COALESCE(vl.canonical_url, ''), COALESCE(vl.platform, ''),
 			       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
-			       c.created_at, COALESCE(c.is_viral, false)
+			       COALESCE(c.published_at, c.created_at), COALESCE(c.is_viral, false)
 			FROM content c
 			LEFT JOIN districts d ON c.district_id = d.id
 			LEFT JOIN categories cat ON c.category_id = cat.id
@@ -648,18 +635,22 @@ func (h *PortalHandler) HandlePortalFeed(w http.ResponseWriter, r *http.Request)
 			resp.HeroTeasers = append(resp.HeroTeasers, allItems[i])
 		}
 
-		for i := 3; i < len(allItems) && i < 7; i++ {
+		for i := 0; i < len(allItems) && i < 6; i++ {
 			resp.LeftFeed = append(resp.LeftFeed, allItems[i])
 		}
 
-		for i := 7; i < len(allItems) && i < 12; i++ {
+		for i := 0; i < len(allItems) && i < 6; i++ {
 			resp.PressReleases = append(resp.PressReleases, allItems[i])
 		}
 
-		for i := 12; i < len(allItems); i++ {
-			resp.CenterArticles = append(resp.CenterArticles, allItems[i])
-		}
+		// Center editorial grid shows all articles in strictly newest-first order
+		resp.CenterArticles = append(resp.CenterArticles, allItems...)
 	}
+
+	// Guarantee strict newest-first ordering on the Center Articles feed
+	sort.SliceStable(resp.CenterArticles, func(i, j int) bool {
+		return resp.CenterArticles[i].CreatedAt.After(resp.CenterArticles[j].CreatedAt)
+	})
 
 	for i := 0; i < len(allItems) && i < 5; i++ {
 		resp.MostRead = append(resp.MostRead, allItems[i])

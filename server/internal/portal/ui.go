@@ -2292,6 +2292,19 @@ func RenderPortalPage() string {
         }
 
         function renderPortalUI(data) {
+            if (!data) return;
+
+            // Strictly ensure newest articles are rendered first across all sections
+            const sortByNewest = (arr) => {
+                if (!Array.isArray(arr)) return;
+                arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            };
+            sortByNewest(data.heroTeasers);
+            sortByNewest(data.leftFeed);
+            sortByNewest(data.pressReleases);
+            sortByNewest(data.centerArticles);
+            sortByNewest(data.mostRead);
+
             // Render Dynamic Banners
             const b = data.banners || {};
             const headerSlot = document.getElementById('ad-banner-header-slot');
@@ -2493,6 +2506,7 @@ func RenderPortalPage() string {
                         let html = '';
                         Object.keys(groups).sort().forEach((catKey, gIdx) => {
                             const items = groups[catKey];
+                            items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                             const icon = catIcons[catKey] || '📌';
                             const titleTa = catTamilNames[catKey] || catKey;
                             html += '<div style="grid-column: 1 / -1; margin-top:' + (gIdx === 0 ? '0' : '24px') + '; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; border-bottom:2px solid #38bdf8; padding-bottom:6px;">' +
