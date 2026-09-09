@@ -760,10 +760,10 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 		return result, nil
 	}
 
-	// 1. Enrich scraped items in parallel (cap at 10 items per feed to ensure minimal memory overhead)
+	// 1. Enrich scraped items sequentially (cap at 6 items per feed to ensure minimal memory overhead)
 	// NO DATABASE LOCK HELD during network I/O so other HTTP requests are never blocked!
-	if len(items) > 10 {
-		items = items[:10]
+	if len(items) > 6 {
+		items = items[:6]
 	}
 
 	enrichItem := func(item *ScrapedItem) {
@@ -1877,7 +1877,7 @@ func FetchFullTextAndMediaExported(sourceURL string) (string, []string, string, 
 		return "", nil, "", "", "", time.Time{}
 	}
 	defer resp.Body.Close()
-	bytes, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
+	bytes, err := io.ReadAll(io.LimitReader(resp.Body, 256*1024))
 	if err != nil || len(bytes) == 0 {
 		return "", nil, "", "", "", time.Time{}
 	}

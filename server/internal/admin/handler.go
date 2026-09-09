@@ -37,9 +37,6 @@ func NewHandler(q *db.Queries, conn *pgxpool.Pool, rdb *redis.Client, scheduler 
 		copilot:   NewCopilotEngine(q, conn, rdb, scheduler, cfg),
 		cfg:       cfg,
 	}
-	go h.cleanExistingDatabaseEntities()
-	go scraper.MigrateDatesAndEnforceRetentionPolicy(context.Background(), conn)
-	go scraper.DeduplicateContent(context.Background(), conn)
 	return h
 }
 
