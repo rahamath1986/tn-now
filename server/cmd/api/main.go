@@ -93,6 +93,17 @@ func main() {
 	// Register OpenAPI static endpoint
 	swagger.RegisterRoutes(mux)
 
+	// Google Search Console site verification endpoint
+	mux.HandleFunc("/googled74d5deb9e22bc5d.html", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.Header().Set("Allow", http.MethodGet)
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte("google-site-verification: googled74d5deb9e22bc5d.html\n"))
+	})
+
 	var portalHandler *portal.PortalHandler
 	// Initialize database accessors & auth modules if connection succeeded
 	if pool != nil {
