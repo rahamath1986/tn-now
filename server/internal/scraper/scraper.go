@@ -589,7 +589,7 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 		return nil, fmt.Errorf("HTTP error %d fetching %s", resp.StatusCode, targetURL)
 	}
 
-	bodyBytes, err := io.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 5*1024*1024))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -646,7 +646,7 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 					subReq.Header.Set("User-Agent", req.Header.Get("User-Agent"))
 					if subResp, err := client.Do(subReq); err == nil && subResp.StatusCode == http.StatusOK {
 						defer subResp.Body.Close()
-						if subBytes, err := io.ReadAll(subResp.Body); err == nil {
+						if subBytes, err := io.ReadAll(io.LimitReader(subResp.Body, 5*1024*1024)); err == nil {
 							var rss rssFeed
 							if err := xml.Unmarshal(subBytes, &rss); err == nil && len(rss.Channel.Items) > 0 {
 								slog.Info("Successfully parsed auto-discovered RSS items", slog.Int("count", len(rss.Channel.Items)), slog.String("url", rssURL))
@@ -702,7 +702,7 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 				if rootReq, err := http.NewRequestWithContext(ctx, http.MethodGet, baseRoot, nil); err == nil {
 					rootReq.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
 					if rootResp, err := client.Do(rootReq); err == nil {
-						if rootBytes, err := io.ReadAll(rootResp.Body); err == nil && len(rootBytes) > 0 {
+						if rootBytes, err := io.ReadAll(io.LimitReader(rootResp.Body, 2*1024*1024)); err == nil && len(rootBytes) > 0 {
 							navLinks = extractMatchingNavLinks(baseRoot, string(rootBytes))
 						}
 						rootResp.Body.Close()
@@ -726,7 +726,7 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 				if err != nil {
 					continue
 				}
-				subBytes, err := io.ReadAll(subResp.Body)
+				subBytes, err := io.ReadAll(io.LimitReader(subResp.Body, 2*1024*1024))
 				subResp.Body.Close()
 				if err == nil && len(subBytes) > 0 {
 					subItems := parseHTMLPageMultiple(navURL, string(subBytes))
@@ -764,10 +764,10 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 		return result, nil
 	}
 
-	// 1. Enrich scraped items in parallel (cap at 15 items per feed to ensure fast execution under 3s)
+	// 1. Enrich scraped items in parallel (cap at 10 items per feed to ensure minimal memory overhead)
 	// NO DATABASE LOCK HELD during network I/O so other HTTP requests are never blocked!
-	if len(items) > 15 {
-		items = items[:15]
+	if len(items) > 10 {
+		items = items[:10]
 	}
 
 	enrichItem := func(item *ScrapedItem) {
@@ -829,7 +829,7 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 	}
 
 	var wg sync.WaitGroup
-	sem := make(chan struct{}, 6) // Max 6 concurrent network fetches
+	sem := make(chan struct{}, 2) // Max 2 concurrent network fetches per feed to prevent memory spikes
 	for _, itm := range items {
 		wg.Add(1)
 		go func(it *ScrapedItem) {
@@ -1877,7 +1877,7 @@ func FetchFullTextAndMediaExported(sourceURL string) (string, []string, string, 
 		return "", nil, "", "", "", time.Time{}
 	}
 	defer resp.Body.Close()
-	bytes, err := io.ReadAll(resp.Body)
+	bytes, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
 	if err != nil || len(bytes) == 0 {
 		return "", nil, "", "", "", time.Time{}
 	}

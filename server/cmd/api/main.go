@@ -54,10 +54,10 @@ func main() {
 		logger.Error("Failed to parse PostgreSQL database URL", slog.String("error", parseErr.Error()))
 	} else {
 		poolConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
-		poolConfig.MaxConns = 25
-		poolConfig.MinConns = 5
-		poolConfig.MaxConnLifetime = 1 * time.Hour
-		poolConfig.MaxConnIdleTime = 30 * time.Minute
+		poolConfig.MaxConns = 10
+		poolConfig.MinConns = 2
+		poolConfig.MaxConnLifetime = 30 * time.Minute
+		poolConfig.MaxConnIdleTime = 5 * time.Minute
 		pool, err = pgxpool.NewWithConfig(ctxConn, poolConfig)
 		if err != nil {
 			logger.Error("Failed to connect to PostgreSQL database pool, starting with pending connection", slog.String("error", err.Error()))

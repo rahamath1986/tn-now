@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -826,7 +828,7 @@ func (s *Scheduler) runLiveNewsScraper(ctx context.Context) (string, error) {
 	var mu sync.Mutex
 
 	var wg sync.WaitGroup
-	feedSem := make(chan struct{}, 4) // Scrape up to 4 feeds concurrently in parallel
+	feedSem := make(chan struct{}, 2) // Scrape up to 2 feeds concurrently to stay strictly under memory limits
 
 	for _, feedURL := range cleanSources {
 		wg.Add(1)
@@ -854,6 +856,10 @@ func (s *Scheduler) runLiveNewsScraper(ctx context.Context) (string, error) {
 		}(feedURL)
 	}
 	wg.Wait()
+
+	// Proactively trigger GC and return unused memory pages to the OS to stay well under 512MB
+	runtime.GC()
+	debug.FreeOSMemory()
 
 	return fmt.Sprintf("Scraped %d source(s) (%d active): staged %d new items (%d skipped duplicates). Pending operator review in Control Panel.", len(cleanSources), successCount, totalStaged, totalSkipped), nil
 }
