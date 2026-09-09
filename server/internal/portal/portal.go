@@ -98,6 +98,9 @@ func (h *PortalHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/privacy", h.HandlePrivacyPolicy)
 	mux.HandleFunc("/about", h.HandleAboutUs)
 	mux.HandleFunc("/contact", h.HandleContactUs)
+
+	// ads.txt — required by Google AdSense to authorize ad sellers
+	mux.HandleFunc("/ads.txt", h.HandleAdsTxt)
 }
 
 func (h *PortalHandler) HandlePortalPage(w http.ResponseWriter, r *http.Request) {
@@ -1147,6 +1150,17 @@ func sanitizeEditorialDescription(desc, title, district string) string {
 		return fmt.Sprintf("%s. Comprehensive on-ground news coverage and latest regional updates from %s.", title, dist)
 	}
 	return clean
+}
+
+// HandleAdsTxt serves /ads.txt — required by Google AdSense to authorize
+// Google as a DIRECT seller of ads on this domain.
+// Without this file AdSense dashboard shows "Ads.txt: Not found" and
+// refuses to serve ads.
+func (h *PortalHandler) HandleAdsTxt(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	// Format: <ad network domain>, <publisher ID>, <relationship>, <certification authority ID>
+	_, _ = w.Write([]byte("google.com, pub-1894301748406603, DIRECT, f08c47fec0942fa0\n"))
 }
 
 func (h *PortalHandler) HandleRobotsTxt(w http.ResponseWriter, r *http.Request) {
