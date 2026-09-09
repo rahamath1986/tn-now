@@ -317,13 +317,23 @@ func (s *Scheduler) checkAndRunJobs() {
 	}
 	s.mu.Unlock()
 
-	for _, job := range toRun {
-		go func(j *CronJob) {
-			bgCtx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
-			defer cancel()
-			_, _ = s.TriggerJob(bgCtx, j.ID)
-		}(job)
+	if len(toRun) == 0 {
+		return
 	}
+
+	// Run all due jobs sequentially in a SINGLE goroutine so they never
+	// execute in parallel. This is the single biggest memory win: concurrent
+	// scraper + dedup + auto-moderation would spike RSS to 3× a single job.
+	go func(jobs []*CronJob) {
+		for _, j := range jobs {
+			bgCtx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			_, _ = s.TriggerJob(bgCtx, j.ID)
+			cancel()
+			// Release memory between jobs before starting the next one
+			runtime.GC()
+			debug.FreeOSMemory()
+		}
+	}(toRun)
 }
 
 func (s *Scheduler) TriggerJob(ctx context.Context, jobID string) (*JobExecutionResult, error) {
