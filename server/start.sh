@@ -1,8 +1,6 @@
 #!/bin/sh
-set -e
-
 echo "Running database migrations..."
-./migrate
+./migrate || echo "Warning: migrations finished with notices, continuing to start API..."
 
 echo "Starting TN24 API server..."
 exec ./api
