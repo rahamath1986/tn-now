@@ -1168,7 +1168,7 @@ func DeduplicateContentLocked(ctx context.Context, conn *pgxpool.Pool) (prunedCo
 		LEFT JOIN stories s ON c.id = s.content_id
 		WHERE c.created_at >= NOW() - interval '72 hours'
 		ORDER BY COALESCE(c.created_at, c.updated_at) DESC, c.updated_at DESC
-		LIMIT 300
+		LIMIT 80
 	`)
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to query content for deduplication: %w", err)

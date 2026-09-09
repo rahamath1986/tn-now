@@ -262,6 +262,23 @@ func (s *Scheduler) RegisterJob(job *CronJob) {
 	s.jobs[job.ID] = job
 }
 
+// memoryGuardOK returns true if current Go heap is under the safety threshold.
+// At 300MB heap we are safely under Render's 512MB process limit accounting
+// for pgxpool buffers, OS overhead, and stack frames.
+func memoryGuardOK() bool {
+	var ms runtime.MemStats
+	runtime.ReadMemStats(&ms)
+	// HeapInuse: bytes of heap spans that currently hold objects
+	if ms.HeapInuse > 300*1024*1024 {
+		slog.Warn("Memory guard triggered: skipping cron tick",
+			slog.Uint64("heapInuse_MB", ms.HeapInuse/1024/1024))
+		runtime.GC()
+		debug.FreeOSMemory()
+		return false
+	}
+	return true
+}
+
 func (s *Scheduler) Start() {
 	go func() {
 		ticker := time.NewTicker(10 * time.Second)
@@ -272,7 +289,9 @@ func (s *Scheduler) Start() {
 			case <-s.stopChan:
 				return
 			case <-ticker.C:
-				s.checkAndRunJobs()
+				if memoryGuardOK() {
+					s.checkAndRunJobs()
+				}
 			}
 		}
 	}()
@@ -549,8 +568,13 @@ func (s *Scheduler) runAutoModeration(ctx context.Context) (string, error) {
 	if s.conn == nil {
 		return "Evaluated 0 submissions (database offline)", nil
 	}
+	defer func() {
+		runtime.GC()
+		debug.FreeOSMemory()
+	}()
 
-	rows, err := s.conn.Query(ctx, "SELECT id, title, COALESCE(description, '') FROM content WHERE status = 'PENDING'")
+	// Batch to 50 rows to prevent large table scans from spiking RSS on Render Free Tier
+	rows, err := s.conn.Query(ctx, "SELECT id, title, COALESCE(description, '') FROM content WHERE status = 'PENDING' ORDER BY created_at ASC LIMIT 50")
 	if err != nil {
 		return "", err
 	}
@@ -578,13 +602,14 @@ func (s *Scheduler) runAutoModeration(ctx context.Context) (string, error) {
 			evaluated++
 		}
 	}
-	return fmt.Sprintf("Evaluated %d pending submissions via toxicity filters", evaluated), nil
+	return fmt.Sprintf("Evaluated %d pending submissions via toxicity filters (batch of 50)", evaluated), nil
 }
 
 func (s *Scheduler) runGrievanceSLAMonitor(ctx context.Context) (string, error) {
 	if s.conn == nil {
 		return "Monitored 0 grievances (database offline)", nil
 	}
+	defer func() { runtime.GC(); debug.FreeOSMemory() }()
 	var count int
 	_ = s.conn.QueryRow(ctx, "SELECT COUNT(*) FROM grievances WHERE status = 'RECEIVED'").Scan(&count)
 	return fmt.Sprintf("Monitored %d active grievances: 100%% compliant within statutory 24h/15d SLA", count), nil
@@ -594,7 +619,8 @@ func (s *Scheduler) runReputationRecalculator(ctx context.Context) (string, erro
 	if s.conn == nil {
 		return "Recalculated 0 scores (database offline)", nil
 	}
-	rows, err := s.conn.Query(ctx, "SELECT user_id, approved_count, trust_score FROM contributor_scores")
+	defer func() { runtime.GC(); debug.FreeOSMemory() }()
+	rows, err := s.conn.Query(ctx, "SELECT user_id, approved_count, trust_score FROM contributor_scores LIMIT 200")
 	if err != nil {
 		return "", err
 	}
