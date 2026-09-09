@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -159,6 +160,13 @@ func NewRateLimiter(rdb *redis.Client) *RateLimiter {
 func (rl *RateLimiter) Limit(limit int, period time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Bypass rate limiting for administrative, health check, and internal endpoints
+			path := r.URL.Path
+			if strings.HasPrefix(path, "/admin") || strings.HasPrefix(path, "/health") || strings.HasPrefix(path, "/swagger") {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			if rl.rdb == nil {
 				// Graceful bypass when Redis is not configured
 				next.ServeHTTP(w, r)
@@ -192,9 +200,11 @@ func (rl *RateLimiter) Limit(limit int, period time.Duration) func(http.Handler)
 			pipe.ZCard(r.Context(), key)
 			pipe.Expire(r.Context(), key, period)
 
-			cmds, err := pipe.Exec(r.Context())
+			pipeCtx, pipeCancel := context.WithTimeout(r.Context(), 250*time.Millisecond)
+			defer pipeCancel()
+			cmds, err := pipe.Exec(pipeCtx)
 			if err != nil {
-				slog.Error("Redis rate limiter execution failed", slog.String("error", err.Error()))
+				slog.Warn("Redis rate limiter execution failed, bypassing", slog.String("error", err.Error()))
 				next.ServeHTTP(w, r)
 				return
 			}

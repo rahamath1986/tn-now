@@ -25,6 +25,7 @@ type CronJob struct {
 	ScheduleInterval string      `json:"scheduleInterval"` // e.g. "1m", "5m", "15m", "1h"
 	JobType          string      `json:"jobType"`
 	IsActive         bool        `json:"isActive"`
+	IsRunning        bool        `json:"isRunning"`
 	SourceURLs       []string    `json:"sourceUrls"`
 	LastRunAt        *time.Time  `json:"lastRunAt,omitempty"`
 	NextRunAt        *time.Time  `json:"nextRunAt,omitempty"`
@@ -282,28 +283,57 @@ func (s *Scheduler) Stop() {
 
 func (s *Scheduler) checkAndRunJobs() {
 	now := time.Now()
-	s.mu.RLock()
+	s.mu.Lock()
 	var toRun []*CronJob
 	for _, job := range s.jobs {
-		if job.IsActive && job.NextRunAt != nil && now.After(*job.NextRunAt) {
+		if job.IsActive && !job.IsRunning && job.NextRunAt != nil && now.After(*job.NextRunAt) {
+			job.IsRunning = true
+			interval := parseInterval(job.ScheduleInterval)
+			next := now.Add(interval)
+			job.NextRunAt = &next
 			toRun = append(toRun, job)
 		}
 	}
-	s.mu.RUnlock()
+	s.mu.Unlock()
 
 	for _, job := range toRun {
-		_, _ = s.TriggerJob(context.Background(), job.ID)
+		go func(j *CronJob) {
+			bgCtx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
+			_, _ = s.TriggerJob(bgCtx, j.ID)
+		}(job)
 	}
 }
 
 func (s *Scheduler) TriggerJob(ctx context.Context, jobID string) (*JobExecutionResult, error) {
-	s.mu.RLock()
+	s.mu.Lock()
 	job, exists := s.jobs[jobID]
-	s.mu.RUnlock()
-
 	if !exists {
+		s.mu.Unlock()
 		return nil, fmt.Errorf("job %s not found", jobID)
 	}
+
+	if job.IsRunning {
+		s.mu.Unlock()
+		return &JobExecutionResult{
+			JobID:      jobID,
+			Status:     "RUNNING",
+			DurationMs: 0,
+			Message:    "Job is already actively running",
+		}, nil
+	}
+
+	job.IsRunning = true
+	interval := parseInterval(job.ScheduleInterval)
+	next := time.Now().Add(interval)
+	job.NextRunAt = &next
+	s.mu.Unlock()
+
+	defer func() {
+		s.mu.Lock()
+		job.IsRunning = false
+		s.mu.Unlock()
+	}()
 
 	start := time.Now()
 	var msg string
@@ -320,9 +350,6 @@ func (s *Scheduler) TriggerJob(ctx context.Context, jobID string) (*JobExecution
 
 	s.mu.Lock()
 	job.LastRunAt = &now
-	interval := parseInterval(job.ScheduleInterval)
-	next := now.Add(interval)
-	job.NextRunAt = &next
 	job.RunCount++
 	status := "SUCCESS"
 	if err != nil {
