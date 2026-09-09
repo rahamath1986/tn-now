@@ -93,6 +93,11 @@ func (h *PortalHandler) RegisterRoutes(mux *http.ServeMux) {
 	// SEO Crawler & Indexing Endpoints
 	mux.HandleFunc("/robots.txt", h.HandleRobotsTxt)
 	mux.HandleFunc("/sitemap.xml", h.HandleSitemapXML)
+
+	// AdSense-required static pages
+	mux.HandleFunc("/privacy", h.HandlePrivacyPolicy)
+	mux.HandleFunc("/about", h.HandleAboutUs)
+	mux.HandleFunc("/contact", h.HandleContactUs)
 }
 
 func (h *PortalHandler) HandlePortalPage(w http.ResponseWriter, r *http.Request) {
@@ -217,7 +222,7 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 	scheme := "https"
 	host := r.Host
 	if host == "" {
-		host = "tn-now.onrender.com"
+		host = "www.tn24.in"
 	}
 	fullPostURL := fmt.Sprintf("%s://%s/portal?post=%s", scheme, host, url.QueryEscape(postID))
 
@@ -1152,12 +1157,15 @@ Allow: /
 Allow: /portal
 Allow: /portal/*
 Allow: /api/portal/feed
+Allow: /privacy
+Allow: /about
+Allow: /contact
 Disallow: /admin
 Disallow: /admin/*
 Disallow: /api/scraper/*
 Disallow: /api/auth/*
 
-Sitemap: http://localhost:8080/sitemap.xml
+Sitemap: https://www.tn24.in/sitemap.xml
 `
 	_, _ = w.Write([]byte(robotsContent))
 }
@@ -1166,77 +1174,242 @@ func (h *PortalHandler) HandleSitemapXML(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=3600")
 
+	base := "https://www.tn24.in"
 	now := time.Now().Format("2006-01-02")
 	sitemap := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-        <loc>http://localhost:8080/portal</loc>
+        <loc>%s/portal</loc>
         <lastmod>%s</lastmod>
         <changefreq>always</changefreq>
         <priority>1.0</priority>
     </url>
     <url>
-        <loc>http://localhost:8080/</loc>
+        <loc>%s/</loc>
         <lastmod>%s</lastmod>
         <changefreq>always</changefreq>
         <priority>0.9</priority>
     </url>
     <url>
-        <loc>http://localhost:8080/portal?cat=News</loc>
+        <loc>%s/about</loc>
+        <lastmod>%s</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>%s/privacy</loc>
+        <lastmod>%s</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>%s/contact</loc>
+        <lastmod>%s</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>%s/portal?cat=News</loc>
         <lastmod>%s</lastmod>
         <changefreq>hourly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>http://localhost:8080/portal?cat=Politics</loc>
+        <loc>%s/portal?cat=Politics</loc>
         <lastmod>%s</lastmod>
         <changefreq>hourly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>http://localhost:8080/portal?cat=Sports</loc>
+        <loc>%s/portal?cat=Sports</loc>
         <lastmod>%s</lastmod>
         <changefreq>hourly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>http://localhost:8080/portal?cat=Technical</loc>
+        <loc>%s/portal?cat=Business</loc>
         <lastmod>%s</lastmod>
         <changefreq>hourly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>http://localhost:8080/portal?cat=Business</loc>
+        <loc>%s/portal?cat=Entertainment</loc>
         <lastmod>%s</lastmod>
         <changefreq>hourly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>http://localhost:8080/portal?cat=Entertainment</loc>
+        <loc>%s/portal?district=Chennai</loc>
         <lastmod>%s</lastmod>
         <changefreq>hourly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>http://localhost:8080/portal?district=Madurai</loc>
+        <loc>%s/portal?district=Madurai</loc>
         <lastmod>%s</lastmod>
         <changefreq>hourly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>http://localhost:8080/portal?district=Chennai</loc>
+        <loc>%s/portal?district=Coimbatore</loc>
         <lastmod>%s</lastmod>
         <changefreq>hourly</changefreq>
         <priority>0.8</priority>
     </url>
-    <url>
-        <loc>http://localhost:8080/portal?district=Coimbatore</loc>
-        <lastmod>%s</lastmod>
-        <changefreq>hourly</changefreq>
-        <priority>0.8</priority>
-    </url>
-</urlset>`, now, now, now, now, now, now, now, now, now, now, now)
+</urlset>`,
+		base, now, base, now, base, now, base, now, base, now,
+		base, now, base, now, base, now, base, now, base, now,
+		base, now, base, now, base, now)
 
 	_, _ = w.Write([]byte(sitemap))
+}
+
+// HandlePrivacyPolicy serves the Privacy Policy page — required for Google AdSense approval.
+func (h *PortalHandler) HandlePrivacyPolicy(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(renderStaticPage("Privacy Policy | TN24", "தனியுரிமைக் கொள்கை — Privacy Policy", `
+<h2>Privacy Policy</h2>
+<p><strong>Effective Date:</strong> September 2026</p>
+<p>TN24 (<strong>www.tn24.in</strong>) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you visit our website.</p>
+
+<h3>1. Information We Collect</h3>
+<ul>
+  <li><strong>Usage Data:</strong> We automatically collect standard log data such as your IP address, browser type, pages visited, and time spent on the site.</li>
+  <li><strong>Cookies:</strong> We use cookies to improve your browsing experience and to serve personalized advertisements through Google AdSense.</li>
+</ul>
+
+<h3>2. Google AdSense & Third-Party Advertising</h3>
+<p>We use <strong>Google AdSense</strong> to display advertisements. Google may use cookies (including the DoubleClick cookie) to serve ads based on your prior visits to our website or other websites on the Internet. You may opt out of personalized advertising by visiting <a href="https://www.google.com/settings/ads" target="_blank">Google Ads Settings</a>.</p>
+<p>Third-party vendors, including Google, use cookies to serve ads based on a user's prior visits to this website. Google's use of advertising cookies enables it and its partners to serve ads based on your visit here and/or other sites on the Internet.</p>
+
+<h3>3. How We Use Your Information</h3>
+<ul>
+  <li>To provide and maintain our news service</li>
+  <li>To analyze usage and improve content quality</li>
+  <li>To display relevant advertisements via Google AdSense</li>
+</ul>
+
+<h3>4. Data Retention</h3>
+<p>News articles published on TN24 are automatically retained for 24 hours before being removed or archived per our editorial retention policy.</p>
+
+<h3>5. Your Rights</h3>
+<p>You have the right to access, correct, or request deletion of your personal data. Contact us at <a href="mailto:admin@tn24.in">admin@tn24.in</a>.</p>
+
+<h3>6. Changes to This Policy</h3>
+<p>We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated effective date.</p>
+
+<h3>7. Contact Us</h3>
+<p>If you have questions about this Privacy Policy, please contact us at <a href="mailto:admin@tn24.in">admin@tn24.in</a>.</p>
+`)))
+}
+
+// HandleAboutUs serves the About Us page — required for Google AdSense approval.
+func (h *PortalHandler) HandleAboutUs(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(renderStaticPage("About Us | TN24", "எங்களைப் பற்றி — About Us", `
+<h2>About TN24</h2>
+<p><strong>TN24</strong> (www.tn24.in) is Tamil Nadu's leading 24/7 digital news platform, dedicated to delivering accurate, fast, and comprehensive news coverage across all 38 districts of Tamil Nadu.</p>
+
+<h3>Our Mission</h3>
+<p>To empower Tamil Nadu citizens with real-time, reliable, and unbiased news in both Tamil and English — covering politics, business, sports, entertainment, agriculture, and local district news.</p>
+
+<h3>What We Cover</h3>
+<ul>
+  <li>🔴 Breaking News from all 38 districts of Tamil Nadu</li>
+  <li>🏛️ State & National Politics</li>
+  <li>⚽ Sports — Cricket, Football, Kabaddi</li>
+  <li>💼 Business & Economy</li>
+  <li>🎬 Entertainment & Cinema</li>
+  <li>🌾 Agriculture & Rural News</li>
+  <li>⚖️ Legal & Court Updates</li>
+</ul>
+
+<h3>Our Editorial Standards</h3>
+<p>TN24 follows strict editorial guidelines. All news content is verified before publication. We are committed to accuracy, fairness, and transparency in all reporting.</p>
+
+<h3>Contact the Newsroom</h3>
+<p>Email: <a href="mailto:admin@tn24.in">admin@tn24.in</a></p>
+<p>Website: <a href="https://www.tn24.in">www.tn24.in</a></p>
+`)))
+}
+
+// HandleContactUs serves the Contact Us page — required for Google AdSense approval.
+func (h *PortalHandler) HandleContactUs(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(renderStaticPage("Contact Us | TN24", "தொடர்பு கொள்ளுங்கள் — Contact Us", `
+<h2>Contact TN24</h2>
+<p>We welcome feedback, news tips, corrections, and partnership inquiries.</p>
+
+<h3>📧 Editorial & News Tips</h3>
+<p><a href="mailto:admin@tn24.in">admin@tn24.in</a></p>
+
+<h3>📢 Advertising & Partnerships</h3>
+<p><a href="mailto:admin@tn24.in">admin@tn24.in</a></p>
+
+<h3>⚠️ Content Grievance / Complaints</h3>
+<p>In accordance with <strong>IT Rules 2021</strong>, you may submit a content grievance via our <a href="/portal">portal grievance form</a> or by writing to:</p>
+<p><a href="mailto:admin@tn24.in">admin@tn24.in</a></p>
+<p>We acknowledge grievances within <strong>24 hours</strong> and resolve them within <strong>15 days</strong> as required by law.</p>
+
+<h3>🌐 Website</h3>
+<p><a href="https://www.tn24.in">www.tn24.in</a></p>
+`)))
+}
+
+// renderStaticPage renders a simple, SEO-friendly HTML page for Privacy Policy, About Us, Contact.
+func renderStaticPage(title, heading, bodyHTML string) string {
+	return `<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>` + title + `</title>
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://www.tn24.in">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f0f0f; color: #e0e0e0; line-height: 1.8; }
+  header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 16px 24px; display: flex; align-items: center; gap: 16px; border-bottom: 2px solid #e53e3e; }
+  header a { text-decoration: none; color: #fff; font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; }
+  header span { color: #e53e3e; }
+  nav { background: #161616; padding: 10px 24px; display: flex; gap: 20px; flex-wrap: wrap; }
+  nav a { color: #aaa; text-decoration: none; font-size: 0.9rem; } nav a:hover { color: #fff; }
+  .container { max-width: 860px; margin: 40px auto; padding: 0 24px 60px; }
+  h1 { font-size: 1.5rem; color: #e53e3e; margin-bottom: 24px; border-bottom: 1px solid #333; padding-bottom: 12px; }
+  h2 { font-size: 1.3rem; color: #fff; margin: 28px 0 12px; }
+  h3 { font-size: 1.05rem; color: #ccc; margin: 20px 0 8px; }
+  p { color: #bbb; margin-bottom: 12px; }
+  ul { margin: 8px 0 12px 20px; color: #bbb; }
+  li { margin-bottom: 6px; }
+  a { color: #e53e3e; }
+  footer { text-align: center; padding: 24px; background: #111; color: #555; font-size: 0.82rem; border-top: 1px solid #222; margin-top: 40px; }
+</style>
+</head>
+<body>
+<header>
+  <a href="/portal">TN<span>24</span></a>
+  <span style="color:#666;font-size:0.85rem;">தமிழ்நாட்டின் முதன்மை 24/7 செய்தி தளம்</span>
+</header>
+<nav>
+  <a href="/portal">🏠 Home</a>
+  <a href="/about">About</a>
+  <a href="/privacy">Privacy</a>
+  <a href="/contact">Contact</a>
+</nav>
+<div class="container">
+  <h1>` + heading + `</h1>
+  ` + bodyHTML + `
+</div>
+<footer>
+  &copy; 2024 TN24 &mdash; www.tn24.in &nbsp;|&nbsp; <a href="/privacy">Privacy Policy</a> &nbsp;|&nbsp; <a href="/about">About Us</a> &nbsp;|&nbsp; <a href="/contact">Contact</a>
+</footer>
+</body>
+</html>`
 }
 
