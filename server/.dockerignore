@@ -1,0 +1,8 @@
+antigravity_env
+server_bin
+scratch
+.git
+.github
+*.tmp
+*.log
+.DS_Store

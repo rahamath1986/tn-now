@@ -1,5 +1,7 @@
 # --- Build Stage ---
-FROM golang:latest AS builder
+FROM golang:alpine AS builder
+
+RUN apk add --no-cache git ca-certificates tzdata
 
 # Allow Go to auto-download the required toolchain version if needed
 ENV GOTOOLCHAIN=auto
