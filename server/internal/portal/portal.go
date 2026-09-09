@@ -1390,6 +1390,8 @@ func renderStaticPage(title, heading, bodyHTML string) string {
   a { color: #e53e3e; }
   footer { text-align: center; padding: 24px; background: #111; color: #555; font-size: 0.82rem; border-top: 1px solid #222; margin-top: 40px; }
 </style>
+<!-- Google AdSense -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1894301748406603" crossorigin="anonymous"></script>
 </head>
 <body>
 <header>
