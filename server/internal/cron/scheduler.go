@@ -828,7 +828,7 @@ func (s *Scheduler) runLiveNewsScraper(ctx context.Context) (string, error) {
 	var mu sync.Mutex
 
 	var wg sync.WaitGroup
-	feedSem := make(chan struct{}, 2) // Scrape up to 2 feeds concurrently to stay strictly under memory limits
+	feedSem := make(chan struct{}, 1) // Scrape feeds sequentially to guarantee minimal memory footprint (< 30MB)
 
 	for _, feedURL := range cleanSources {
 		wg.Add(1)

@@ -589,7 +589,7 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 		return nil, fmt.Errorf("HTTP error %d fetching %s", resp.StatusCode, targetURL)
 	}
 
-	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 5*1024*1024))
+	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 1*1024*1024))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
@@ -646,7 +646,7 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 					subReq.Header.Set("User-Agent", req.Header.Get("User-Agent"))
 					if subResp, err := client.Do(subReq); err == nil && subResp.StatusCode == http.StatusOK {
 						defer subResp.Body.Close()
-						if subBytes, err := io.ReadAll(io.LimitReader(subResp.Body, 5*1024*1024)); err == nil {
+						if subBytes, err := io.ReadAll(io.LimitReader(subResp.Body, 1*1024*1024)); err == nil {
 							var rss rssFeed
 							if err := xml.Unmarshal(subBytes, &rss); err == nil && len(rss.Channel.Items) > 0 {
 								slog.Info("Successfully parsed auto-discovered RSS items", slog.Int("count", len(rss.Channel.Items)), slog.String("url", rssURL))
@@ -664,19 +664,15 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 		}
 	}
 
-	// 3. Fallback: Parse HTML webpage for news articles, og tags, and video embeds
+	// 3. Fallback: Parse as standard HTML news portal webpage
 	if len(items) == 0 {
-		if isSingleArticle(targetURL, bodyStr) {
-			single := parseHTMLPage(targetURL, bodyStr)
-			if single != nil {
-				items = append(items, single)
-			}
-			parsedItems := parseHTMLPageMultiple(targetURL, bodyStr)
-			for _, pit := range parsedItems {
-				if pit.SourceURL != targetURL && (single == nil || pit.Title != single.Title) {
-					items = append(items, pit)
-				}
-			}
+		slog.Info("Parsing as HTML news portal webpage", slog.String("url", targetURL))
+		items = parseHTMLPageMultiple(targetURL, bodyStr)
+
+		// Discover relevant category/district navigation links on the homepage
+		var navLinks []string
+		if len(items) > 0 {
+			navLinks = extractMatchingNavLinks(targetURL, bodyStr)
 		} else {
 			parsedItems := parseHTMLPageMultiple(targetURL, bodyStr)
 			if len(parsedItems) > 0 {
@@ -691,7 +687,7 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 		}
 
 		// Crawl navigation links matching all sections of added sources
-		navLinks := extractMatchingNavLinks(targetURL, bodyStr)
+		navLinks = extractMatchingNavLinks(targetURL, bodyStr)
 		if len(navLinks) == 0 && isSingleArticle(targetURL, bodyStr) {
 			// If scraping a single article directly, also discover sections from source base URL
 			if u, err := url.Parse(targetURL); err == nil {
@@ -702,7 +698,7 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 				if rootReq, err := http.NewRequestWithContext(ctx, http.MethodGet, baseRoot, nil); err == nil {
 					rootReq.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
 					if rootResp, err := client.Do(rootReq); err == nil {
-						if rootBytes, err := io.ReadAll(io.LimitReader(rootResp.Body, 2*1024*1024)); err == nil && len(rootBytes) > 0 {
+						if rootBytes, err := io.ReadAll(io.LimitReader(rootResp.Body, 512*1024)); err == nil && len(rootBytes) > 0 {
 							navLinks = extractMatchingNavLinks(baseRoot, string(rootBytes))
 						}
 						rootResp.Body.Close()
@@ -726,7 +722,7 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 				if err != nil {
 					continue
 				}
-				subBytes, err := io.ReadAll(io.LimitReader(subResp.Body, 2*1024*1024))
+				subBytes, err := io.ReadAll(io.LimitReader(subResp.Body, 512*1024))
 				subResp.Body.Close()
 				if err == nil && len(subBytes) > 0 {
 					subItems := parseHTMLPageMultiple(navURL, string(subBytes))
@@ -829,7 +825,7 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 	}
 
 	var wg sync.WaitGroup
-	sem := make(chan struct{}, 2) // Max 2 concurrent network fetches per feed to prevent memory spikes
+	sem := make(chan struct{}, 1) // Sequential network fetch per feed to strictly minimize heap memory
 	for _, itm := range items {
 		wg.Add(1)
 		go func(it *ScrapedItem) {
@@ -1170,7 +1166,9 @@ func DeduplicateContentLocked(ctx context.Context, conn *pgxpool.Pool) (prunedCo
 		FROM content c
 		LEFT JOIN video_links vl ON c.id = vl.content_id
 		LEFT JOIN stories s ON c.id = s.content_id
+		WHERE c.created_at >= NOW() - interval '72 hours'
 		ORDER BY COALESCE(c.created_at, c.updated_at) DESC, c.updated_at DESC
+		LIMIT 300
 	`)
 	if err != nil {
 		return 0, 0, fmt.Errorf("failed to query content for deduplication: %w", err)
@@ -1352,6 +1350,8 @@ func MigrateDatesAndEnforceRetentionPolicy(ctx context.Context, conn *pgxpool.Po
 		FROM content c
 		LEFT JOIN stories s ON s.content_id = c.id
 		WHERE c.source_type != 'MANUAL_ENTRY'
+		  AND c.created_at >= NOW() - interval '72 hours'
+		LIMIT 200
 	`)
 	if err != nil {
 		return
@@ -1877,7 +1877,7 @@ func FetchFullTextAndMediaExported(sourceURL string) (string, []string, string, 
 		return "", nil, "", "", "", time.Time{}
 	}
 	defer resp.Body.Close()
-	bytes, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
+	bytes, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
 	if err != nil || len(bytes) == 0 {
 		return "", nil, "", "", "", time.Time{}
 	}

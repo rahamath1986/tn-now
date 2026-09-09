@@ -33,11 +33,11 @@ WORKDIR /app
 # Run as non-root user for security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Memory limit optimization for 512MB RAM environments (e.g. Render Free Tier):
-# GOMEMLIMIT directs the Go runtime GC to aggressively reclaim heap before reaching 380MB,
-# strictly preventing Linux cgroup OOM kills.
-ENV GOMEMLIMIT=380MiB
-ENV GOGC=50
+# Memory limit optimization for low-memory environments (e.g. Render Free Tier 512MB):
+# GOMEMLIMIT directs the Go runtime GC to aggressively reclaim heap before reaching 220MB,
+# strictly preventing Linux cgroup OOM kills with more than 50% safety headroom.
+ENV GOMEMLIMIT=220MiB
+ENV GOGC=30
 
 # Copy binaries from builder stage
 COPY --from=builder /app/bin/api ./api
