@@ -454,20 +454,23 @@ func (h *Handler) HandleTriggerCronJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobCtx, cancel := context.WithTimeout(r.Context(), 75*time.Second)
-	defer cancel()
-	res, err := h.scheduler.TriggerJob(jobCtx, req.JobID)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
+	// Trigger execution in the background asynchronously so HTTP requests never timeout with 502
+	go func(jid string) {
+		bgCtx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+		defer cancel()
+		_, _ = h.scheduler.TriggerJob(bgCtx, jid)
+	}(req.JobID)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
-		"data":    res,
-		"message": "Cron job executed successfully",
+		"data": map[string]interface{}{
+			"jobId":   req.JobID,
+			"status":  "TRIGGERED",
+			"message": fmt.Sprintf("Cron job '%s' triggered and running in background", req.JobID),
+		},
+		"message": fmt.Sprintf("Cron job '%s' triggered successfully. Running in background...", req.JobID),
 		"errors":  []interface{}{},
 	})
 }

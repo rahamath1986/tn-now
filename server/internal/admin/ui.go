@@ -2513,7 +2513,7 @@ func RenderAdminDashboard() string {
         }
 
         function triggerCronJob(jobId) {
-            showToast('⏳ Triggering ' + jobId + ' (fetching feeds)...');
+            showToast('⏳ Triggering ' + jobId + '...');
             fetch('/admin/api/cron/trigger', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2522,17 +2522,25 @@ func RenderAdminDashboard() string {
             .then(res => res.json())
             .then(res => {
                 if (res.success) {
-                    const msg = (res.data && res.data.message) ? res.data.message : ('✓ ' + jobId + ' completed successfully');
+                    const msg = (res.data && res.data.message) ? res.data.message : ('✓ ' + jobId + ' triggered in background');
                     showToast(msg);
                     fetchCronJobs();
                     fetchCronLogs();
-                    if (typeof fetchPendingContent === 'function') fetchPendingContent();
-                    if (typeof fetchStats === 'function') fetchStats();
+                    // Poll logs and moderation queue every 3 seconds for 21 seconds to display live progress
+                    let pollCount = 0;
+                    const pollInterval = setInterval(() => {
+                        pollCount++;
+                        fetchCronLogs();
+                        fetchCronJobs();
+                        if (typeof fetchPendingContent === 'function') fetchPendingContent();
+                        if (typeof fetchStats === 'function') fetchStats();
+                        if (pollCount >= 7) clearInterval(pollInterval);
+                    }, 3000);
                 } else {
                     showToast('✗ ' + (res.message || 'Execution error'));
                 }
             })
-            .catch(() => showToast('✗ Failed to trigger job (network error or timeout)'));
+            .catch(() => showToast('✗ Failed to trigger job (network error)'));
         }
 
         function toggleCronJob(jobId) {
