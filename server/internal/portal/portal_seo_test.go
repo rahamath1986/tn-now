@@ -95,3 +95,24 @@ func TestSitemapAndRobots(t *testing.T) {
 		t.Errorf("expected Google News sitemap namespace in /sitemap-news.xml")
 	}
 }
+
+func TestTermsOfService(t *testing.T) {
+	h := NewPortalHandler(nil, nil)
+
+	reqTerms := httptest.NewRequest(http.MethodGet, "/terms", nil)
+	recTerms := httptest.NewRecorder()
+	h.HandleTermsOfService(recTerms, reqTerms)
+
+	if recTerms.Code != http.StatusOK {
+		t.Errorf("expected 200 OK from /terms, got %d", recTerms.Code)
+	}
+
+	body := recTerms.Body.String()
+	if !strings.Contains(body, "Terms of Service") {
+		t.Errorf("expected Terms of Service in body")
+	}
+	if !strings.Contains(body, "Privacy Policy") {
+		t.Errorf("expected link to Privacy Policy in Terms of Service page")
+	}
+}
+

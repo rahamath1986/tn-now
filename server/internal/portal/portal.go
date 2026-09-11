@@ -95,8 +95,10 @@ func (h *PortalHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/sitemap.xml", h.HandleSitemapXML)
 	mux.HandleFunc("/sitemap-news.xml", h.HandleNewsSitemapXML)
 
-	// AdSense-required static pages
+	// AdSense & Google Publisher Center required static pages
 	mux.HandleFunc("/privacy", h.HandlePrivacyPolicy)
+	mux.HandleFunc("/terms", h.HandleTermsOfService)
+	mux.HandleFunc("/terms-of-service", h.HandleTermsOfService)
 	mux.HandleFunc("/about", h.HandleAboutUs)
 	mux.HandleFunc("/contact", h.HandleContactUs)
 
@@ -1217,6 +1219,7 @@ Allow: /portal
 Allow: /portal/*
 Allow: /api/portal/feed
 Allow: /privacy
+Allow: /terms
 Allow: /about
 Allow: /contact
 Disallow: /admin
@@ -1292,12 +1295,18 @@ func (h *PortalHandler) HandleSitemapXML(w http.ResponseWriter, r *http.Request)
         <priority>0.6</priority>
     </url>
     <url>
+        <loc>%s/terms</loc>
+        <lastmod>%s</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
         <loc>%s/contact</loc>
         <lastmod>%s</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
     </url>
-`, base, now, base, now, base, now, base, now, base, now))
+`, base, now, base, now, base, now, base, now, base, now, base, now))
 
 	// Target Keyword Query URLs
 	for _, kw := range keywordUrls {
@@ -1472,6 +1481,52 @@ Tamil Nadu, India</p>
 `)))
 }
 
+// HandleTermsOfService serves the Terms of Service page — required by Google Publisher Center and Reader Revenue Manager.
+func (h *PortalHandler) HandleTermsOfService(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(renderStaticPage("Terms of Service | TN24 — Tamil Nadu News", "பயன்பாட்டு விதிகள் — Terms of Service", `
+<h2>Terms of Service</h2>
+<p><strong>Effective Date:</strong> September 2026</p>
+<p>Welcome to <strong>TN24</strong> (<strong>www.tn24.in</strong>). By accessing or using our news portal, newsletter, or related digital services, you agree to comply with and be bound by these Terms of Service.</p>
+
+<h3>1. Use of Content</h3>
+<p>All editorial articles, text, images, videos, audio, and branding assets on TN24 are the property of TN24 News Media Network or its verified content licensors and are protected by applicable copyright laws. Content is provided solely for personal, non-commercial informational reading.</p>
+
+<h3>2. User Submissions &amp; Conduct</h3>
+<ul>
+  <li>Readers and contributors agree not to submit defamatory, unlawful, harassing, infringing, or objectionable content.</li>
+  <li>TN24 reserves the right to review, edit, or remove any user-submitted news tip, comment, or contribution that violates community standards.</li>
+</ul>
+
+<h3>3. Reader Revenue, Subscriptions &amp; Newsletter</h3>
+<ul>
+  <li>TN24 offers optional newsletter subscriptions and reader revenue contributions powered by Google Reader Revenue Manager.</li>
+  <li>Subscribers agree to receive editorial newsletters, breaking news digests, and occasional service updates. You may opt out at any time using the unsubscribe link provided in every newsletter email.</li>
+  <li>Reader contributions directly support independent local reporting across all 38 districts of Tamil Nadu.</li>
+</ul>
+
+<h3>4. Third-Party Links &amp; Advertising</h3>
+<p>TN24 may display advertisements through Google AdSense and provide external links for source attribution. We do not endorse and are not responsible for the content, privacy policies, or practices of third-party websites.</p>
+
+<h3>5. Disclaimer &amp; Limitation of Liability</h3>
+<p>All news reports and financial indicators (such as gold, silver, and currency rates) are published in good faith for general informational purposes. TN24 makes no warranties regarding the complete accuracy of third-party market data and shall not be liable for decisions made based on published information.</p>
+
+<h3>6. Grievance Redressal Mechanism</h3>
+<p>In compliance with the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021:</p>
+<p><strong>Grievance Officer:</strong> Editorial Desk, TN24 Media<br>
+Email: <a href="mailto:admin@tn24.in">admin@tn24.in</a><br>
+Tamil Nadu, India</p>
+
+<h3>7. Governing Law</h3>
+<p>These Terms are governed by and construed in accordance with the laws of India, under the exclusive jurisdiction of the competent courts in Chennai, Tamil Nadu.</p>
+
+<h3>8. Contact Us</h3>
+<p>If you have any questions about these Terms of Service, please contact us at <a href="mailto:admin@tn24.in">admin@tn24.in</a>.</p>
+`)))
+}
+
 // HandleAboutUs serves the About Us page — required for Google AdSense approval.
 func (h *PortalHandler) HandleAboutUs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -1560,6 +1615,7 @@ func renderStaticPage(title, heading, bodyHTML string) string {
   <a href="/portal">🏠 Home</a>
   <a href="/about">About</a>
   <a href="/privacy">Privacy</a>
+  <a href="/terms">Terms</a>
   <a href="/contact">Contact</a>
 </nav>
 <div class="container">
@@ -1567,7 +1623,7 @@ func renderStaticPage(title, heading, bodyHTML string) string {
   ` + bodyHTML + `
 </div>
 <footer>
-  &copy; 2026 TN24 &mdash; www.tn24.in &nbsp;|&nbsp; <a href="/privacy">Privacy Policy</a> &nbsp;|&nbsp; <a href="/about">About Us</a> &nbsp;|&nbsp; <a href="/contact">Contact</a>
+  &copy; 2026 TN24 &mdash; www.tn24.in &nbsp;|&nbsp; <a href="/privacy">Privacy Policy</a> &nbsp;|&nbsp; <a href="/terms">Terms of Service</a> &nbsp;|&nbsp; <a href="/about">About Us</a> &nbsp;|&nbsp; <a href="/contact">Contact</a>
 </footer>
 </body>
 </html>`
