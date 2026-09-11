@@ -1691,6 +1691,19 @@ func RenderPortalPage() string {
     </style>
     <!-- Google AdSense -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1894301748406603" crossorigin="anonymous"></script>
+
+    <!-- Google Reader Revenue Manager (Subscribe with Google) -->
+    <script async type="application/javascript" src="https://news.google.com/swg/js/v1/swg-basic.js"></script>
+    <script>
+      (self.SWG_BASIC = self.SWG_BASIC || []).push( basicSubscriptions => {
+        basicSubscriptions.init({
+          type: "NewsArticle",
+          isPartOfType: ["Product"],
+          isPartOfProductId: "CAowvuTHDA:openaccess",
+          clientOptions: { theme: "light", lang: "ta" },
+        });
+      });
+    </script>
 </head>
 <body>
 

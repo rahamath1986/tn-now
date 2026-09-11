@@ -1468,16 +1468,16 @@ func (h *PortalHandler) HandlePrivacyPolicy(w http.ResponseWriter, r *http.Reque
 <p>News articles published on TN24 are automatically retained for 24 hours before being removed or archived per our editorial retention policy.</p>
 
 <h3>5. Your Rights</h3>
-<p>You have the right to access, correct, or request deletion of your personal data. Contact us at <a href="mailto:admin@tn24.in">admin@tn24.in</a>.</p>
+<p>You have the right to access, correct, or request deletion of your personal data. Contact us at <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a>.</p>
 
 <h3>6. Grievance Officer</h3>
 <p>In accordance with the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021:</p>
 <p><strong>Grievance Officer:</strong> Editorial Desk, TN24 Media<br>
-Email: <a href="mailto:admin@tn24.in">admin@tn24.in</a><br>
+Email: <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a><br>
 Tamil Nadu, India</p>
 
 <h3>7. Contact Us</h3>
-<p>If you have questions about this Privacy Policy, please contact us at <a href="mailto:admin@tn24.in">admin@tn24.in</a>.</p>
+<p>If you have questions about this Privacy Policy, please contact us at <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a>.</p>
 `)))
 }
 
@@ -1516,14 +1516,14 @@ func (h *PortalHandler) HandleTermsOfService(w http.ResponseWriter, r *http.Requ
 <h3>6. Grievance Redressal Mechanism</h3>
 <p>In compliance with the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021:</p>
 <p><strong>Grievance Officer:</strong> Editorial Desk, TN24 Media<br>
-Email: <a href="mailto:admin@tn24.in">admin@tn24.in</a><br>
+Email: <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a><br>
 Tamil Nadu, India</p>
 
 <h3>7. Governing Law</h3>
 <p>These Terms are governed by and construed in accordance with the laws of India, under the exclusive jurisdiction of the competent courts in Chennai, Tamil Nadu.</p>
 
 <h3>8. Contact Us</h3>
-<p>If you have any questions about these Terms of Service, please contact us at <a href="mailto:admin@tn24.in">admin@tn24.in</a>.</p>
+<p>If you have any questions about these Terms of Service, please contact us at <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a>.</p>
 `)))
 }
 
@@ -1551,7 +1551,7 @@ func (h *PortalHandler) HandleAboutUs(w http.ResponseWriter, r *http.Request) {
 <p>TN24 follows strict editorial guidelines. All news content is verified before publication. We are committed to accuracy, fairness, and transparency in all reporting.</p>
 
 <h3>Contact &amp; Corporate Information</h3>
-<p>Email: <a href="mailto:admin@tn24.in">admin@tn24.in</a></p>
+<p>Email: <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a></p>
 <p>Website: <a href="https://www.tn24.in">www.tn24.in</a></p>
 <p>Operating Region: Tamil Nadu, India</p>
 `)))
@@ -1565,7 +1565,7 @@ func (h *PortalHandler) HandleContactUs(w http.ResponseWriter, r *http.Request) 
 	_, _ = w.Write([]byte(renderStaticPage("Contact Us | TN24 — Tamil Nadu News", "தொடர்பு கொள்ளுங்கள் — Contact Us", `
 <h2>Contact TN24</h2>
 <p>In accordance with <strong>IT Rules 2021</strong>, you may submit a content grievance via our <a href="/portal">portal grievance form</a> or by writing to:</p>
-<p><a href="mailto:admin@tn24.in">admin@tn24.in</a></p>
+<p><a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a></p>
 <p>We acknowledge grievances within <strong>24 hours</strong> and resolve them within <strong>15 days</strong> as required by law.</p>
 
 <h3>🌐 Website</h3>
@@ -1605,6 +1605,19 @@ func renderStaticPage(title, heading, bodyHTML string) string {
 </style>
 <!-- Google AdSense -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1894301748406603" crossorigin="anonymous"></script>
+
+<!-- Google Reader Revenue Manager (Subscribe with Google) -->
+<script async type="application/javascript" src="https://news.google.com/swg/js/v1/swg-basic.js"></script>
+<script>
+  (self.SWG_BASIC = self.SWG_BASIC || []).push( basicSubscriptions => {
+    basicSubscriptions.init({
+      type: "NewsArticle",
+      isPartOfType: ["Product"],
+      isPartOfProductId: "CAowvuTHDA:openaccess",
+      clientOptions: { theme: "light", lang: "ta" },
+    });
+  });
+</script>
 </head>
 <body>
 <header>

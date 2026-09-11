@@ -114,5 +114,18 @@ func TestTermsOfService(t *testing.T) {
 	if !strings.Contains(body, "Privacy Policy") {
 		t.Errorf("expected link to Privacy Policy in Terms of Service page")
 	}
+	if !strings.Contains(body, "swg-basic.js") || !strings.Contains(body, "CAowvuTHDA:openaccess") {
+		t.Errorf("expected Google Reader Revenue Manager script in static pages")
+	}
+}
+
+func TestReaderRevenueManagerSWG(t *testing.T) {
+	portalHTML := RenderPortalPage()
+	if !strings.Contains(portalHTML, "https://news.google.com/swg/js/v1/swg-basic.js") {
+		t.Errorf("expected SWG basic js script tag in RenderPortalPage")
+	}
+	if !strings.Contains(portalHTML, "CAowvuTHDA:openaccess") {
+		t.Errorf("expected product ID CAowvuTHDA:openaccess in RenderPortalPage")
+	}
 }
 
