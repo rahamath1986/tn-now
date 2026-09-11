@@ -1398,6 +1398,7 @@ func (h *PortalHandler) HandleNewsSitemapXML(w http.ResponseWriter, r *http.Requ
 				var aPub time.Time
 				if err := rows.Scan(&aID, &aTitle, &aLang, &aPub); err == nil {
 					cleanTitle := scraper.CleanHTML(aTitle)
+					cleanTitle = strings.TrimSpace(cleanTitle)
 					cleanTitle = html.EscapeString(cleanTitle)
 					if aLang == "" {
 						aLang = "ta"
