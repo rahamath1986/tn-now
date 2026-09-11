@@ -6,23 +6,25 @@ func RenderPortalPage() string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TN24 &mdash; தமிழ்நாட்டின் முதன்மை 24/7 செய்தி தளம் | Tamil Nadu Breaking News Live Today</title>
+    <title>TN24 &mdash; Tamil Nadu News | தமிழ் செய்திகள் | Latest Tamil News Today Live 24x7 | TN 24</title>
 
     <!-- ═══════════════════════════════════════════════════════
          CORE SEO META TAGS — TN24 Tamil News Portal
-         Keywords researched for max search volume in Tamil Nadu
+         Optimized for: tn 24, news tamil 24x7 live, tamil nadu news,
+         news live tamilnadu, தமிழ் செய்திகள், today news in tamil,
+         news tamil today, tamil news online, latest tamil news,
+         tamil nadu news in tamil, news tamil nadu
     ═══════════════════════════════════════════════════════ -->
-    <meta name="description" content="TN24 — Tamil Nadu's #1 live news portal. Breaking news today in Tamil, live updates from all 38 districts: Chennai, Coimbatore, Madurai, Salem, Trichy. Politics, Cinema, Sports, TNPSC, Government Jobs & more. 24/7 உண்மைச் செய்திகள்.">
+    <meta name="description" content="TN24 (tn 24) — Tamil Nadu news, latest tamil news &amp; today news in tamil live 24x7. தமிழ்நாடு செய்திகள், தமிழ் செய்திகள் ஆன்லைன் (tamil news online), news live tamilnadu, Chennai &amp; 38 districts breaking updates 24/7.">
 
-    <!-- Expanded High-Volume Keywords (Tanglish + Tamil Script + English) -->
+    <!-- Primary High-Volume Target Keywords -->
     <meta name="keywords" content="
-        TN24, TN24 News, TN24 Live, tn24now,
-        Tamil news, Tamil Nadu news, Tamil news live, Tamil news today,
-        Breaking news Tamil, breaking news today Tamil Nadu,
-        Tamil Nadu breaking news, live news Tamil Nadu,
-        தமிழ்நாடு செய்திகள், தமிழ் செய்திகள், இன்றைய செய்திகள்,
-        நேரலை செய்திகள், சமீபத்திய செய்திகள், முக்கிய செய்திகள்,
-        Tamil news live today, latest Tamil news, today Tamil news,
+        tn 24, news tamil 24x7 live, tamil nadu news, news live tamilnadu,
+        தமிழ் செய்திகள், today news in tamil, news tamil today,
+        tamil news online, latest tamil news, tamil nadu news in tamil,
+        news tamil nadu, TN24, TN24 News, TN24 Live, tn24now, tn24.in,
+        தமிழ்நாடு செய்திகள், இன்றைய தமிழ் செய்திகள்,
+        நேரலை செய்திகள் தமிழ்நாடு, சமீபத்திய செய்திகள், உண்மைச் செய்திகள் 24/7,
         Chennai news, Chennai latest news, Chennai breaking news,
         சென்னை செய்திகள், சென்னை தமிழ் செய்திகள்,
         Coimbatore news, Madurai news, Salem news, Trichy news, Tirunelveli news,
@@ -31,31 +33,18 @@ func RenderPortalPage() string {
         Tamil Nadu politics, Tamil Nadu political news, DMK news, AIADMK news,
         தமிழக அரசியல், அரசியல் செய்திகள், தமிழ்நாடு அரசு செய்திகள்,
         Tamil cinema news, kollywood news, Tamil movie news, new Tamil movies,
-        தமிழ் சினிமா செய்திகள், கொல்லிவுட் செய்திகள், திரை செய்திகள்,
+        தமிழ் சினிமா செய்திகள், திரை செய்திகள்,
         Tamil sports news, IPL Tamil news, cricket Tamil, CSK news,
         விளையாட்டு செய்திகள், கிரிக்கெட் செய்திகள்,
         TNPSC, TNPSC news, Tamil Nadu government jobs, TN govt jobs,
         தமிழக அரசு வேலைவாய்ப்பு, அரசு வேலை செய்திகள்,
-        Tamil weather news, Chennai weather, Tamil Nadu weather,
-        வானிலை அறிக்கை, தமிழ்நாடு வானிலை,
-        Tamil business news, Tamil Nadu economy, share market Tamil,
-        வணிக செய்திகள், பங்குச் சந்தை செய்திகள்,
-        Tamil technology news, tech news Tamil, mobile news Tamil,
-        தொழில்நுட்ப செய்திகள்,
-        Tamil education news, school news Tamil Nadu, university news Tamil,
-        கல்வி செய்திகள்,
-        Tamil crime news, police news Tamil Nadu, court news Tamil,
-        குற்றம் செய்திகள், நீதிமன்ற செய்திகள்,
-        Tamil agriculture news, farmer news Tamil Nadu, rain news Tamil,
-        விவசாய செய்திகள், மழை செய்திகள்,
-        Pongal news, Tamil festival news, Tamil calendar 2025,
-        பொங்கல் செய்திகள், தமிழ் திருவிழா,
+        Tamil weather news, Chennai weather, தமிழ்நாடு வானிலை,
         TN24 digital news, TN24 portal, TN24 online
     ">
 
     <meta name="author" content="TN24 News Media Network">
     <meta name="publisher" content="TN24 Digital News">
-    <meta name="copyright" content="TN24 News Media Network 2024">
+    <meta name="copyright" content="TN24 News Media Network 2026">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
     <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
     <meta name="googlebot-news" content="index, follow">
@@ -74,7 +63,7 @@ func RenderPortalPage() string {
     <meta name="ICBM" content="11.1271, 78.6569">
 
     <!-- Google News Specific -->
-    <meta name="news_keywords" content="Tamil Nadu news, breaking news Tamil, Chennai news, TNPSC, Tamil cinema, Tamil politics, DMK, AIADMK, IPL, cricket Tamil, government jobs Tamil Nadu">
+    <meta name="news_keywords" content="tn 24, news tamil 24x7 live, tamil nadu news, news live tamilnadu, தமிழ் செய்திகள், today news in tamil, news tamil today, tamil news online, latest tamil news, tamil nadu news in tamil, news tamil nadu, தமிழ்நாடு செய்திகள்">
     <meta name="syndication-source" content="https://tn24now.in/portal">
     <meta name="original-source" content="https://tn24now.in/portal">
 
@@ -83,26 +72,26 @@ func RenderPortalPage() string {
 
     <!-- Open Graph (Facebook / WhatsApp / LinkedIn / Telegram) -->
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="TN24 News">
+    <meta property="og:site_name" content="TN24 — Tamil Nadu News">
     <meta property="og:locale" content="ta_IN">
     <meta property="og:locale:alternate" content="en_IN">
-    <meta property="og:title" content="TN24 — Tamil Nadu's #1 Live News Portal | 24/7 Breaking Tamil News">
-    <meta property="og:description" content="Get live breaking news from Tamil Nadu — Politics, Cinema, Sports, TNPSC, Government Jobs, Weather & more. 38 மாவட்டங்களின் உடனடி செய்திகள் 24/7.">
+    <meta property="og:title" content="TN24 — Tamil Nadu News | தமிழ் செய்திகள் | Latest Tamil News Online 24x7 Live">
+    <meta property="og:description" content="TN24 (tn 24) — News Tamil 24x7 Live. Tamil Nadu news in Tamil (தமிழ் செய்திகள்), today news in tamil, latest tamil news online &amp; breaking updates from all 38 districts.">
     <meta property="og:url" content="https://tn24now.in/portal">
     <meta property="og:image" content="https://tn24now.in/portal/assets/brand/tn24-profile.jpg">
     <meta property="og:image:width" content="1024">
     <meta property="og:image:height" content="1024">
     <meta property="og:image:type" content="image/jpeg">
-    <meta property="og:image:alt" content="TN24 — Tamil Nadu Live News Network">
+    <meta property="og:image:alt" content="TN24 — Tamil Nadu News | தமிழ் செய்திகள் | News Live Tamilnadu">
 
     <!-- Twitter / X Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@TN24Now">
     <meta name="twitter:creator" content="@TN24Now">
-    <meta name="twitter:title" content="TN24 — Tamil Nadu Breaking News Live 24/7">
-    <meta name="twitter:description" content="Live Tamil Nadu news — Politics, Cinema, Sports, TNPSC & Government Jobs. 38 districts covered 24/7. தமிழ்நாட்டின் #1 செய்தி தளம்.">
+    <meta name="twitter:title" content="TN24 — Tamil Nadu News Live 24x7 | தமிழ் செய்திகள் | TN 24">
+    <meta name="twitter:description" content="Latest Tamil news today, news live tamilnadu, tamil news online &amp; breaking updates from all 38 districts 24/7. தமிழ்நாட்டின் #1 செய்தி தளம்.">
     <meta name="twitter:image" content="https://tn24now.in/portal/assets/brand/tn24-profile.jpg">
-    <meta name="twitter:image:alt" content="TN24 Tamil News Network">
+    <meta name="twitter:image:alt" content="TN24 — Tamil Nadu News | தமிழ் செய்திகள்">
 
     <!-- Structured Data: Schema.org JSON-LD -->
     <script type="application/ld+json">
@@ -112,9 +101,19 @@ func RenderPortalPage() string {
         {
           "@type": "NewsMediaOrganization",
           "@id": "https://tn24now.in/#organization",
-          "name": "TN24",
-          "alternateName": ["TN24 News", "TN24 Tamil News", "TN24 Now"],
-          "description": "Tamil Nadu's #1 digital news portal delivering 24/7 live breaking news in Tamil and English from all 38 districts.",
+          "name": "TN24 — Tamil Nadu News",
+          "alternateName": [
+            "TN24",
+            "tn 24",
+            "TN24 News",
+            "TN24 Live",
+            "TN24 Tamil News",
+            "தமிழ் செய்திகள் TN24",
+            "TN24 Now",
+            "tn24now.in",
+            "tn24.in"
+          ],
+          "description": "Tamil Nadu's #1 digital news portal delivering 24/7 live breaking news in Tamil (தமிழ் செய்திகள்) and English from all 38 districts.",
           "url": "https://tn24now.in/portal",
           "logo": {
             "@type": "ImageObject",
@@ -131,6 +130,19 @@ func RenderPortalPage() string {
               "name": "India"
             }
           },
+          "keywords": [
+            "tn 24",
+            "news tamil 24x7 live",
+            "tamil nadu news",
+            "news live tamilnadu",
+            "தமிழ் செய்திகள்",
+            "today news in tamil",
+            "news tamil today",
+            "tamil news online",
+            "latest tamil news",
+            "tamil nadu news in tamil",
+            "news tamil nadu"
+          ],
           "contactPoint": {
             "@type": "ContactPoint",
             "contactType": "News Desk",
@@ -149,9 +161,11 @@ func RenderPortalPage() string {
           "@type": "WebSite",
           "@id": "https://tn24now.in/#website",
           "url": "https://tn24now.in/portal",
-          "name": "TN24 — Tamil Nadu Breaking News 24/7",
-          "description": "Live Tamil Nadu news portal covering breaking news, politics, cinema, sports, TNPSC, government jobs from all 38 districts.",
+          "name": "TN24 — Tamil Nadu News & தமிழ் செய்திகள்",
+          "headline": "TN24: News Tamil 24x7 Live — Today News in Tamil & Latest Tamil Nadu News Online",
+          "description": "TN24 (tn 24) — Live Tamil Nadu news portal covering latest tamil news, today news in tamil, breaking news live tamilnadu, politics, cinema, sports & TNPSC from all 38 districts.",
           "inLanguage": ["ta", "en-IN"],
+          "keywords": "tn 24, news tamil 24x7 live, tamil nadu news, news live tamilnadu, தமிழ் செய்திகள், today news in tamil, news tamil today, tamil news online, latest tamil news, tamil nadu news in tamil, news tamil nadu",
           "publisher": {
             "@id": "https://tn24now.in/#organization"
           },
@@ -174,14 +188,25 @@ func RenderPortalPage() string {
         },
         {
           "@type": "SiteNavigationElement",
-          "name": ["Latest News", "Politics", "Cinema", "Sports", "Business", "Technology", "District News", "Government Jobs"],
+          "name": [
+            "Latest News",
+            "Tamil Nadu News",
+            "Politics",
+            "Cinema",
+            "Sports",
+            "Business",
+            "Technology",
+            "District News",
+            "Government Jobs"
+          ],
           "url": [
             "https://tn24now.in/portal",
-            "https://tn24now.in/portal#politics",
-            "https://tn24now.in/portal#cinema",
-            "https://tn24now.in/portal#sports",
-            "https://tn24now.in/portal#business",
-            "https://tn24now.in/portal#technology",
+            "https://tn24now.in/portal?cat=News",
+            "https://tn24now.in/portal?cat=Politics",
+            "https://tn24now.in/portal?cat=Entertainment",
+            "https://tn24now.in/portal?cat=Sports",
+            "https://tn24now.in/portal?cat=Business",
+            "https://tn24now.in/portal?cat=Technical",
             "https://tn24now.in/portal#districts",
             "https://tn24now.in/portal#government-jobs"
           ]
@@ -229,6 +254,18 @@ func RenderPortalPage() string {
         a { text-decoration: none; color: inherit; transition: color 0.15s; }
         a:hover { color: var(--nav-blue); }
         button { cursor: pointer; font-family: inherit; border: none; }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
 
         /* ---------------- TOP BANNER ---------------- */
         .top-banner {
@@ -1664,8 +1701,9 @@ func RenderPortalPage() string {
                 <span id="currentDateDisplay">செப்டம்பர் 8, 2026</span>
             </div>
 
-            <a href="/portal" class="brand-logo" style="text-decoration:none;">
-                <img src="/portal/assets/brand/tn24-logo.svg?v=20260908d" alt="TN24" style="height:46px; display:block;" />
+            <a href="/portal" class="brand-logo" title="TN24 — Tamil Nadu News Live 24x7 | தமிழ் செய்திகள்" style="text-decoration:none;">
+                <img src="/portal/assets/brand/tn24-logo.svg?v=20260908d" alt="TN24 — Tamil Nadu News | தமிழ் செய்திகள் | News Live Tamilnadu 24x7" style="height:46px; display:block;" />
+                <span class="sr-only">TN24 (tn 24) — News Tamil 24x7 Live | Tamil Nadu News | தமிழ் செய்திகள் | Today News in Tamil</span>
             </a>
 
             <div class="top-right">
@@ -1829,8 +1867,8 @@ func RenderPortalPage() string {
                     <img id="heroImage" src="https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200" alt="தலைப்புச் செய்தி">
                     <div class="hero-overlay">
                         <span class="badge-pill" id="heroBadge">தலைப்புச் செய்தி</span>
-                        <h1 class="hero-title" id="heroTitle">தமிழ்நாடு முக்கிய செய்தி நிகழ்வுகள்</h1>
-                        <p class="hero-desc" id="heroDesc">தமிழ்நாடு மற்றும் வட்டார முக்கிய நிகழ்வுகள் குறித்த விரிவான கள நிலவரம் மற்றும் நேரடி செய்தி தொகுப்பு.</p>
+                        <h1 class="hero-title" id="heroTitle">தமிழ்நாடு செய்திகள் &mdash; Tamil Nadu News Live 24x7 | தமிழ் செய்திகள்</h1>
+                        <p class="hero-desc" id="heroDesc">தமிழ்நாடு மற்றும் வட்டார முக்கிய நிகழ்வுகள் குறித்த விரிவான கள நிலவரம் &mdash; Latest Tamil news today, news live tamilnadu 24x7.</p>
                         <div id="heroDateMeta" style="margin-top: 8px; font-size: 11px; color: #cbd5e1; display: flex; align-items: center; gap: 8px; font-weight: 500;"></div>
                     </div>
                 </div>
@@ -2008,10 +2046,30 @@ func RenderPortalPage() string {
     <footer style="margin-top: 40px; background: #090e17; border-top: 1px solid #1e293b; color: #94a3b8; padding: 36px 20px 24px; text-align: center;">
         <div style="max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 14px;">
             <img src="/portal/assets/brand/tn24-logo.svg?v=20260908d" onerror="this.onerror=null; this.src='/admin/api/maps/svg?district=Tamil%20Nadu'" alt="TN24" style="height: 50px; display: block;" />
-            <p style="font-size: 13px; color: #cbd5e1; max-width: 650px; margin: 0 auto; line-height: 1.6;">
-                <strong style="color: #ffffff;">TN24 &mdash; தமிழ்நாட்டின் முதன்மை 24/7 டிஜிட்டல் செய்தி &amp; நேரடி தகவல் தளம்</strong><br>
-                தமிழ்நாட்டின் அனைத்து 38 மாவட்டங்கள், இந்தியா மற்றும் உலகளாவிய முக்கிய நிகழ்வுகள் உடனுக்குடன் நேரலையாக.
+            <p style="font-size: 13px; color: #cbd5e1; max-width: 780px; margin: 0 auto; line-height: 1.6;">
+                <strong style="color: #ffffff;">TN24 (tn 24) &mdash; Tamil Nadu News | தமிழ் செய்திகள் | 24x7 நேரலை செய்தி தளம்</strong><br>
+                Latest Tamil news today, today news in tamil, news live tamilnadu &amp; tamil news online. தமிழ்நாட்டின் அனைத்து 38 மாவட்டங்கள், சென்னை, கோவை, மதுரை, திருச்சி, சேலம் உள்ளிட்ட முக்கிய நிகழ்வுகள் உடனுக்குடன் நேரலையாக.
             </p>
+
+            <!-- SEO POPULAR TOPICS & KEYWORDS NAVIGATION -->
+            <div style="margin-top: 14px; max-width: 980px; padding: 14px 18px; background: rgba(15,23,42,0.65); border: 1px solid #1e293b; border-radius: 8px; text-align: center;">
+                <div style="font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px;">பிரபலமான செய்திகள் &bull; Trending Tamil News Searches</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; font-size: 11px;">
+                    <a href="/portal?q=tn+24" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">tn 24</a>
+                    <a href="/portal?q=news+tamil+24x7+live" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">news tamil 24x7 live</a>
+                    <a href="/portal?q=tamil+nadu+news" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">tamil nadu news</a>
+                    <a href="/portal?q=news+live+tamilnadu" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">news live tamilnadu</a>
+                    <a href="/portal?q=தமிழ்+செய்திகள்" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">தமிழ் செய்திகள்</a>
+                    <a href="/portal?q=today+news+in+tamil" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">today news in tamil</a>
+                    <a href="/portal?q=news+tamil+today" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">news tamil today</a>
+                    <a href="/portal?q=tamil+news+online" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">tamil news online</a>
+                    <a href="/portal?q=latest+tamil+news" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">latest tamil news</a>
+                    <a href="/portal?q=tamil+nadu+news+in+tamil" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">tamil nadu news in tamil</a>
+                    <a href="/portal?q=news+tamil+nadu" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">news tamil nadu</a>
+                    <a href="/portal?district=Chennai" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">சென்னை செய்திகள்</a>
+                    <a href="/portal?cat=Politics" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">தமிழக அரசியல் செய்திகள்</a>
+                </div>
+            </div>
             <div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; font-size: 12px; margin-top: 2px;">
                 <a href="mailto:tn24now@gmail.com" style="color: #38bdf8; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; background: rgba(56,189,248,0.1); padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(56,189,248,0.25);">
                     📧 <strong>tn24now@gmail.com</strong>

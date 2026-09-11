@@ -93,6 +93,7 @@ func (h *PortalHandler) RegisterRoutes(mux *http.ServeMux) {
 	// SEO Crawler & Indexing Endpoints
 	mux.HandleFunc("/robots.txt", h.HandleRobotsTxt)
 	mux.HandleFunc("/sitemap.xml", h.HandleSitemapXML)
+	mux.HandleFunc("/sitemap-news.xml", h.HandleNewsSitemapXML)
 
 	// AdSense-required static pages
 	mux.HandleFunc("/privacy", h.HandlePrivacyPolicy)
@@ -192,11 +193,14 @@ func (h *PortalHandler) HandleGetSinglePost(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string, postID string, r *http.Request) string {
-	var title, desc, thumb, district, category string
+	var title, desc, thumb, district, category, lang string
+	var pubAt, createdAt time.Time
 	err := h.conn.QueryRow(ctx, `
 		SELECT c.title, COALESCE(c.description, ''),
 		       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
-		       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News')
+		       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'),
+		       COALESCE(c.language, 'ta'),
+		       COALESCE(c.published_at, c.created_at), c.created_at
 		FROM content c
 		LEFT JOIN video_links vl ON c.id = vl.content_id
 		LEFT JOIN stories s ON c.id = s.content_id
@@ -205,7 +209,7 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 		LEFT JOIN categories cat ON c.category_id = cat.id
 		WHERE c.id::text = $1
 		LIMIT 1
-	`, postID).Scan(&title, &desc, &thumb, &district, &category)
+	`, postID).Scan(&title, &desc, &thumb, &district, &category, &lang, &pubAt, &createdAt)
 
 	if err != nil || strings.TrimSpace(title) == "" {
 		return baseHTML
@@ -238,15 +242,15 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 
 	// 1. Replace <title>
 	reTitle := regexp.MustCompile(`(?i)<title>.*?</title>`)
-	baseHTML = reTitle.ReplaceAllString(baseHTML, fmt.Sprintf("<title>%s &mdash; TN24 News</title>", cleanTitleEscaped))
+	baseHTML = reTitle.ReplaceAllString(baseHTML, fmt.Sprintf("<title>%s &mdash; TN24 | Tamil Nadu News | தமிழ் செய்திகள்</title>", cleanTitleEscaped))
 
 	// 2. Replace meta description
 	reDesc := regexp.MustCompile(`(?i)<meta name="description" content=".*?">`)
-	baseHTML = reDesc.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="description" content="%s">`, cleanDescEscaped))
+	baseHTML = reDesc.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="description" content="%s — TN24 (tn 24) Tamil Nadu news live 24x7. தமிழ் செய்திகள் உடனுக்குடன்.">`, cleanDescEscaped))
 
 	// 3. Replace og:title
 	reOgTitle := regexp.MustCompile(`(?i)<meta property="og:title" content=".*?">`)
-	baseHTML = reOgTitle.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta property="og:title" content="%s | TN24">`, cleanTitleEscaped))
+	baseHTML = reOgTitle.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta property="og:title" content="%s | TN24 — Tamil Nadu News | தமிழ் செய்திகள்">`, cleanTitleEscaped))
 
 	// 4. Replace og:description
 	reOgDesc := regexp.MustCompile(`(?i)<meta property="og:description" content=".*?">`)
@@ -262,7 +266,7 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 
 	// 7. Replace twitter tags
 	reTwTitle := regexp.MustCompile(`(?i)<meta name="twitter:title" content=".*?">`)
-	baseHTML = reTwTitle.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="twitter:title" content="%s">`, cleanTitleEscaped))
+	baseHTML = reTwTitle.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="twitter:title" content="%s — TN24 Tamil Nadu News">`, cleanTitleEscaped))
 
 	reTwDesc := regexp.MustCompile(`(?i)<meta name="twitter:description" content=".*?">`)
 	baseHTML = reTwDesc.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="twitter:description" content="%s">`, cleanDescEscaped))
@@ -270,9 +274,43 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 	reTwImg := regexp.MustCompile(`(?i)<meta name="twitter:image" content=".*?">`)
 	baseHTML = reTwImg.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="twitter:image" content="%s">`, html.EscapeString(thumb)))
 
-	// 8. Inject script with window.INITIAL_POST_ID
-	scriptTag := fmt.Sprintf(`<script>window.INITIAL_POST_ID = %q;</script></head>`, postID)
-	baseHTML = strings.Replace(baseHTML, "</head>", scriptTag, 1)
+	// 8. Inject NewsArticle structured data & window.INITIAL_POST_ID
+	articleSchemaJSON, _ := json.Marshal(map[string]interface{}{
+		"@context": "https://schema.org",
+		"@type":    "NewsArticle",
+		"mainEntityOfPage": map[string]string{
+			"@type": "WebPage",
+			"@id":   fullPostURL,
+		},
+		"headline":      cleanTitle,
+		"description":   cleanDesc,
+		"image":         []string{thumb},
+		"datePublished": pubAt.Format(time.RFC3339),
+		"dateModified":  createdAt.Format(time.RFC3339),
+		"inLanguage":    lang,
+		"keywords": []string{
+			"news tamil nadu", "tamil nadu news", "tn 24", "news tamil 24x7 live",
+			"news live tamilnadu", "தமிழ் செய்திகள்", "today news in tamil",
+			"news tamil today", "tamil news online", "latest tamil news", "tamil nadu news in tamil",
+		},
+		"articleSection": category,
+		"contentLocation": map[string]string{
+			"@type": "AdministrativeArea",
+			"name":  district,
+		},
+		"publisher": map[string]interface{}{
+			"@type": "NewsMediaOrganization",
+			"name":  "TN24 — Tamil Nadu News",
+			"url":   fmt.Sprintf("%s://%s/portal", scheme, host),
+			"logo": map[string]string{
+				"@type": "ImageObject",
+				"url":   fmt.Sprintf("%s://%s/portal/assets/brand/tn24-profile.jpg", scheme, host),
+			},
+		},
+	})
+
+	injectedHead := fmt.Sprintf(`<script type="application/ld+json">%s</script><script>window.INITIAL_POST_ID = %q;</script></head>`, string(articleSchemaJSON), postID)
+	baseHTML = strings.Replace(baseHTML, "</head>", injectedHead, 1)
 
 	return baseHTML
 }
@@ -1166,7 +1204,14 @@ func (h *PortalHandler) HandleAdsTxt(w http.ResponseWriter, r *http.Request) {
 func (h *PortalHandler) HandleRobotsTxt(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=86400")
-	robotsContent := `User-agent: *
+
+	scheme := "https"
+	host := r.Host
+	if host == "" {
+		host = "www.tn24.in"
+	}
+
+	robotsContent := fmt.Sprintf(`User-agent: *
 Allow: /
 Allow: /portal
 Allow: /portal/*
@@ -1179,8 +1224,15 @@ Disallow: /admin/*
 Disallow: /api/scraper/*
 Disallow: /api/auth/*
 
-Sitemap: https://www.tn24.in/sitemap.xml
-`
+User-agent: Googlebot-News
+Allow: /
+Allow: /portal
+Allow: /portal/*
+Allow: /sitemap-news.xml
+
+Sitemap: %s://%s/sitemap.xml
+Sitemap: %s://%s/sitemap-news.xml
+`, scheme, host, scheme, host)
 	_, _ = w.Write([]byte(robotsContent))
 }
 
@@ -1188,11 +1240,34 @@ func (h *PortalHandler) HandleSitemapXML(w http.ResponseWriter, r *http.Request)
 	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=3600")
 
-	base := "https://www.tn24.in"
+	scheme := "https"
+	host := r.Host
+	if host == "" {
+		host = "www.tn24.in"
+	}
+	base := fmt.Sprintf("%s://%s", scheme, host)
 	now := time.Now().Format("2006-01-02")
-	sitemap := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    <url>
+
+	// Target SEO keyword search paths for crawler discovery
+	keywordUrls := []string{
+		"tn+24",
+		"news+tamil+24x7+live",
+		"tamil+nadu+news",
+		"news+live+tamilnadu",
+		"today+news+in+tamil",
+		"news+tamil+today",
+		"tamil+news+online",
+		"latest+tamil+news",
+		"tamil+nadu+news+in+tamil",
+		"news+tamil+nadu",
+	}
+
+	var sb strings.Builder
+	sb.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
+	sb.WriteString(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` + "\n")
+
+	// Core Static Pages
+	sb.WriteString(fmt.Sprintf(`    <url>
         <loc>%s/portal</loc>
         <lastmod>%s</lastmod>
         <changefreq>always</changefreq>
@@ -1202,7 +1277,7 @@ func (h *PortalHandler) HandleSitemapXML(w http.ResponseWriter, r *http.Request)
         <loc>%s/</loc>
         <lastmod>%s</lastmod>
         <changefreq>always</changefreq>
-        <priority>0.9</priority>
+        <priority>0.95</priority>
     </url>
     <url>
         <loc>%s/about</loc>
@@ -1222,60 +1297,130 @@ func (h *PortalHandler) HandleSitemapXML(w http.ResponseWriter, r *http.Request)
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
     </url>
-    <url>
-        <loc>%s/portal?cat=News</loc>
-        <lastmod>%s</lastmod>
-        <changefreq>hourly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>%s/portal?cat=Politics</loc>
-        <lastmod>%s</lastmod>
-        <changefreq>hourly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>%s/portal?cat=Sports</loc>
-        <lastmod>%s</lastmod>
-        <changefreq>hourly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>%s/portal?cat=Business</loc>
-        <lastmod>%s</lastmod>
-        <changefreq>hourly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>%s/portal?cat=Entertainment</loc>
-        <lastmod>%s</lastmod>
-        <changefreq>hourly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>%s/portal?district=Chennai</loc>
-        <lastmod>%s</lastmod>
-        <changefreq>hourly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>%s/portal?district=Madurai</loc>
-        <lastmod>%s</lastmod>
-        <changefreq>hourly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>%s/portal?district=Coimbatore</loc>
-        <lastmod>%s</lastmod>
-        <changefreq>hourly</changefreq>
-        <priority>0.8</priority>
-    </url>
-</urlset>`,
-		base, now, base, now, base, now, base, now, base, now,
-		base, now, base, now, base, now, base, now, base, now,
-		base, now, base, now, base, now)
+`, base, now, base, now, base, now, base, now, base, now))
 
-	_, _ = w.Write([]byte(sitemap))
+	// Target Keyword Query URLs
+	for _, kw := range keywordUrls {
+		sb.WriteString(fmt.Sprintf(`    <url>
+        <loc>%s/portal?q=%s</loc>
+        <lastmod>%s</lastmod>
+        <changefreq>hourly</changefreq>
+        <priority>0.85</priority>
+    </url>
+`, base, kw, now))
+	}
+
+	// Categories & Key Districts
+	cats := []string{"News", "Politics", "Sports", "Business", "Entertainment", "Technical"}
+	for _, c := range cats {
+		sb.WriteString(fmt.Sprintf(`    <url>
+        <loc>%s/portal?cat=%s</loc>
+        <lastmod>%s</lastmod>
+        <changefreq>hourly</changefreq>
+        <priority>0.8</priority>
+    </url>
+`, base, c, now))
+	}
+
+	districts := []string{"Chennai", "Madurai", "Coimbatore", "Salem", "Tiruchirappalli", "Tirunelveli"}
+	for _, d := range districts {
+		sb.WriteString(fmt.Sprintf(`    <url>
+        <loc>%s/portal?district=%s</loc>
+        <lastmod>%s</lastmod>
+        <changefreq>hourly</changefreq>
+        <priority>0.8</priority>
+    </url>
+`, base, d, now))
+	}
+
+	// Dynamic Published Articles (Top 100 recent articles)
+	if h.conn != nil {
+		rows, err := h.conn.Query(r.Context(), `
+			SELECT c.id::text, COALESCE(c.published_at, c.created_at)
+			FROM content c
+			WHERE c.status = 'PUBLISHED'
+			ORDER BY COALESCE(c.published_at, c.created_at) DESC
+			LIMIT 100
+		`)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var aID string
+				var aMod time.Time
+				if err := rows.Scan(&aID, &aMod); err == nil {
+					sb.WriteString(fmt.Sprintf(`    <url>
+        <loc>%s/portal?post=%s</loc>
+        <lastmod>%s</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.75</priority>
+    </url>
+`, base, url.QueryEscape(aID), aMod.Format("2006-01-02")))
+				}
+			}
+		}
+	}
+
+	sb.WriteString("</urlset>\n")
+	_, _ = w.Write([]byte(sb.String()))
+}
+
+// HandleNewsSitemapXML serves Google News specific sitemap (/sitemap-news.xml)
+// with articles from the last 48 hours per Google News sitemap specifications.
+func (h *PortalHandler) HandleNewsSitemapXML(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=1800")
+
+	scheme := "https"
+	host := r.Host
+	if host == "" {
+		host = "www.tn24.in"
+	}
+	base := fmt.Sprintf("%s://%s", scheme, host)
+
+	var sb strings.Builder
+	sb.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
+	sb.WriteString(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">` + "\n")
+
+	if h.conn != nil {
+		rows, err := h.conn.Query(r.Context(), `
+			SELECT c.id::text, c.title, COALESCE(c.language, 'ta'), COALESCE(c.published_at, c.created_at)
+			FROM content c
+			WHERE c.status = 'PUBLISHED'
+			  AND COALESCE(c.published_at, c.created_at) >= NOW() - INTERVAL '48 hours'
+			ORDER BY COALESCE(c.published_at, c.created_at) DESC
+			LIMIT 250
+		`)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var aID, aTitle, aLang string
+				var aPub time.Time
+				if err := rows.Scan(&aID, &aTitle, &aLang, &aPub); err == nil {
+					cleanTitle := scraper.CleanHTML(aTitle)
+					cleanTitle = html.EscapeString(cleanTitle)
+					if aLang == "" {
+						aLang = "ta"
+					}
+					sb.WriteString(fmt.Sprintf(`    <url>
+        <loc>%s/portal?post=%s</loc>
+        <news:news>
+            <news:publication>
+                <news:name>TN24 — Tamil Nadu News</news:name>
+                <news:language>%s</news:language>
+            </news:publication>
+            <news:publication_date>%s</news:publication_date>
+            <news:title>%s</news:title>
+        </news:news>
+    </url>
+`, base, url.QueryEscape(aID), aLang, aPub.Format(time.RFC3339), cleanTitle))
+				}
+			}
+		}
+	}
+
+	sb.WriteString("</urlset>\n")
+	_, _ = w.Write([]byte(sb.String()))
 }
 
 // HandlePrivacyPolicy serves the Privacy Policy page — required for Google AdSense approval.
@@ -1283,26 +1428,30 @@ func (h *PortalHandler) HandlePrivacyPolicy(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(renderStaticPage("Privacy Policy | TN24", "தனியுரிமைக் கொள்கை — Privacy Policy", `
+	_, _ = w.Write([]byte(renderStaticPage("Privacy Policy | TN24 — Tamil Nadu News", "தனியுரிமைக் கொள்கை — Privacy Policy", `
 <h2>Privacy Policy</h2>
 <p><strong>Effective Date:</strong> September 2026</p>
 <p>TN24 (<strong>www.tn24.in</strong>) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you visit our website.</p>
 
 <h3>1. Information We Collect</h3>
 <ul>
-  <li><strong>Usage Data:</strong> We automatically collect standard log data such as your IP address, browser type, pages visited, and time spent on the site.</li>
-  <li><strong>Cookies:</strong> We use cookies to improve your browsing experience and to serve personalized advertisements through Google AdSense.</li>
+  <li><strong>Log Data:</strong> Browser type, IP address, operating system, and pages visited.</li>
+  <li><strong>Cookies:</strong> Essential session cookies and analytics cookies to enhance user experience.</li>
+  <li><strong>Advertising Cookies:</strong> Google AdSense uses cookies to serve personalized or non-personalized ads based on prior visits. Users may opt out of personalized advertising by visiting <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">Google Ads Settings</a>.</li>
 </ul>
 
-<h3>2. Google AdSense & Third-Party Advertising</h3>
-<p>We use <strong>Google AdSense</strong> to display advertisements. Google may use cookies (including the DoubleClick cookie) to serve ads based on your prior visits to our website or other websites on the Internet. You may opt out of personalized advertising by visiting <a href="https://www.google.com/settings/ads" target="_blank">Google Ads Settings</a>.</p>
-<p>Third-party vendors, including Google, use cookies to serve ads based on a user's prior visits to this website. Google's use of advertising cookies enables it and its partners to serve ads based on your visit here and/or other sites on the Internet.</p>
-
-<h3>3. How We Use Your Information</h3>
+<h3>2. How We Use Information</h3>
 <ul>
-  <li>To provide and maintain our news service</li>
-  <li>To analyze usage and improve content quality</li>
-  <li>To display relevant advertisements via Google AdSense</li>
+  <li>To provide and maintain the TN24 Tamil news portal.</li>
+  <li>To analyze site traffic, popular content, and improve reader experience.</li>
+  <li>To display advertisements that support our free news publishing operations.</li>
+</ul>
+
+<h3>3. Third-Party Services</h3>
+<p>We work with trusted third-party providers including:</p>
+<ul>
+  <li><strong>Google AdSense:</strong> Advertising network (<a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>).</li>
+  <li><strong>Google Analytics:</strong> Audience measurement and aggregated reporting.</li>
 </ul>
 
 <h3>4. Data Retention</h3>
@@ -1311,8 +1460,11 @@ func (h *PortalHandler) HandlePrivacyPolicy(w http.ResponseWriter, r *http.Reque
 <h3>5. Your Rights</h3>
 <p>You have the right to access, correct, or request deletion of your personal data. Contact us at <a href="mailto:admin@tn24.in">admin@tn24.in</a>.</p>
 
-<h3>6. Changes to This Policy</h3>
-<p>We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated effective date.</p>
+<h3>6. Grievance Officer</h3>
+<p>In accordance with the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021:</p>
+<p><strong>Grievance Officer:</strong> Editorial Desk, TN24 Media<br>
+Email: <a href="mailto:admin@tn24.in">admin@tn24.in</a><br>
+Tamil Nadu, India</p>
 
 <h3>7. Contact Us</h3>
 <p>If you have questions about this Privacy Policy, please contact us at <a href="mailto:admin@tn24.in">admin@tn24.in</a>.</p>
@@ -1324,49 +1476,38 @@ func (h *PortalHandler) HandleAboutUs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(renderStaticPage("About Us | TN24", "எங்களைப் பற்றி — About Us", `
+	_, _ = w.Write([]byte(renderStaticPage("About Us | TN24 — Tamil Nadu News | தமிழ் செய்திகள்", "எங்களைப் பற்றி — About Us", `
 <h2>About TN24</h2>
 <p><strong>TN24</strong> (www.tn24.in) is Tamil Nadu's leading 24/7 digital news platform, dedicated to delivering accurate, fast, and comprehensive news coverage across all 38 districts of Tamil Nadu.</p>
 
 <h3>Our Mission</h3>
-<p>To empower Tamil Nadu citizens with real-time, reliable, and unbiased news in both Tamil and English — covering politics, business, sports, entertainment, agriculture, and local district news.</p>
+<p>To provide unbiased, community-verified news in Tamil and English, empowering citizens with timely information about governance, civic issues, sports, entertainment, and cultural events.</p>
 
-<h3>What We Cover</h3>
+<h3>Key Features</h3>
 <ul>
-  <li>🔴 Breaking News from all 38 districts of Tamil Nadu</li>
-  <li>🏛️ State & National Politics</li>
-  <li>⚽ Sports — Cricket, Football, Kabaddi</li>
-  <li>💼 Business & Economy</li>
-  <li>🎬 Entertainment & Cinema</li>
-  <li>🌾 Agriculture & Rural News</li>
-  <li>⚖️ Legal & Court Updates</li>
+  <li><strong>38 District Coverage:</strong> Dedicated hyper-local feeds for Chennai, Coimbatore, Madurai, Salem, Trichy, Tirunelveli, and every district of Tamil Nadu.</li>
+  <li><strong>24/7 Live Updates:</strong> Breaking news alerts, live tickers, and real-time updates as events unfold.</li>
+  <li><strong>Editorial Integrity:</strong> Independent reporting with source attribution and factual verification.</li>
+  <li><strong>Civic Focus:</strong> Highlighting citizen reports, public announcements, and administrative updates.</li>
 </ul>
 
-<h3>Our Editorial Standards</h3>
+<h3>Editorial Team</h3>
 <p>TN24 follows strict editorial guidelines. All news content is verified before publication. We are committed to accuracy, fairness, and transparency in all reporting.</p>
 
-<h3>Contact the Newsroom</h3>
+<h3>Contact &amp; Corporate Information</h3>
 <p>Email: <a href="mailto:admin@tn24.in">admin@tn24.in</a></p>
 <p>Website: <a href="https://www.tn24.in">www.tn24.in</a></p>
+<p>Operating Region: Tamil Nadu, India</p>
 `)))
 }
 
-// HandleContactUs serves the Contact Us page — required for Google AdSense approval.
+// HandleContactUs serves the Contact page — required for Google AdSense approval.
 func (h *PortalHandler) HandleContactUs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(renderStaticPage("Contact Us | TN24", "தொடர்பு கொள்ளுங்கள் — Contact Us", `
+	_, _ = w.Write([]byte(renderStaticPage("Contact Us | TN24 — Tamil Nadu News", "தொடர்பு கொள்ளுங்கள் — Contact Us", `
 <h2>Contact TN24</h2>
-<p>We welcome feedback, news tips, corrections, and partnership inquiries.</p>
-
-<h3>📧 Editorial & News Tips</h3>
-<p><a href="mailto:admin@tn24.in">admin@tn24.in</a></p>
-
-<h3>📢 Advertising & Partnerships</h3>
-<p><a href="mailto:admin@tn24.in">admin@tn24.in</a></p>
-
-<h3>⚠️ Content Grievance / Complaints</h3>
 <p>In accordance with <strong>IT Rules 2021</strong>, you may submit a content grievance via our <a href="/portal">portal grievance form</a> or by writing to:</p>
 <p><a href="mailto:admin@tn24.in">admin@tn24.in</a></p>
 <p>We acknowledge grievances within <strong>24 hours</strong> and resolve them within <strong>15 days</strong> as required by law.</p>
@@ -1384,6 +1525,8 @@ func renderStaticPage(title, heading, bodyHTML string) string {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>` + title + `</title>
+<meta name="description" content="TN24 (tn 24) — Tamil Nadu news, latest tamil news &amp; தமிழ் செய்திகள் live 24x7. Breaking updates across 38 districts.">
+<meta name="keywords" content="tn 24, news tamil 24x7 live, tamil nadu news, news live tamilnadu, தமிழ் செய்திகள், today news in tamil, news tamil today, tamil news online, latest tamil news, tamil nadu news in tamil, news tamil nadu">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://www.tn24.in">
 <style>
@@ -1410,7 +1553,7 @@ func renderStaticPage(title, heading, bodyHTML string) string {
 <body>
 <header>
   <a href="/portal">TN<span>24</span></a>
-  <span style="color:#666;font-size:0.85rem;">தமிழ்நாட்டின் முதன்மை 24/7 செய்தி தளம்</span>
+  <span style="color:#aaa;font-size:0.85rem;">TN24 &mdash; Tamil Nadu News | தமிழ் செய்திகள் | 24x7 Live</span>
 </header>
 <nav>
   <a href="/portal">🏠 Home</a>
@@ -1423,7 +1566,7 @@ func renderStaticPage(title, heading, bodyHTML string) string {
   ` + bodyHTML + `
 </div>
 <footer>
-  &copy; 2024 TN24 &mdash; www.tn24.in &nbsp;|&nbsp; <a href="/privacy">Privacy Policy</a> &nbsp;|&nbsp; <a href="/about">About Us</a> &nbsp;|&nbsp; <a href="/contact">Contact</a>
+  &copy; 2026 TN24 &mdash; www.tn24.in &nbsp;|&nbsp; <a href="/privacy">Privacy Policy</a> &nbsp;|&nbsp; <a href="/about">About Us</a> &nbsp;|&nbsp; <a href="/contact">Contact</a>
 </footer>
 </body>
 </html>`
