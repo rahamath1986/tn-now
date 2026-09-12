@@ -855,6 +855,10 @@ func (s *Scheduler) runLiveNewsScraper(ctx context.Context) (string, error) {
 			"https://feeds.bbci.co.uk/tamil/rss.xml",
 			"https://tamil.oneindia.com/rss/tamil-news-fb.xml",
 			"https://news.google.com/rss/search?q=Tamil+Nadu&hl=ta&gl=IN&ceid=IN:ta",
+			"https://www.youtube.com/feeds/videos.xml?channel_id=UCnrf2x9o_qXlSfZg1sK4Nqg", // Thanthi TV
+			"https://www.youtube.com/feeds/videos.xml?channel_id=UCsk8w_v9N6f7qK0rB0r9bAQ", // Polimer News
+			"https://www.youtube.com/feeds/videos.xml?channel_id=UCeE_wR_o1W_3j2VpU6m-6zg", // News7 Tamil
+			"https://www.youtube.com/feeds/videos.xml?channel_id=UCn6m2H_Zc6_0iE_1_6jC7wA", // Puthiya Thalaimurai
 		}
 	}
 

@@ -17,6 +17,7 @@ import (
 	"tn-now/server/internal/cron"
 	"tn-now/server/internal/db"
 	"tn-now/server/internal/scraper"
+	"tn-now/server/internal/video"
 )
 
 type Handler struct {
@@ -1180,29 +1181,49 @@ func (h *Handler) HandleCreateContentManual(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// If video provided, extract YouTube ID and insert into video_links
+	// If video provided, extract video metadata and insert into video_links
 	if req.VideoURL != "" {
+		platform := "youtube"
 		videoID := ""
-		u, err := url.Parse(req.VideoURL)
-		if err == nil {
-			if u.Host == "youtu.be" {
-				videoID = strings.TrimPrefix(u.Path, "/")
-			} else {
-				videoID = u.Query().Get("v")
-			}
-		}
-		if videoID == "" {
-			videoID = newID[:11]
-		}
+		canonicalURL := req.VideoURL
 		thumb := req.ImageURL
-		if thumb == "" && videoID != "" {
-			thumb = fmt.Sprintf("https://img.youtube.com/vi/%s/hqdefault.jpg", videoID)
+
+		vMeta, err := video.ParseVideoURL(req.VideoURL)
+		if err == nil && vMeta != nil {
+			platform = vMeta.Platform
+			videoID = vMeta.ExternalVideoID
+			canonicalURL = vMeta.CanonicalURL
+			if thumb == "" && vMeta.ThumbnailURL != "" {
+				thumb = vMeta.ThumbnailURL
+			}
+		} else {
+			u, err := url.Parse(req.VideoURL)
+			if err == nil {
+				if u.Host == "youtu.be" {
+					videoID = strings.TrimPrefix(u.Path, "/")
+				} else if strings.Contains(u.Path, "/shorts/") {
+					videoID = strings.TrimPrefix(u.Path, "/shorts/")
+				} else if strings.Contains(u.Path, "/live/") {
+					videoID = strings.TrimPrefix(u.Path, "/live/")
+				} else {
+					videoID = u.Query().Get("v")
+				}
+				if idx := strings.Index(videoID, "?"); idx != -1 {
+					videoID = videoID[:idx]
+				}
+			}
+			if videoID == "" {
+				videoID = newID[:11]
+			}
+			if thumb == "" && videoID != "" {
+				thumb = fmt.Sprintf("https://img.youtube.com/vi/%s/hqdefault.jpg", videoID)
+			}
 		}
 		_, _ = h.conn.Exec(ctx, `
 			INSERT INTO video_links (content_id, platform, external_video_id, canonical_url, thumbnail_url, link_status, last_checked_at, created_at)
-			VALUES ($1, 'youtube', $2, $3, $4, 'ALIVE', NOW(), NOW())
+			VALUES ($1, $2, $3, $4, $5, 'ALIVE', NOW(), NOW())
 			ON CONFLICT (external_video_id) DO NOTHING
-		`, newID, videoID, req.VideoURL, thumb)
+		`, newID, platform, videoID, canonicalURL, thumb)
 	}
 
 	// If image provided or fallback available, persist into stories and photos

@@ -17,7 +17,7 @@ type VideoMetadata struct {
 }
 
 var (
-	youtubeRegex   = regexp.MustCompile(`(?:youtube\.com/(?:watch\?.*v=|embed/|v/)|youtu\.be/)([\w-]{11})`)
+	youtubeRegex   = regexp.MustCompile(`(?i)(?:youtube(?:-nocookie)?\.com/(?:watch\?.*v=|embed/|v/|shorts/|live/)|youtu\.be/)([\w-]{11})`)
 	instagramRegex = regexp.MustCompile(`instagram\.com/(?:p|reel)/([\w-]+)`)
 	facebookRegex  = regexp.MustCompile(`facebook\.com/(?:watch/\?v=|.*/videos/|v/)([\d]+)`)
 	xTwitterRegex  = regexp.MustCompile(`(?:twitter\.com|x\.com)/.+/status/([\d]+)`)

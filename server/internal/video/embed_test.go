@@ -27,6 +27,27 @@ func TestParseVideoURL(t *testing.T) {
 			wantErr:      false,
 		},
 		{
+			name:         "YouTube Shorts Native URL",
+			url:          "https://www.youtube.com/shorts/dQw4w9WgXcQ",
+			wantPlatform: "youtube",
+			wantID:       "dQw4w9WgXcQ",
+			wantErr:      false,
+		},
+		{
+			name:         "YouTube Live URL",
+			url:          "https://www.youtube.com/live/dQw4w9WgXcQ",
+			wantPlatform: "youtube",
+			wantID:       "dQw4w9WgXcQ",
+			wantErr:      false,
+		},
+		{
+			name:         "YouTube Embed URL",
+			url:          "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+			wantPlatform: "youtube",
+			wantID:       "dQw4w9WgXcQ",
+			wantErr:      false,
+		},
+		{
 			name:         "Instagram Reel",
 			url:          "https://www.instagram.com/reel/C123456789/",
 			wantPlatform: "instagram",

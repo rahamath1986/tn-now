@@ -232,4 +232,49 @@ func TestSEOInjectors(t *testing.T) {
 	}
 }
 
+func TestVideoSitemapXML(t *testing.T) {
+	h := NewPortalHandler(nil, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "https://www.tn24.in/sitemap-video.xml", nil)
+	rec := httptest.NewRecorder()
+	h.HandleVideoSitemapXML(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200 OK from /sitemap-video.xml, got %d", rec.Code)
+	}
+
+	contentType := rec.Header().Get("Content-Type")
+	if !strings.Contains(contentType, "application/xml") {
+		t.Errorf("expected application/xml content type, got %s", contentType)
+	}
+
+	body := rec.Body.String()
+	if !strings.Contains(body, `xmlns:video="http://www.google.com/schemas/sitemap-video/1.1"`) {
+		t.Errorf("expected Google Video sitemap namespace in /sitemap-video.xml")
+	}
+	if !strings.Contains(body, `<urlset`) {
+		t.Errorf("expected <urlset> in /sitemap-video.xml")
+	}
+}
+
+func TestRobotsTxtGooglebotVideo(t *testing.T) {
+	h := NewPortalHandler(nil, nil)
+
+	reqRobots := httptest.NewRequest(http.MethodGet, "/robots.txt", nil)
+	recRobots := httptest.NewRecorder()
+	h.HandleRobotsTxt(recRobots, reqRobots)
+	robotsBody := recRobots.Body.String()
+
+	if !strings.Contains(robotsBody, "sitemap-video.xml") {
+		t.Errorf("expected robots.txt to mention sitemap-video.xml")
+	}
+	if !strings.Contains(robotsBody, "User-agent: Googlebot-Video") {
+		t.Errorf("expected robots.txt to contain User-agent: Googlebot-Video")
+	}
+	if !strings.Contains(robotsBody, "Allow: /sitemap-video.xml") {
+		t.Errorf("expected robots.txt to allow /sitemap-video.xml")
+	}
+}
+
+
 

@@ -94,6 +94,8 @@ func (h *PortalHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/robots.txt", h.HandleRobotsTxt)
 	mux.HandleFunc("/sitemap.xml", h.HandleSitemapXML)
 	mux.HandleFunc("/sitemap-news.xml", h.HandleNewsSitemapXML)
+	mux.HandleFunc("/sitemap-video.xml", h.HandleVideoSitemapXML)
+	mux.HandleFunc("/video-sitemap.xml", h.HandleVideoSitemapXML)
 	mux.HandleFunc("/rss.xml", h.HandleRSSFeed)
 	mux.HandleFunc("/feed.xml", h.HandleRSSFeed)
 	mux.HandleFunc("/feed", h.HandleRSSFeed)
@@ -215,13 +217,17 @@ func (h *PortalHandler) HandleGetSinglePost(w http.ResponseWriter, r *http.Reque
 
 func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string, postID string, r *http.Request) string {
 	var title, desc, thumb, district, category, lang string
+	var vidPlatform, vidID, vidURL string
+	var vidDuration int
 	var pubAt, createdAt time.Time
 	err := h.conn.QueryRow(ctx, `
 		SELECT c.title, COALESCE(c.description, ''),
 		       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
 		       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'),
 		       COALESCE(c.language, 'ta'),
-		       COALESCE(c.published_at, c.created_at), c.created_at
+		       COALESCE(c.published_at, c.created_at), c.created_at,
+		       COALESCE(vl.platform, ''), COALESCE(vl.external_video_id, ''),
+		       COALESCE(vl.canonical_url, ''), COALESCE(vl.duration_seconds, 0)
 		FROM content c
 		LEFT JOIN video_links vl ON c.id = vl.content_id
 		LEFT JOIN stories s ON c.id = s.content_id
@@ -230,7 +236,7 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 		LEFT JOIN categories cat ON c.category_id = cat.id
 		WHERE c.id::text = $1
 		LIMIT 1
-	`, postID).Scan(&title, &desc, &thumb, &district, &category, &lang, &pubAt, &createdAt)
+	`, postID).Scan(&title, &desc, &thumb, &district, &category, &lang, &pubAt, &createdAt, &vidPlatform, &vidID, &vidURL, &vidDuration)
 
 	if err != nil || strings.TrimSpace(title) == "" {
 		return baseHTML
@@ -254,8 +260,31 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 	}
 	fullPostURL := fmt.Sprintf("%s://%s/portal?post=%s", scheme, host, url.QueryEscape(postID))
 
+	hasVideo := vidID != "" || vidURL != ""
+	var embedURL, contentURL string
+	if hasVideo {
+		contentURL = vidURL
+		if vidPlatform == "youtube" || strings.Contains(vidURL, "youtube.com") || strings.Contains(vidURL, "youtu.be") || (vidID != "" && !strings.HasPrefix(vidID, "vid_") && !strings.HasPrefix(vidID, "bbc_")) {
+			embedURL = fmt.Sprintf("https://www.youtube.com/embed/%s", vidID)
+			if contentURL == "" {
+				contentURL = fmt.Sprintf("https://www.youtube.com/watch?v=%s", vidID)
+			}
+		} else if vidPlatform == "bbc" || strings.Contains(vidURL, "bbc.com") {
+			embedURL = vidURL
+			if !strings.Contains(embedURL, "/embed") && vidID != "" {
+				embedURL = fmt.Sprintf("https://www.bbc.com/ws/av-embeds/articles/%s/ta", vidID)
+			}
+		} else if vidURL != "" {
+			embedURL = vidURL
+		}
+	}
+
 	if strings.TrimSpace(thumb) == "" {
-		thumb = scraper.GetFallbackImageWithPerson(cleanTitle, district, category)
+		if hasVideo && vidPlatform == "youtube" && vidID != "" {
+			thumb = fmt.Sprintf("https://img.youtube.com/vi/%s/hqdefault.jpg", vidID)
+		} else {
+			thumb = scraper.GetFallbackImageWithPerson(cleanTitle, district, category)
+		}
 	}
 	if strings.HasPrefix(thumb, "/") {
 		thumb = fmt.Sprintf("%s://%s%s", scheme, host, thumb)
@@ -299,12 +328,33 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 	reTwImg := regexp.MustCompile(`(?i)<meta name="twitter:image" content=".*?">`)
 	baseHTML = reTwImg.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="twitter:image" content="%s">`, html.EscapeString(thumb)))
 
+	if hasVideo && embedURL != "" {
+		reOgType := regexp.MustCompile(`(?i)<meta property="og:type" content=".*?">`)
+		baseHTML = reOgType.ReplaceAllString(baseHTML, `<meta property="og:type" content="video.other">`)
+
+		reTwCard := regexp.MustCompile(`(?i)<meta name="twitter:card" content=".*?">`)
+		baseHTML = reTwCard.ReplaceAllString(baseHTML, `<meta name="twitter:card" content="player">`)
+
+		videoMetaTags := fmt.Sprintf(`
+    <meta property="og:video" content="%s">
+    <meta property="og:video:url" content="%s">
+    <meta property="og:video:secure_url" content="%s">
+    <meta property="og:video:type" content="text/html">
+    <meta property="og:video:width" content="1280">
+    <meta property="og:video:height" content="720">
+    <meta name="twitter:player" content="%s">
+    <meta name="twitter:player:width" content="1280">
+    <meta name="twitter:player:height" content="720">
+</head>`, html.EscapeString(embedURL), html.EscapeString(embedURL), html.EscapeString(embedURL), html.EscapeString(embedURL))
+		baseHTML = strings.Replace(baseHTML, "</head>", videoMetaTags, 1)
+	}
+
 	dateMod := createdAt
 	if !pubAt.IsZero() && pubAt.After(dateMod) {
 		dateMod = pubAt
 	}
 
-	// 8. Inject NewsArticle & Breadcrumb structured data & window.INITIAL_POST_ID
+	// 8. Inject NewsArticle, VideoObject (if video exists), & Breadcrumb structured data & window.INITIAL_POST_ID
 	articleSchemaJSON, _ := json.Marshal(map[string]interface{}{
 		"@context": "https://schema.org",
 		"@type":    "NewsArticle",
@@ -346,6 +396,36 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 		},
 	})
 
+	var videoSchemaTag string
+	if hasVideo && embedURL != "" {
+		vObj := map[string]interface{}{
+			"@context":     "https://schema.org",
+			"@type":        "VideoObject",
+			"name":         cleanTitle,
+			"description":  cleanDesc,
+			"thumbnailUrl": []string{thumb},
+			"uploadDate":   pubAt.Format(time.RFC3339),
+			"embedUrl":     embedURL,
+			"contentUrl":   contentURL,
+			"inLanguage":   lang,
+			"publisher": map[string]interface{}{
+				"@type": "NewsMediaOrganization",
+				"name":  "TN24 — Tamil Nadu News",
+				"url":   fmt.Sprintf("%s://%s/portal", scheme, host),
+				"logo": map[string]string{
+					"@type": "ImageObject",
+					"url":   fmt.Sprintf("%s://%s/portal/assets/brand/tn24-profile.jpg", scheme, host),
+				},
+			},
+		}
+		if vidDuration > 0 {
+			vObj["duration"] = fmt.Sprintf("PT%dS", vidDuration)
+		}
+		if vJSON, err := json.Marshal(vObj); err == nil {
+			videoSchemaTag = fmt.Sprintf(`<script type="application/ld+json">%s</script>`, string(vJSON))
+		}
+	}
+
 	breadcrumbSchemaJSON, _ := json.Marshal(map[string]interface{}{
 		"@context": "https://schema.org",
 		"@type":    "BreadcrumbList",
@@ -377,10 +457,19 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 		},
 	})
 
-	injectedHead := fmt.Sprintf(`<script type="application/ld+json">%s</script><script type="application/ld+json">%s</script><script>window.INITIAL_POST_ID = %q;</script></head>`, string(articleSchemaJSON), string(breadcrumbSchemaJSON), postID)
+	injectedHead := fmt.Sprintf(`<script type="application/ld+json">%s</script>%s<script type="application/ld+json">%s</script><script>window.INITIAL_POST_ID = %q;</script></head>`, string(articleSchemaJSON), videoSchemaTag, string(breadcrumbSchemaJSON), postID)
 	baseHTML = strings.Replace(baseHTML, "</head>", injectedHead, 1)
 
 	// 9. Semantic crawlable SSR article block inside <body> for instant bot indexing & Discover
+	var videoPlayerMarkup string
+	if hasVideo && embedURL != "" {
+		if strings.Contains(embedURL, ".mp4") || strings.Contains(embedURL, ".webm") {
+			videoPlayerMarkup = fmt.Sprintf(`<div class="ssr-video"><video controls src="%s" style="width:100%%; max-height:450px;"></video></div>`, html.EscapeString(embedURL))
+		} else {
+			videoPlayerMarkup = fmt.Sprintf(`<div class="ssr-video"><iframe src="%s" allow="autoplay; fullscreen; encrypted-media" allowfullscreen style="width:100%%; height:380px; border:0;"></iframe></div>`, html.EscapeString(embedURL))
+		}
+	}
+
 	ssrArticleBlock := fmt.Sprintf(`
     <article id="article-crawler-ssr" class="sr-only" style="position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0;">
         <h1>%s</h1>
@@ -390,6 +479,7 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
             <span>பிரிவு: %s</span>
             <span>ஆசிரியர்: TN24 Editorial Desk</span>
         </div>
+        %s
         <img src="%s" alt="%s" />
         <div class="article-content">%s</div>
         <a href="%s">TN24 நேரலை செய்தி விவரம்</a>
@@ -398,6 +488,7 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 		pubAt.Format("02 January 2006, 15:04 MST"),
 		html.EscapeString(district),
 		html.EscapeString(category),
+		videoPlayerMarkup,
 		html.EscapeString(thumb),
 		cleanTitleEscaped,
 		cleanDescEscaped,
@@ -1585,6 +1676,7 @@ Allow: /about
 Allow: /contact
 Allow: /rss.xml
 Allow: /feed.xml
+Allow: /sitemap-video.xml
 Disallow: /admin
 Disallow: /admin/*
 Disallow: /api/scraper/*
@@ -1597,9 +1689,16 @@ Allow: /portal/*
 Allow: /sitemap-news.xml
 Allow: /rss.xml
 
+User-agent: Googlebot-Video
+Allow: /
+Allow: /portal
+Allow: /portal/*
+Allow: /sitemap-video.xml
+
 Sitemap: %s://%s/sitemap.xml
 Sitemap: %s://%s/sitemap-news.xml
-`, scheme, host, scheme, host)
+Sitemap: %s://%s/sitemap-video.xml
+`, scheme, host, scheme, host, scheme, host)
 	_, _ = w.Write([]byte(robotsContent))
 }
 
@@ -1798,6 +1897,102 @@ func (h *PortalHandler) HandleNewsSitemapXML(w http.ResponseWriter, r *http.Requ
         </news:news>
     </url>
 `, base, url.QueryEscape(aID), aLang, aPub.Format(time.RFC3339), cleanTitle))
+				}
+			}
+		}
+	}
+
+	sb.WriteString("</urlset>\n")
+	_, _ = w.Write([]byte(sb.String()))
+}
+
+// HandleVideoSitemapXML serves Google Video Sitemap compliant XML for video indexing
+func (h *PortalHandler) HandleVideoSitemapXML(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/xml; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+
+	scheme := "https"
+	host := "www.tn24.in"
+	if r != nil && r.Host != "" {
+		host = r.Host
+	}
+	base := fmt.Sprintf("%s://%s", scheme, host)
+
+	var sb strings.Builder
+	sb.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
+	sb.WriteString(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">` + "\n")
+
+	if h.conn != nil {
+		rows, err := h.conn.Query(r.Context(), `
+			SELECT c.id::text, c.title, COALESCE(c.description, ''),
+			       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
+			       COALESCE(vl.platform, ''), COALESCE(vl.external_video_id, ''),
+			       COALESCE(vl.canonical_url, ''), COALESCE(vl.duration_seconds, 0),
+			       COALESCE(c.published_at, c.created_at)
+			FROM content c
+			JOIN video_links vl ON c.id = vl.content_id
+			LEFT JOIN stories s ON c.id = s.content_id
+			LEFT JOIN photos p ON c.id = p.content_id
+			WHERE c.status = 'PUBLISHED'
+			  AND (vl.external_video_id != '' OR vl.canonical_url != '')
+			ORDER BY COALESCE(c.published_at, c.created_at) DESC
+			LIMIT 250
+		`)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var aID, aTitle, aDesc, aThumb, aPlatform, aVidID, aVidURL string
+				var aDuration int
+				var aPub time.Time
+				if err := rows.Scan(&aID, &aTitle, &aDesc, &aThumb, &aPlatform, &aVidID, &aVidURL, &aDuration, &aPub); err == nil {
+					cleanTitle := html.EscapeString(scraper.CleanHTML(aTitle))
+					cleanDesc := scraper.CleanHTML(aDesc)
+					if len([]rune(cleanDesc)) > 200 {
+						cleanDesc = string([]rune(cleanDesc)[:200]) + "..."
+					}
+					cleanDesc = html.EscapeString(cleanDesc)
+					if cleanDesc == "" {
+						cleanDesc = cleanTitle
+					}
+
+					var playerLoc string
+					if aPlatform == "youtube" || strings.Contains(aVidURL, "youtube.com") || strings.Contains(aVidURL, "youtu.be") || (aVidID != "" && !strings.HasPrefix(aVidID, "vid_") && !strings.HasPrefix(aVidID, "bbc_")) {
+						playerLoc = fmt.Sprintf("https://www.youtube.com/embed/%s", aVidID)
+					} else if aPlatform == "bbc" || strings.Contains(aVidURL, "bbc.com") {
+						playerLoc = aVidURL
+					} else if aVidURL != "" {
+						playerLoc = aVidURL
+					}
+
+					if strings.TrimSpace(aThumb) == "" {
+						if aVidID != "" && (aPlatform == "youtube" || (!strings.HasPrefix(aVidID, "vid_") && !strings.HasPrefix(aVidID, "bbc_"))) {
+							aThumb = fmt.Sprintf("https://img.youtube.com/vi/%s/hqdefault.jpg", aVidID)
+						} else {
+							aThumb = fmt.Sprintf("%s/portal/assets/brand/tn24-profile.jpg", base)
+						}
+					}
+					if strings.HasPrefix(aThumb, "/") {
+						aThumb = base + aThumb
+					}
+					aThumb = html.EscapeString(aThumb)
+
+					sb.WriteString(fmt.Sprintf(`    <url>
+        <loc>%s/portal?post=%s</loc>
+        <video:video>
+            <video:thumbnail_loc>%s</video:thumbnail_loc>
+            <video:title>%s</video:title>
+            <video:description>%s</video:description>
+            <video:player_loc allow_embed="yes">%s</video:player_loc>
+            <video:publication_date>%s</video:publication_date>
+            <video:family_friendly>yes</video:family_friendly>
+`, base, url.QueryEscape(aID), aThumb, cleanTitle, cleanDesc, html.EscapeString(playerLoc), aPub.Format(time.RFC3339)))
+					if aDuration > 0 {
+						sb.WriteString(fmt.Sprintf(`            <video:duration>%d</video:duration>
+`, aDuration))
+					}
+					sb.WriteString(`        </video:video>
+    </url>
+`)
 				}
 			}
 		}

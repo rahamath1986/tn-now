@@ -173,6 +173,7 @@ func main() {
 			strings.Contains(ua, "Twitterbot") || strings.Contains(ua, "TelegramBot") ||
 			strings.Contains(ua, "Instagram") || strings.Contains(ua, "LinkedInBot") ||
 			strings.Contains(ua, "Googlebot") || strings.Contains(ua, "Googlebot-News") ||
+			strings.Contains(ua, "Googlebot-Video") ||
 			strings.Contains(ua, "bingbot") || strings.Contains(ua, "Baiduspider") ||
 			strings.Contains(ua, "YandexBot") || strings.Contains(ua, "DuckDuckBot") ||
 			strings.Contains(ua, "Slurp") || strings.Contains(ua, "applebot")

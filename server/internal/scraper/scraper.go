@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"context"
+	"crypto/md5"
 	"encoding/xml"
 	"fmt"
 	"html"
@@ -542,6 +543,26 @@ func ResolveToRSSFeed(targetURL string) string {
 		return "https://tamil.oneindia.com/rss/tamil-news-fb.xml"
 	}
 
+	// Resolve YouTube channel or handle URLs directly to official Atom XML video feed
+	if strings.Contains(lower, "youtube.com/channel/uc") {
+		channelIDRe := regexp.MustCompile(`(?i)youtube\.com/channel/(UC[a-zA-Z0-9_-]+)`)
+		if m := channelIDRe.FindStringSubmatch(targetURL); len(m) > 1 {
+			return fmt.Sprintf("https://www.youtube.com/feeds/videos.xml?channel_id=%s", m[1])
+		}
+	}
+	knownYTChannels := map[string]string{
+		"@thanthitv":            "UCnrf2x9o_qXlSfZg1sK4Nqg",
+		"@polimernews":          "UCsk8w_v9N6f7qK0rB0r9bAQ",
+		"@news7tamillive":       "UCeE_wR_o1W_3j2VpU6m-6zg",
+		"@puthiyathalaimuraitv": "UCn6m2H_Zc6_0iE_1_6jC7wA",
+		"@sunnewstamil":         "UCqW7_Q_N_M7x7P_E8e0u4dQ",
+	}
+	for handle, chID := range knownYTChannels {
+		if strings.Contains(lower, handle) {
+			return fmt.Sprintf("https://www.youtube.com/feeds/videos.xml?channel_id=%s", chID)
+		}
+	}
+
 	return targetURL
 }
 
@@ -767,8 +788,25 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 	}
 
 	enrichItem := func(item *ScrapedItem) {
-		// Only fetch full article webpage if description is too short (< 150 chars) or image is missing
-		needFullFetch := len(item.Description) < 150 || len(item.ImageURLs) == 0
+		// If item is a direct YouTube URL, make sure its VideoID, VideoType, and Thumbnail are populated
+		if (strings.Contains(item.SourceURL, "youtube.com") || strings.Contains(item.SourceURL, "youtu.be")) && item.VideoID == "" {
+			item.VideoID = extractYouTubeID(item.SourceURL)
+			if item.VideoID != "" {
+				item.ContentType = "VIDEO_LINK"
+				item.VideoType = "youtube"
+				item.VideoURL = item.SourceURL
+				if len(item.ImageURLs) == 0 {
+					item.ImageURLs = append(item.ImageURLs, fmt.Sprintf("https://img.youtube.com/vi/%s/hqdefault.jpg", item.VideoID))
+				}
+			}
+		}
+
+		// Inspect article webpage for full content, real photos, and embedded video players
+		titleLower := strings.ToLower(item.Title + " " + item.SourceURL)
+		hasVideoClue := strings.Contains(titleLower, "video") || strings.Contains(titleLower, "வீடியோ") ||
+			strings.Contains(titleLower, "காணொளி") || strings.Contains(titleLower, "watch") ||
+			strings.Contains(titleLower, "/video/") || strings.Contains(titleLower, "/watch/")
+		needFullFetch := len(item.Description) < 150 || len(item.ImageURLs) == 0 || hasVideoClue || item.VideoID == ""
 		if needFullFetch && strings.HasPrefix(item.SourceURL, "http") && !strings.Contains(item.SourceURL, "youtube.com") && !strings.Contains(item.SourceURL, "youtu.be") {
 			fullTxt, articleImgs, subVidID, subVidURL, subVidType, pubDate := FetchFullTextAndMediaExported(item.SourceURL)
 			if item.PublishedAt.IsZero() && !pubDate.IsZero() {
@@ -1511,6 +1549,10 @@ func parseRSSItem(it rssItem) *ScrapedItem {
 		item.ContentType = "VIDEO_LINK"
 		item.VideoType = "direct"
 		item.VideoURL = it.Enclosure.URL
+		item.VideoID = "vid_" + extractBBCArticleID(it.Enclosure.URL)
+		if item.VideoID == "vid_" || len(item.VideoID) < 6 {
+			item.VideoID = fmt.Sprintf("vid_%x", md5.Sum([]byte(it.Enclosure.URL)))[:15]
+		}
 		item.Category = "Viral Videos"
 	}
 
@@ -1690,13 +1732,20 @@ func extractFullTextAndMedia(targetURL, htmlContent string) (string, []string, s
 		videoType = bbcType
 	}
 
-	// 2. Detect YouTube video if present
+	// 2. Detect YouTube video if present (including shorts, live, embed, youtube-nocookie, and lazy-load data attributes)
 	if videoURL == "" {
-		ytRegex := regexp.MustCompile(`(?i)(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})`)
+		ytRegex := regexp.MustCompile(`(?i)(?:https?:\/\/)?(?:www\.)?(?:youtube(?:-nocookie)?\.com\/(?:watch\?.*v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})`)
 		if m := ytRegex.FindStringSubmatch(htmlContent); len(m) > 1 {
 			videoID = m[1]
 			videoURL = fmt.Sprintf("https://www.youtube.com/watch?v=%s", videoID)
 			videoType = "youtube"
+		} else {
+			lazyYtRegex := regexp.MustCompile(`(?i)(?:data-src|data-video-id|data-id|data-youtube-id)=["'](?:https?:\/\/)?(?:www\.)?(?:youtube(?:-nocookie)?\.com\/(?:watch\?.*v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)?([a-zA-Z0-9_-]{11})["']`)
+			if m := lazyYtRegex.FindStringSubmatch(htmlContent); len(m) > 1 {
+				videoID = m[1]
+				videoURL = fmt.Sprintf("https://www.youtube.com/watch?v=%s", videoID)
+				videoType = "youtube"
+			}
 		}
 	}
 
@@ -1877,7 +1926,7 @@ func FetchFullTextAndMediaExported(sourceURL string) (string, []string, string, 
 		return "", nil, "", "", "", time.Time{}
 	}
 	defer resp.Body.Close()
-	bytes, err := io.ReadAll(io.LimitReader(resp.Body, 256*1024))
+	bytes, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
 	if err != nil || len(bytes) == 0 {
 		return "", nil, "", "", "", time.Time{}
 	}
@@ -2564,12 +2613,24 @@ func extractMatchingNavLinks(baseURL string, htmlContent string) []string {
 }
 
 func extractYouTubeID(link string) string {
+	link = strings.TrimSpace(link)
+	if link == "" {
+		return ""
+	}
+	re := regexp.MustCompile(`(?i)(?:youtube(?:-nocookie)?\.com/(?:watch\?.*v=|embed/|v/|shorts/|live/)|youtu\.be/)([\w-]{11})`)
+	if m := re.FindStringSubmatch(link); len(m) > 1 {
+		return m[1]
+	}
 	u, err := url.Parse(link)
 	if err != nil {
 		return ""
 	}
 	if u.Host == "youtu.be" {
-		return strings.TrimPrefix(u.Path, "/")
+		id := strings.TrimPrefix(u.Path, "/")
+		if idx := strings.Index(id, "?"); idx != -1 {
+			id = id[:idx]
+		}
+		return id
 	}
 	return u.Query().Get("v")
 }
