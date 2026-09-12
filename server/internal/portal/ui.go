@@ -1864,22 +1864,6 @@ func RenderPortalPage() string {
         </div>
     </div>
 
-    <!-- Google AdSense Billboard / Leaderboard Ad Unit -->
-    <div class="ad-unit-leaderboard" style="max-width: 1440px; margin: 14px auto 6px; padding: 0 16px; text-align: center; overflow: hidden; clear: both;">
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1894301748406603"
-             crossorigin="anonymous"></script>
-        <!-- ad unit -->
-        <ins class="adsbygoogle"
-             style="display:block"
-             data-ad-client="ca-pub-1894301748406603"
-             data-ad-slot="3023623233"
-             data-ad-format="auto"
-             data-full-width-responsive="true"></ins>
-        <script>
-             (adsbygoogle = window.adsbygoogle || []).push({});
-        </script>
-    </div>
-
     <!-- MAIN 3-COLUMN EDITORIAL CONTAINER -->
     <main class="main-container">
 
@@ -1937,10 +1921,30 @@ func RenderPortalPage() string {
                 </div>
             </article>
 
-            <!-- Horizontal Leaderboard Banner (728x90) -->
-            <div id="ad-banner-header-slot" style="margin: 18px 0;">
-                <div class="ad-banner-horizontal" style="padding:0; border:none; background:transparent;">
-                    <img src="/portal/assets/brand/tn24-header.svg?v=20260908c" style="width:100%; height:90px; border-radius:8px; display:block;" alt="TN24 Live News" />
+            <!-- Contact for Advertisement (Leaderboard 728x90) -->
+            <div class="ad-contact-section" style="margin: 18px 0; text-align: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 0 4px;">
+                    <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">📢 விளம்பரம் &bull; Advertisement</span>
+                    <a href="mailto:tn24now@gmail.com" style="font-size: 11px; color: #38bdf8; text-decoration: none; font-weight: 600;">விளம்பர தொடர்புக்கு: tn24now@gmail.com ↗</a>
+                </div>
+                <div id="ad-banner-header-slot">
+                    <div class="ad-banner-horizontal" style="padding:0; border:none; background:transparent;">
+                        <img src="/portal/assets/brand/tn24-header.svg?v=20260908c" style="width:100%; height:90px; border-radius:8px; display:block;" alt="TN24 Live News" />
+                    </div>
+                </div>
+                <div class="ad-unit-leaderboard" style="margin-top: 10px; overflow: hidden; text-align: center;">
+                    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1894301748406603"
+                         crossorigin="anonymous"></script>
+                    <!-- ad unit -->
+                    <ins class="adsbygoogle"
+                         style="display:block"
+                         data-ad-client="ca-pub-1894301748406603"
+                         data-ad-slot="3023623233"
+                         data-ad-format="auto"
+                         data-full-width-responsive="true"></ins>
+                    <script>
+                         (adsbygoogle = window.adsbygoogle || []).push({});
+                    </script>
                 </div>
             </div>
 
@@ -2065,27 +2069,32 @@ func RenderPortalPage() string {
                 <a href="javascript:void(0)" onclick="openAllEventsModal()" class="btn-view-all" style="background: rgba(56,189,248,0.1); color: #38bdf8; border: 1px solid rgba(56,189,248,0.25); text-align: center; border-radius: 6px; margin-top: 10px; display: block;">முழு மாநில மாநாட்டு காலண்டர் ↗</a>
             </div>
 
-            <!-- 250x250 Ad Banner -->
-            <div id="ad-banner-sidebar-slot" style="margin-bottom: 20px;">
-                <div class="ad-banner-250" style="padding:0; border:none; background:transparent;">
-                    <img src="/portal/assets/brand/tn24-sidebar.svg?v=20260908c" onerror="this.onerror=null; this.src='/admin/api/maps/svg?district=Tamil%20Nadu'" style="width:100%; max-width:250px; height:250px; border-radius:8px; display:block;" alt="TN24 Prime" />
+            <!-- Contact for Advertisement (Sidebar 250x250) -->
+            <div style="margin-bottom: 20px; text-align: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 0 4px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">📢 விளம்பரம் &bull; Ads</span>
+                    <a href="mailto:tn24now@gmail.com" style="font-size: 10px; color: #38bdf8; text-decoration: none; font-weight: 600;">விளம்பர தொடர்புக்கு ↗</a>
                 </div>
-            </div>
-
-            <!-- Google AdSense Sidebar Ad Unit -->
-            <div class="ad-unit-sidebar" style="margin: 0 0 20px; text-align: center; overflow: hidden;">
-                <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1894301748406603"
-                     crossorigin="anonymous"></script>
-                <!-- ad unit -->
-                <ins class="adsbygoogle"
-                     style="display:block"
-                     data-ad-client="ca-pub-1894301748406603"
-                     data-ad-slot="3023623233"
-                     data-ad-format="auto"
-                     data-full-width-responsive="true"></ins>
-                <script>
-                     (adsbygoogle = window.adsbygoogle || []).push({});
-                </script>
+                <div id="ad-banner-sidebar-slot">
+                    <div class="ad-banner-250" style="padding:0; border:none; background:transparent;">
+                        <img src="/portal/assets/brand/tn24-sidebar.svg?v=20260908c" onerror="this.onerror=null; this.src='/admin/api/maps/svg?district=Tamil%20Nadu'" style="width:100%; max-width:250px; height:250px; border-radius:8px; display:block;" alt="TN24 Prime" />
+                    </div>
+                </div>
+                <!-- Google AdSense Sidebar Ad Unit -->
+                <div class="ad-unit-sidebar" style="margin-top: 10px; text-align: center; overflow: hidden;">
+                    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1894301748406603"
+                         crossorigin="anonymous"></script>
+                    <!-- ad unit -->
+                    <ins class="adsbygoogle"
+                         style="display:block"
+                         data-ad-client="ca-pub-1894301748406603"
+                         data-ad-slot="3023623233"
+                         data-ad-format="auto"
+                         data-full-width-responsive="true"></ins>
+                    <script>
+                         (adsbygoogle = window.adsbygoogle || []).push({});
+                    </script>
+                </div>
             </div>
 
             <!-- Most Read (Numbered 1 to 5) -->
@@ -2116,20 +2125,26 @@ func RenderPortalPage() string {
 
     </main>
 
-    <!-- Google AdSense Footer Leaderboard Ad Unit -->
-    <div class="ad-unit-footer" style="max-width: 1200px; margin: 24px auto 0; padding: 0 16px; text-align: center; overflow: hidden; clear: both;">
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1894301748406603"
-             crossorigin="anonymous"></script>
-        <!-- ad unit -->
-        <ins class="adsbygoogle"
-             style="display:block"
-             data-ad-client="ca-pub-1894301748406603"
-             data-ad-slot="3023623233"
-             data-ad-format="auto"
-             data-full-width-responsive="true"></ins>
-        <script>
-             (adsbygoogle = window.adsbygoogle || []).push({});
-        </script>
+    <!-- Contact for Advertisement (Footer Banner) -->
+    <div class="ad-contact-footer" style="max-width: 1200px; margin: 24px auto 0; padding: 0 16px; text-align: center; overflow: hidden; clear: both;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 0 4px;">
+            <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">📢 விளம்பரம் &bull; Advertisement</span>
+            <a href="mailto:tn24now@gmail.com" style="font-size: 11px; color: #38bdf8; text-decoration: none; font-weight: 600;">விளம்பர தொடர்புக்கு: tn24now@gmail.com ↗</a>
+        </div>
+        <div class="ad-unit-footer" style="overflow: hidden;">
+            <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1894301748406603"
+                 crossorigin="anonymous"></script>
+            <!-- ad unit -->
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="ca-pub-1894301748406603"
+                 data-ad-slot="3023623233"
+                 data-ad-format="auto"
+                 data-full-width-responsive="true"></ins>
+            <script>
+                 (adsbygoogle = window.adsbygoogle || []).push({});
+            </script>
+        </div>
     </div>
 
     <!-- FOOTER BRANDING -->

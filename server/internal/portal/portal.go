@@ -2185,6 +2185,10 @@ func (h *PortalHandler) HandleContactUs(w http.ResponseWriter, r *http.Request) 
 <p><a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a></p>
 <p>We acknowledge grievances within <strong>24 hours</strong> and resolve them within <strong>15 days</strong> as required by law.</p>
 
+<h3>📢 Contact for Advertisement (விளம்பர தொடர்புக்கு)</h3>
+<p>To showcase your brand, business, or service across TN24 digital network reaching readers across 38 districts in Tamil Nadu:</p>
+<p>Direct Advertising Desk: <a href="mailto:tn24now@gmail.com"><strong>tn24now@gmail.com</strong></a></p>
+
 <h3>🌐 Website</h3>
 <p><a href="https://www.tn24.in">www.tn24.in</a></p>
 `)))
