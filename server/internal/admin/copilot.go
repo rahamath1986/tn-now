@@ -378,12 +378,11 @@ func (c *CopilotEngine) registerVerifiedGoogleOperator(ctx context.Context, emai
 			`, email, token).Scan(&newID)
 
 			if newID.Valid {
-				username := strings.Split(email, "@")[0]
 				_, _ = c.conn.Exec(ctx, `
-					INSERT INTO profiles (user_id, username, display_name, bio, avatar_url, is_verified)
-					VALUES ($1, $2, $3, 'Genuine Google Authenticated Operator', $4, true)
-					ON CONFLICT (user_id) DO UPDATE SET is_verified = true
-				`, newID, username, name, avatarURL)
+					INSERT INTO user_profiles (user_id, full_name, avatar_url, bio)
+					VALUES ($1, $2, $3, 'Genuine Google Authenticated Operator')
+					ON CONFLICT (user_id) DO UPDATE SET avatar_url = $3
+				`, newID, name, avatarURL)
 
 				_, _ = c.conn.Exec(ctx, `
 					INSERT INTO user_sessions (user_id, refresh_token, device_info, expires_at)

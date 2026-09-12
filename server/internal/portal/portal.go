@@ -2251,6 +2251,21 @@ func renderStaticPage(title, heading, bodyHTML string) string {
 <div class="container">
   <h1>` + heading + `</h1>
   ` + bodyHTML + `
+  <!-- Google AdSense Ad Unit -->
+  <div style="margin: 32px auto 16px; text-align: center; max-width: 100%; overflow: hidden;">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1894301748406603"
+         crossorigin="anonymous"></script>
+    <!-- ad unit -->
+    <ins class="adsbygoogle"
+         style="display:block"
+         data-ad-client="ca-pub-1894301748406603"
+         data-ad-slot="3023623233"
+         data-ad-format="auto"
+         data-full-width-responsive="true"></ins>
+    <script>
+         (adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+  </div>
 </div>
 <footer>
   &copy; 2026 TN24 &mdash; www.tn24.in &nbsp;|&nbsp; <a href="/privacy">Privacy Policy</a> &nbsp;|&nbsp; <a href="/terms">Terms of Service</a> &nbsp;|&nbsp; <a href="/about">About Us</a> &nbsp;|&nbsp; <a href="/contact">Contact</a>

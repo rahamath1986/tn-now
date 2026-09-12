@@ -129,6 +129,27 @@ func TestReaderRevenueManagerSWG(t *testing.T) {
 	}
 }
 
+func TestGoogleAdSenseUnit(t *testing.T) {
+	portalHTML := RenderPortalPage()
+	if !strings.Contains(portalHTML, "ca-pub-1894301748406603") {
+		t.Errorf("expected AdSense client ID ca-pub-1894301748406603 in RenderPortalPage")
+	}
+	if !strings.Contains(portalHTML, `data-ad-slot="3023623233"`) {
+		t.Errorf("expected AdSense slot 3023623233 in RenderPortalPage")
+	}
+	if !strings.Contains(portalHTML, "adsbygoogle") {
+		t.Errorf("expected adsbygoogle class in RenderPortalPage")
+	}
+
+	h := NewPortalHandler(nil, nil)
+	recTerms := httptest.NewRecorder()
+	h.HandleTermsOfService(recTerms, httptest.NewRequest(http.MethodGet, "/terms", nil))
+	termsBody := recTerms.Body.String()
+	if !strings.Contains(termsBody, `data-ad-slot="3023623233"`) {
+		t.Errorf("expected AdSense slot 3023623233 in static /terms page")
+	}
+}
+
 func TestRSSFeed(t *testing.T) {
 	h := NewPortalHandler(nil, nil)
 

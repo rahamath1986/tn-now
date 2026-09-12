@@ -1864,6 +1864,22 @@ func RenderPortalPage() string {
         </div>
     </div>
 
+    <!-- Google AdSense Billboard / Leaderboard Ad Unit -->
+    <div class="ad-unit-leaderboard" style="max-width: 1440px; margin: 14px auto 6px; padding: 0 16px; text-align: center; overflow: hidden; clear: both;">
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1894301748406603"
+             crossorigin="anonymous"></script>
+        <!-- ad unit -->
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-1894301748406603"
+             data-ad-slot="3023623233"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+        <script>
+             (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+    </div>
+
     <!-- MAIN 3-COLUMN EDITORIAL CONTAINER -->
     <main class="main-container">
 
@@ -2056,6 +2072,22 @@ func RenderPortalPage() string {
                 </div>
             </div>
 
+            <!-- Google AdSense Sidebar Ad Unit -->
+            <div class="ad-unit-sidebar" style="margin: 0 0 20px; text-align: center; overflow: hidden;">
+                <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1894301748406603"
+                     crossorigin="anonymous"></script>
+                <!-- ad unit -->
+                <ins class="adsbygoogle"
+                     style="display:block"
+                     data-ad-client="ca-pub-1894301748406603"
+                     data-ad-slot="3023623233"
+                     data-ad-format="auto"
+                     data-full-width-responsive="true"></ins>
+                <script>
+                     (adsbygoogle = window.adsbygoogle || []).push({});
+                </script>
+            </div>
+
             <!-- Most Read (Numbered 1 to 5) -->
             <div class="widget-box">
                 <div class="widget-title-white">அதிகம் வாசிக்கப்பட்டவை</div>
@@ -2083,6 +2115,22 @@ func RenderPortalPage() string {
         </aside>
 
     </main>
+
+    <!-- Google AdSense Footer Leaderboard Ad Unit -->
+    <div class="ad-unit-footer" style="max-width: 1200px; margin: 24px auto 0; padding: 0 16px; text-align: center; overflow: hidden; clear: both;">
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1894301748406603"
+             crossorigin="anonymous"></script>
+        <!-- ad unit -->
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-1894301748406603"
+             data-ad-slot="3023623233"
+             data-ad-format="auto"
+             data-full-width-responsive="true"></ins>
+        <script>
+             (adsbygoogle = window.adsbygoogle || []).push({});
+        </script>
+    </div>
 
     <!-- FOOTER BRANDING -->
     <footer style="margin-top: 40px; background: #090e17; border-top: 1px solid #1e293b; color: #94a3b8; padding: 36px 20px 24px; text-align: center;">
