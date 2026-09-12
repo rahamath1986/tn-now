@@ -255,6 +255,12 @@ func TestVideoSitemapXML(t *testing.T) {
 	if !strings.Contains(body, `<urlset`) {
 		t.Errorf("expected <urlset> in /sitemap-video.xml")
 	}
+	if !strings.Contains(body, `<url>`) {
+		t.Errorf("expected at least one <url> in /sitemap-video.xml to satisfy Google Search Console")
+	}
+	if !strings.Contains(body, `<video:video>`) {
+		t.Errorf("expected <video:video> in /sitemap-video.xml")
+	}
 }
 
 func TestRobotsTxtGooglebotVideo(t *testing.T) {

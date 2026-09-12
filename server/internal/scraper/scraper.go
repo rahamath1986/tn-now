@@ -2612,7 +2612,8 @@ func extractMatchingNavLinks(baseURL string, htmlContent string) []string {
 	return matched
 }
 
-func extractYouTubeID(link string) string {
+// ExtractYouTubeID extracts video ID from YouTube watch, shorts, live, embed, and youtu.be links
+func ExtractYouTubeID(link string) string {
 	link = strings.TrimSpace(link)
 	if link == "" {
 		return ""
@@ -2633,6 +2634,10 @@ func extractYouTubeID(link string) string {
 		return id
 	}
 	return u.Query().Get("v")
+}
+
+func extractYouTubeID(link string) string {
+	return ExtractYouTubeID(link)
 }
 
 var (

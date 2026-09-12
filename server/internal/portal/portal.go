@@ -1922,19 +1922,28 @@ func (h *PortalHandler) HandleVideoSitemapXML(w http.ResponseWriter, r *http.Req
 	sb.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
 	sb.WriteString(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">` + "\n")
 
+	videoCount := 0
+
 	if h.conn != nil {
 		rows, err := h.conn.Query(r.Context(), `
 			SELECT c.id::text, c.title, COALESCE(c.description, ''),
 			       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
 			       COALESCE(vl.platform, ''), COALESCE(vl.external_video_id, ''),
-			       COALESCE(vl.canonical_url, ''), COALESCE(vl.duration_seconds, 0),
+			       COALESCE(vl.canonical_url, c.source_url, ''), COALESCE(vl.duration_seconds, 0),
 			       COALESCE(c.published_at, c.created_at)
 			FROM content c
-			JOIN video_links vl ON c.id = vl.content_id
+			LEFT JOIN video_links vl ON c.id = vl.content_id
 			LEFT JOIN stories s ON c.id = s.content_id
 			LEFT JOIN photos p ON c.id = p.content_id
 			WHERE c.status = 'PUBLISHED'
-			  AND (vl.external_video_id != '' OR vl.canonical_url != '')
+			  AND (
+			      (vl.external_video_id IS NOT NULL AND vl.external_video_id != '')
+			      OR (vl.canonical_url IS NOT NULL AND vl.canonical_url != '')
+			      OR c.content_type = 'VIDEO_LINK'
+			      OR c.source_url LIKE '%youtube%'
+			      OR c.source_url LIKE '%youtu.be%'
+			      OR c.source_url LIKE '%bbc.com%'
+			  )
 			ORDER BY COALESCE(c.published_at, c.created_at) DESC
 			LIMIT 250
 		`)
@@ -1945,6 +1954,34 @@ func (h *PortalHandler) HandleVideoSitemapXML(w http.ResponseWriter, r *http.Req
 				var aDuration int
 				var aPub time.Time
 				if err := rows.Scan(&aID, &aTitle, &aDesc, &aThumb, &aPlatform, &aVidID, &aVidURL, &aDuration, &aPub); err == nil {
+					if aVidID == "" && aVidURL != "" {
+						aVidID = scraper.ExtractYouTubeID(aVidURL)
+					}
+					if aPlatform == "" {
+						if strings.Contains(aVidURL, "bbc.com") {
+							aPlatform = "bbc"
+						} else {
+							aPlatform = "youtube"
+						}
+					}
+
+					var playerLoc string
+					if aPlatform == "youtube" || strings.Contains(aVidURL, "youtube.com") || strings.Contains(aVidURL, "youtu.be") || (aVidID != "" && !strings.HasPrefix(aVidID, "vid_") && !strings.HasPrefix(aVidID, "bbc_")) {
+						if aVidID != "" {
+							playerLoc = fmt.Sprintf("https://www.youtube.com/embed/%s", aVidID)
+						} else {
+							playerLoc = aVidURL
+						}
+					} else if aPlatform == "bbc" || strings.Contains(aVidURL, "bbc.com") {
+						playerLoc = aVidURL
+					} else if aVidURL != "" {
+						playerLoc = aVidURL
+					}
+
+					if playerLoc == "" {
+						continue
+					}
+
 					cleanTitle := html.EscapeString(scraper.CleanHTML(aTitle))
 					cleanDesc := scraper.CleanHTML(aDesc)
 					if len([]rune(cleanDesc)) > 200 {
@@ -1953,15 +1990,6 @@ func (h *PortalHandler) HandleVideoSitemapXML(w http.ResponseWriter, r *http.Req
 					cleanDesc = html.EscapeString(cleanDesc)
 					if cleanDesc == "" {
 						cleanDesc = cleanTitle
-					}
-
-					var playerLoc string
-					if aPlatform == "youtube" || strings.Contains(aVidURL, "youtube.com") || strings.Contains(aVidURL, "youtu.be") || (aVidID != "" && !strings.HasPrefix(aVidID, "vid_") && !strings.HasPrefix(aVidID, "bbc_")) {
-						playerLoc = fmt.Sprintf("https://www.youtube.com/embed/%s", aVidID)
-					} else if aPlatform == "bbc" || strings.Contains(aVidURL, "bbc.com") {
-						playerLoc = aVidURL
-					} else if aVidURL != "" {
-						playerLoc = aVidURL
 					}
 
 					if strings.TrimSpace(aThumb) == "" {
@@ -1993,9 +2021,29 @@ func (h *PortalHandler) HandleVideoSitemapXML(w http.ResponseWriter, r *http.Req
 					sb.WriteString(`        </video:video>
     </url>
 `)
+					videoCount++
 				}
 			}
 		}
+	}
+
+	// Google strictly requires at least one <url> tag inside <urlset>.
+	// If no published videos yet exist in the DB, provide a valid baseline video entry
+	// for TN24's live video stream to avoid Search Console "Missing XML tag: url" error.
+	if videoCount == 0 {
+		nowStr := time.Now().Format("2006-01-02T15:04:05Z07:00")
+		sb.WriteString(fmt.Sprintf(`    <url>
+        <loc>%s/portal?viral=true</loc>
+        <video:video>
+            <video:thumbnail_loc>%s/portal/assets/brand/tn24-profile.jpg</video:thumbnail_loc>
+            <video:title>TN24 Tamil Nadu Live News &amp; Trending Videos | தமிழ்நாடு நேரலை வீடியோ</video:title>
+            <video:description>TN24 24x7 live Tamil Nadu breaking news, trending video coverage, politics, and civic updates.</video:description>
+            <video:player_loc allow_embed="yes">https://www.youtube.com/embed/live_stream?channel=UCnrf2x9o_qXlSfZg1sK4Nqg</video:player_loc>
+            <video:publication_date>%s</video:publication_date>
+            <video:family_friendly>yes</video:family_friendly>
+        </video:video>
+    </url>
+`, base, base, nowStr))
 	}
 
 	sb.WriteString("</urlset>\n")
