@@ -129,3 +129,107 @@ func TestReaderRevenueManagerSWG(t *testing.T) {
 	}
 }
 
+func TestRSSFeed(t *testing.T) {
+	h := NewPortalHandler(nil, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "https://www.tn24.in/rss.xml", nil)
+	rec := httptest.NewRecorder()
+	h.HandleRSSFeed(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200 OK from /rss.xml, got %d", rec.Code)
+	}
+
+	contentType := rec.Header().Get("Content-Type")
+	if !strings.Contains(contentType, "application/rss+xml") {
+		t.Errorf("expected application/rss+xml content type, got %s", contentType)
+	}
+
+	body := rec.Body.String()
+	if !strings.Contains(body, `<rss version="2.0"`) {
+		t.Errorf("expected RSS 2.0 version attribute")
+	}
+	if !strings.Contains(body, `xmlns:media="http://search.yahoo.com/mrss/"`) {
+		t.Errorf("expected Media RSS namespace")
+	}
+	if !strings.Contains(body, "<title>TN24") {
+		t.Errorf("expected RSS channel title")
+	}
+	if !strings.Contains(body, "<link>https://www.tn24.in/portal</link>") {
+		t.Errorf("expected canonical portal link in RSS channel")
+	}
+}
+
+func TestSitemap38DistrictsAndRobots(t *testing.T) {
+	h := NewPortalHandler(nil, nil)
+
+	// Verify all 38 districts in sitemap.xml
+	reqSitemap := httptest.NewRequest(http.MethodGet, "/sitemap.xml", nil)
+	recSitemap := httptest.NewRecorder()
+	h.HandleSitemapXML(recSitemap, reqSitemap)
+	sitemapBody := recSitemap.Body.String()
+
+	districts := []string{
+		"Chennai", "Coimbatore", "Madurai", "Salem", "Tiruchirappalli",
+		"Tirunelveli", "Kanyakumari", "Thanjavur", "Dindigul", "Vellore",
+		"Ranipet", "Tirupathur", "Chengalpattu", "Mayiladuthurai", "Tenkasi",
+	}
+	for _, d := range districts {
+		if !strings.Contains(sitemapBody, "portal?district="+d) {
+			t.Errorf("expected district %s in sitemap.xml", d)
+		}
+	}
+
+	// Verify robots.txt allows RSS
+	reqRobots := httptest.NewRequest(http.MethodGet, "/robots.txt", nil)
+	recRobots := httptest.NewRecorder()
+	h.HandleRobotsTxt(recRobots, reqRobots)
+	robotsBody := recRobots.Body.String()
+
+	if !strings.Contains(robotsBody, "Allow: /rss.xml") {
+		t.Errorf("expected robots.txt to allow /rss.xml")
+	}
+	if !strings.Contains(robotsBody, "Allow: /feed.xml") {
+		t.Errorf("expected robots.txt to allow /feed.xml")
+	}
+}
+
+func TestSEOInjectors(t *testing.T) {
+	h := NewPortalHandler(nil, nil)
+	baseHTML := "<html><head><title>Original</title><link rel=\"canonical\" href=\"https://www.tn24.in/portal\"></head><body><h1>Heading</h1></body></html>"
+
+	// Test District injector
+	distHTML := h.injectDistrictMetadata(baseHTML, "Madurai", nil)
+	if !strings.Contains(distHTML, "https://www.tn24.in/portal?district=Madurai") {
+		t.Errorf("expected district canonical in injected HTML, got %s", distHTML)
+	}
+	if !strings.Contains(distHTML, "மதுரை செய்திகள்") {
+		t.Errorf("expected Tamil district name in injected HTML")
+	}
+
+	// Test Category injector
+	catHTML := h.injectCategoryMetadata(baseHTML, "cinema", nil)
+	if !strings.Contains(catHTML, "https://www.tn24.in/portal?category=cinema") {
+		t.Errorf("expected category canonical in injected HTML, got %s", catHTML)
+	}
+	if !strings.Contains(catHTML, "சினிமா செய்திகள்") {
+		t.Errorf("expected Tamil category name in injected HTML")
+	}
+
+	// Test Viral injector
+	viralHTML := h.injectViralMetadata(baseHTML, nil)
+	if !strings.Contains(viralHTML, "https://www.tn24.in/portal?viral=true") {
+		t.Errorf("expected viral canonical in injected HTML, got %s", viralHTML)
+	}
+
+	// Test Search injector
+	searchHTML := h.injectSearchMetadata(baseHTML, "breaking news", nil)
+	if !strings.Contains(searchHTML, "breaking news") {
+		t.Errorf("expected search query in title")
+	}
+	if !strings.Contains(searchHTML, `noindex, follow`) {
+		t.Errorf("expected noindex, follow on search page")
+	}
+}
+
+

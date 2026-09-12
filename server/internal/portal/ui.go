@@ -52,9 +52,9 @@ func RenderPortalPage() string {
     <!-- Language & Locale -->
     <meta name="language" content="Tamil">
     <meta http-equiv="content-language" content="ta, en-IN">
-    <link rel="alternate" hreflang="ta" href="https://tn24now.in/portal">
-    <link rel="alternate" hreflang="en-IN" href="https://tn24now.in/portal">
-    <link rel="alternate" hreflang="x-default" href="https://tn24now.in/portal">
+    <link rel="alternate" hreflang="ta" href="https://www.tn24.in/portal">
+    <link rel="alternate" hreflang="en-IN" href="https://www.tn24.in/portal">
+    <link rel="alternate" hreflang="x-default" href="https://www.tn24.in/portal">
 
     <!-- Geographic / Local SEO -->
     <meta name="geo.region" content="IN-TN">
@@ -64,11 +64,14 @@ func RenderPortalPage() string {
 
     <!-- Google News Specific -->
     <meta name="news_keywords" content="tn 24, news tamil 24x7 live, tamil nadu news, news live tamilnadu, தமிழ் செய்திகள், today news in tamil, news tamil today, tamil news online, latest tamil news, tamil nadu news in tamil, news tamil nadu, தமிழ்நாடு செய்திகள்">
-    <meta name="syndication-source" content="https://tn24now.in/portal">
-    <meta name="original-source" content="https://tn24now.in/portal">
+    <meta name="syndication-source" content="https://www.tn24.in/portal">
+    <meta name="original-source" content="https://www.tn24.in/portal">
 
     <!-- Canonical URL -->
-    <link rel="canonical" href="https://tn24now.in/portal">
+    <link rel="canonical" href="https://www.tn24.in/portal">
+
+    <!-- RSS & Syndication Feed Discovery -->
+    <link rel="alternate" type="application/rss+xml" title="TN24 — Tamil Nadu News RSS Feed" href="https://www.tn24.in/rss.xml">
 
     <!-- Open Graph (Facebook / WhatsApp / LinkedIn / Telegram) -->
     <meta property="og:type" content="website">
@@ -77,8 +80,8 @@ func RenderPortalPage() string {
     <meta property="og:locale:alternate" content="en_IN">
     <meta property="og:title" content="TN24 — Tamil Nadu News | தமிழ் செய்திகள் | Latest Tamil News Online 24x7 Live">
     <meta property="og:description" content="TN24 (tn 24) — News Tamil 24x7 Live. Tamil Nadu news in Tamil (தமிழ் செய்திகள்), today news in tamil, latest tamil news online &amp; breaking updates from all 38 districts.">
-    <meta property="og:url" content="https://tn24now.in/portal">
-    <meta property="og:image" content="https://tn24now.in/portal/assets/brand/tn24-profile.jpg">
+    <meta property="og:url" content="https://www.tn24.in/portal">
+    <meta property="og:image" content="https://www.tn24.in/portal/assets/brand/tn24-profile.jpg">
     <meta property="og:image:width" content="1024">
     <meta property="og:image:height" content="1024">
     <meta property="og:image:type" content="image/jpeg">
@@ -90,7 +93,7 @@ func RenderPortalPage() string {
     <meta name="twitter:creator" content="@TN24Now">
     <meta name="twitter:title" content="TN24 — Tamil Nadu News Live 24x7 | தமிழ் செய்திகள் | TN 24">
     <meta name="twitter:description" content="Latest Tamil news today, news live tamilnadu, tamil news online &amp; breaking updates from all 38 districts 24/7. தமிழ்நாட்டின் #1 செய்தி தளம்.">
-    <meta name="twitter:image" content="https://tn24now.in/portal/assets/brand/tn24-profile.jpg">
+    <meta name="twitter:image" content="https://www.tn24.in/portal/assets/brand/tn24-profile.jpg">
     <meta name="twitter:image:alt" content="TN24 — Tamil Nadu News | தமிழ் செய்திகள்">
 
     <!-- Structured Data: Schema.org JSON-LD -->
@@ -100,7 +103,7 @@ func RenderPortalPage() string {
       "@graph": [
         {
           "@type": "NewsMediaOrganization",
-          "@id": "https://tn24now.in/#organization",
+          "@id": "https://www.tn24.in/#organization",
           "name": "TN24 — Tamil Nadu News",
           "alternateName": [
             "TN24",
@@ -114,10 +117,10 @@ func RenderPortalPage() string {
             "tn24.in"
           ],
           "description": "Tamil Nadu's #1 digital news portal delivering 24/7 live breaking news in Tamil (தமிழ் செய்திகள்) and English from all 38 districts.",
-          "url": "https://tn24now.in/portal",
+          "url": "https://www.tn24.in/portal",
           "logo": {
             "@type": "ImageObject",
-            "url": "https://tn24now.in/portal/assets/brand/tn24-profile.jpg",
+            "url": "https://www.tn24.in/portal/assets/brand/tn24-profile.jpg",
             "width": 1024,
             "height": 1024
           },
@@ -159,19 +162,19 @@ func RenderPortalPage() string {
         },
         {
           "@type": "WebSite",
-          "@id": "https://tn24now.in/#website",
-          "url": "https://tn24now.in/portal",
+          "@id": "https://www.tn24.in/#website",
+          "url": "https://www.tn24.in/portal",
           "name": "TN24 — Tamil Nadu News & தமிழ் செய்திகள்",
           "headline": "TN24: News Tamil 24x7 Live — Today News in Tamil & Latest Tamil Nadu News Online",
           "description": "TN24 (tn 24) — Live Tamil Nadu news portal covering latest tamil news, today news in tamil, breaking news live tamilnadu, politics, cinema, sports & TNPSC from all 38 districts.",
           "inLanguage": ["ta", "en-IN"],
           "keywords": "tn 24, news tamil 24x7 live, tamil nadu news, news live tamilnadu, தமிழ் செய்திகள், today news in tamil, news tamil today, tamil news online, latest tamil news, tamil nadu news in tamil, news tamil nadu",
           "publisher": {
-            "@id": "https://tn24now.in/#organization"
+            "@id": "https://www.tn24.in/#organization"
           },
           "potentialAction": {
             "@type": "SearchAction",
-            "target": "https://tn24now.in/portal?q={search_term_string}",
+            "target": "https://www.tn24.in/portal?q={search_term_string}",
             "query-input": "required name=search_term_string"
           }
         },
@@ -182,7 +185,7 @@ func RenderPortalPage() string {
               "@type": "ListItem",
               "position": 1,
               "name": "TN24 Home",
-              "item": "https://tn24now.in/portal"
+              "item": "https://www.tn24.in/portal"
             }
           ]
         },
@@ -200,15 +203,15 @@ func RenderPortalPage() string {
             "Government Jobs"
           ],
           "url": [
-            "https://tn24now.in/portal",
-            "https://tn24now.in/portal?cat=News",
-            "https://tn24now.in/portal?cat=Politics",
-            "https://tn24now.in/portal?cat=Entertainment",
-            "https://tn24now.in/portal?cat=Sports",
-            "https://tn24now.in/portal?cat=Business",
-            "https://tn24now.in/portal?cat=Technical",
-            "https://tn24now.in/portal#districts",
-            "https://tn24now.in/portal#government-jobs"
+            "https://www.tn24.in/portal",
+            "https://www.tn24.in/portal?category=News",
+            "https://www.tn24.in/portal?category=Politics",
+            "https://www.tn24.in/portal?category=Entertainment",
+            "https://www.tn24.in/portal?category=Sports",
+            "https://www.tn24.in/portal?category=Business",
+            "https://www.tn24.in/portal?category=Technical",
+            "https://www.tn24.in/portal#districts",
+            "https://www.tn24.in/portal#government-jobs"
           ]
         }
       ]
@@ -1735,49 +1738,75 @@ func RenderPortalPage() string {
         <div class="nav-inner">
             <ul class="nav-links">
                 <li class="nav-item active" id="nav-item-home">
-                    <a href="javascript:void(0)" onclick="filterCategory('All')" class="nav-link">முகப்பு</a>
+                    <a href="/portal" onclick="filterCategory('All', event)" class="nav-link">முகப்பு</a>
                 </li>
                 <li class="nav-item" id="nav-item-districts">
-                    <a href="javascript:void(0)" class="nav-link">மாவட்டங்கள் <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6"/></svg></a>
-                    <div class="nav-dropdown" id="districtDropdownMenu">
-                        <a href="javascript:void(0)" onclick="filterDistrict('All Districts')">அனைத்து மாவட்டங்கள் (38+)</a>
-                        <a href="javascript:void(0)" onclick="filterDistrict('Chennai')">சென்னை</a>
-                        <a href="javascript:void(0)" onclick="filterDistrict('Coimbatore')">கோயம்புத்தூர்</a>
-                        <a href="javascript:void(0)" onclick="filterDistrict('Madurai')">மதுரை</a>
-                        <a href="javascript:void(0)" onclick="filterDistrict('Tiruchirappalli')">திருச்சிராப்பள்ளி</a>
-                        <a href="javascript:void(0)" onclick="filterDistrict('Salem')">சேலம்</a>
-                        <a href="javascript:void(0)" onclick="filterDistrict('Tirunelveli')">திருநெல்வேலி</a>
-                        <a href="javascript:void(0)" onclick="filterDistrict('Erode')">ஈரோடு</a>
-                        <a href="javascript:void(0)" onclick="filterDistrict('Vellore')">வேலூர்</a>
-                        <a href="javascript:void(0)" onclick="filterDistrict('Thanjavur')">தஞ்சாவூர்</a>
-                        <a href="javascript:void(0)" onclick="filterDistrict('Kanyakumari')">கன்னியாகுமரி</a>
-                        <a href="javascript:void(0)" onclick="filterDistrict('Ranipet')">ராணிப்பேட்டை</a>
-                        <a href="javascript:void(0)" onclick="filterDistrict('Dindigul')">திண்டுக்கல்</a>
+                    <a href="/portal#districts" class="nav-link">மாவட்டங்கள் <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6"/></svg></a>
+                    <div class="nav-dropdown" id="districtDropdownMenu" style="max-height: 380px; overflow-y: auto;">
+                        <a href="/portal" onclick="filterDistrict('All Districts', event)">அனைத்து மாவட்டங்கள் (38)</a>
+                        <a href="/portal?district=Chennai" onclick="filterDistrict('Chennai', event)">சென்னை (Chennai)</a>
+                        <a href="/portal?district=Coimbatore" onclick="filterDistrict('Coimbatore', event)">கோயம்புத்தூர் (Coimbatore)</a>
+                        <a href="/portal?district=Madurai" onclick="filterDistrict('Madurai', event)">மதுரை (Madurai)</a>
+                        <a href="/portal?district=Tiruchirappalli" onclick="filterDistrict('Tiruchirappalli', event)">திருச்சிராப்பள்ளி (Trichy)</a>
+                        <a href="/portal?district=Salem" onclick="filterDistrict('Salem', event)">சேலம் (Salem)</a>
+                        <a href="/portal?district=Tirunelveli" onclick="filterDistrict('Tirunelveli', event)">திருநெல்வேலி (Tirunelveli)</a>
+                        <a href="/portal?district=Tiruppur" onclick="filterDistrict('Tiruppur', event)">திருப்பூர் (Tiruppur)</a>
+                        <a href="/portal?district=Erode" onclick="filterDistrict('Erode', event)">ஈரோடு (Erode)</a>
+                        <a href="/portal?district=Vellore" onclick="filterDistrict('Vellore', event)">வேலூர் (Vellore)</a>
+                        <a href="/portal?district=Thanjavur" onclick="filterDistrict('Thanjavur', event)">தஞ்சாவூர் (Thanjavur)</a>
+                        <a href="/portal?district=Dindigul" onclick="filterDistrict('Dindigul', event)">திண்டுக்கல் (Dindigul)</a>
+                        <a href="/portal?district=Kanyakumari" onclick="filterDistrict('Kanyakumari', event)">கன்னியாகுமரி (Kanyakumari)</a>
+                        <a href="/portal?district=Thoothukudi" onclick="filterDistrict('Thoothukudi', event)">தூத்துக்குடி (Thoothukudi)</a>
+                        <a href="/portal?district=Ranipet" onclick="filterDistrict('Ranipet', event)">ராணிப்பேட்டை (Ranipet)</a>
+                        <a href="/portal?district=Virudhunagar" onclick="filterDistrict('Virudhunagar', event)">விருதுநகர் (Virudhunagar)</a>
+                        <a href="/portal?district=Sivagangai" onclick="filterDistrict('Sivagangai', event)">சிவகங்கை (Sivagangai)</a>
+                        <a href="/portal?district=Ramanathapuram" onclick="filterDistrict('Ramanathapuram', event)">ராமநாதபுரம் (Ramanathapuram)</a>
+                        <a href="/portal?district=Theni" onclick="filterDistrict('Theni', event)">தேனி (Theni)</a>
+                        <a href="/portal?district=Karur" onclick="filterDistrict('Karur', event)">கரூர் (Karur)</a>
+                        <a href="/portal?district=Namakkal" onclick="filterDistrict('Namakkal', event)">நாமக்கல் (Namakkal)</a>
+                        <a href="/portal?district=Nilgiris" onclick="filterDistrict('Nilgiris', event)">நீலகிரி (Nilgiris)</a>
+                        <a href="/portal?district=Cuddalore" onclick="filterDistrict('Cuddalore', event)">கடலூர் (Cuddalore)</a>
+                        <a href="/portal?district=Villupuram" onclick="filterDistrict('Villupuram', event)">விழுப்புரம் (Villupuram)</a>
+                        <a href="/portal?district=Kallakurichi" onclick="filterDistrict('Kallakurichi', event)">கள்ளக்குறிச்சி (Kallakurichi)</a>
+                        <a href="/portal?district=Chengalpattu" onclick="filterDistrict('Chengalpattu', event)">செங்கல்பட்டு (Chengalpattu)</a>
+                        <a href="/portal?district=Kanchipuram" onclick="filterDistrict('Kanchipuram', event)">காஞ்சிபுரம் (Kanchipuram)</a>
+                        <a href="/portal?district=Tiruvallur" onclick="filterDistrict('Tiruvallur', event)">திருவள்ளூர் (Tiruvallur)</a>
+                        <a href="/portal?district=Tiruvannamalai" onclick="filterDistrict('Tiruvannamalai', event)">திருவண்ணாமலை (Tiruvannamalai)</a>
+                        <a href="/portal?district=Dharmapuri" onclick="filterDistrict('Dharmapuri', event)">தருமபுரி (Dharmapuri)</a>
+                        <a href="/portal?district=Krishnagiri" onclick="filterDistrict('Krishnagiri', event)">கிருஷ்ணகிரி (Krishnagiri)</a>
+                        <a href="/portal?district=Pudukkottai" onclick="filterDistrict('Pudukkottai', event)">புதுக்கோட்டை (Pudukkottai)</a>
+                        <a href="/portal?district=Ariyalur" onclick="filterDistrict('Ariyalur', event)">அரியலூர் (Ariyalur)</a>
+                        <a href="/portal?district=Perambalur" onclick="filterDistrict('Perambalur', event)">பெரம்பலூர் (Perambalur)</a>
+                        <a href="/portal?district=Nagapattinam" onclick="filterDistrict('Nagapattinam', event)">நாகப்பட்டினம் (Nagapattinam)</a>
+                        <a href="/portal?district=Tiruvarur" onclick="filterDistrict('Tiruvarur', event)">திருவாரூர் (Tiruvarur)</a>
+                        <a href="/portal?district=Mayiladuthurai" onclick="filterDistrict('Mayiladuthurai', event)">மயிலாடுதுறை (Mayiladuthurai)</a>
+                        <a href="/portal?district=Tenkasi" onclick="filterDistrict('Tenkasi', event)">தென்காசி (Tenkasi)</a>
+                        <a href="/portal?district=Tirupathur" onclick="filterDistrict('Tirupathur', event)">திருப்பத்தூர் (Tirupathur)</a>
                     </div>
                 </li>
                 <li class="nav-item" id="nav-item-viral">
-                    <a href="javascript:void(0)" onclick="filterViral()" class="nav-link" style="color: #f97316; font-weight: 700;">🔥 வைரல் செய்திகள்</a>
+                    <a href="/portal?viral=true" onclick="filterViral(event)" class="nav-link" style="color: #f97316; font-weight: 700;">🔥 வைரல் செய்திகள்</a>
                 </li>
                 <li class="nav-item" id="nav-item-sports">
-                    <a href="javascript:void(0)" onclick="filterCategory('Sports')" class="nav-link" style="color: #38bdf8; font-weight: 700;">⚽ விளையாட்டு</a>
+                    <a href="/portal?category=Sports" onclick="filterCategory('Sports', event)" class="nav-link" style="color: #38bdf8; font-weight: 700;">⚽ விளையாட்டு</a>
                 </li>
                 <li class="nav-item" id="nav-item-categories">
-                    <a href="javascript:void(0)" class="nav-link">பிரிவுகள் <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6"/></svg></a>
+                    <a href="/portal#categories" class="nav-link">பிரிவுகள் <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6"/></svg></a>
                     <div class="nav-dropdown">
-                        <a href="javascript:void(0)" onclick="filterCategory('News')">செய்திகள் &amp; பொதுமக்கள்</a>
-                        <a href="javascript:void(0)" onclick="filterCategory('Politics')">அரசியல் &amp; ஆட்சி முறை</a>
-                        <a href="javascript:void(0)" onclick="filterCategory('Sports')">விளையாட்டு &amp; கிரிக்கெட்</a>
-                        <a href="javascript:void(0)" onclick="filterCategory('Technical')">தொழில்நுட்பம் &amp; ஏஐ</a>
-                        <a href="javascript:void(0)" onclick="filterCategory('Business')">வணிகம் &amp; பங்குச்சந்தை</a>
-                        <a href="javascript:void(0)" onclick="filterCategory('Entertainment')">சினிமா &amp; கலை உலகம்</a>
-                        <a href="javascript:void(0)" onclick="filterCategory('Crime')">குற்ற நிகழ்வுகள் &amp; சட்டம்</a>
+                        <a href="/portal?category=News" onclick="filterCategory('News', event)">செய்திகள் &amp; பொதுமக்கள் (News)</a>
+                        <a href="/portal?category=Politics" onclick="filterCategory('Politics', event)">அரசியல் &amp; ஆட்சி முறை (Politics)</a>
+                        <a href="/portal?category=Sports" onclick="filterCategory('Sports', event)">விளையாட்டு &amp; கிரிக்கெட் (Sports)</a>
+                        <a href="/portal?category=Technical" onclick="filterCategory('Technical', event)">தொழில்நுட்பம் &amp; ஏஐ (Tech)</a>
+                        <a href="/portal?category=Business" onclick="filterCategory('Business', event)">வணிகம் &amp; பங்குச்சந்தை (Business)</a>
+                        <a href="/portal?category=Entertainment" onclick="filterCategory('Entertainment', event)">சினிமா &amp; கலை உலகம் (Cinema)</a>
+                        <a href="/portal?category=Crime" onclick="filterCategory('Crime', event)">குற்ற நிகழ்வுகள் &amp; சட்டம் (Crime)</a>
                     </div>
                 </li>
                 <li class="nav-item" id="nav-item-events">
                     <a href="javascript:void(0)" onclick="scrollToSection('calendarWidget')" class="nav-link">📅 நிகழ்வுகள்</a>
                 </li>
                 <li class="nav-item" id="nav-item-news">
-                    <a href="javascript:void(0)" onclick="filterCategory('News')" class="nav-link">செய்திகள்</a>
+                    <a href="/portal?category=News" onclick="filterCategory('News', event)" class="nav-link">செய்திகள்</a>
                 </li>
             </ul>
 
@@ -2257,10 +2286,41 @@ func RenderPortalPage() string {
         document.addEventListener('DOMContentLoaded', () => {
             updateDateString();
             checkUrlPost();
-            loadPortalFeed();
+            initFromUrl();
             initMarketRates();
             runCalculator();
         });
+
+        function initFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const dist = urlParams.get('district');
+            const cat = urlParams.get('category') || urlParams.get('cat');
+            const q = urlParams.get('q');
+            const viral = urlParams.get('viral') === 'true';
+
+            if (dist && dist !== 'All Districts' && dist !== 'TN-ALL / REGIONAL') {
+                currentDistrict = dist;
+                const lbl = document.getElementById('selectedDistrictLabel');
+                if (lbl) lbl.textContent = dist.toUpperCase();
+                setActiveNavTab('nav-item-districts');
+            }
+            if (cat && cat !== 'All') {
+                currentCategory = cat;
+                if (cat.toLowerCase() === 'sports') setActiveNavTab('nav-item-sports');
+                else if (cat.toLowerCase() === 'news') setActiveNavTab('nav-item-news');
+                else setActiveNavTab('nav-item-categories');
+            }
+            if (q) {
+                currentQuery = q;
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) searchInput.value = q;
+            }
+            if (viral) {
+                currentIsViral = true;
+                setActiveNavTab('nav-item-viral');
+            }
+            loadPortalFeed(currentDistrict, currentCategory, currentQuery, currentIsViral);
+        }
 
         function updateDateString() {
             const monthsTa = ['ஜனவரி', 'பிப்ரவரி', 'மார்ச்', 'ஏப்ரல்', 'மே', 'ஜூன்', 'ஜூலை', 'ஆகஸ்ட்', 'செப்டம்பர்', 'அக்டோபர்', 'நவம்பர்', 'டிசம்பர்'];
@@ -2533,13 +2593,13 @@ func RenderPortalPage() string {
                 if (data.heroTeasers && data.heroTeasers.length > 0) {
                     teasersContainer.innerHTML = data.heroTeasers.map(function(item) {
                         const src = getSourceDomain(item.sourceUrl);
-                        return '<div class="hero-teaser-item" onclick="openArticleByID(\'' + item.id + '\', event)">' +
+                        return '<a href="/portal?post=' + encodeURIComponent(item.id) + '" class="hero-teaser-item" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:block;">' +
                             '<div class="teaser-badge-meta">' +
                                 '<span class="teaser-badge">' + escapeHtml(item.category || 'செய்திகள்') + '</span>' +
                                 '<span class="teaser-date">🕒 ' + formatDate(item.createdAt) + (src ? ' &bull; ' + escapeHtml(src) : '') + '</span>' +
                             '</div>' +
                             '<div class="teaser-title">' + escapeHtml(item.title) + '</div>' +
-                        '</div>';
+                        '</a>';
                     }).join('');
                 } else {
                     teasersContainer.innerHTML = '';
@@ -2554,16 +2614,16 @@ func RenderPortalPage() string {
                         const fallback = '/admin/api/maps/svg?district=' + encodeURIComponent(item.district || 'Tamil Nadu');
                         const thumb = item.thumbnail || fallback;
                         const src = getSourceDomain(item.sourceUrl);
-                        return '<div class="mini-card" onclick="openArticleByID(\'' + item.id + '\', event)">' +
+                        return '<a href="/portal?post=' + encodeURIComponent(item.id) + '" class="mini-card" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:flex;">' +
                             '<div class="mini-thumb-wrap">' +
-                                '<img src="' + thumb + '" onerror="this.onerror=null; this.src=\'' + fallback + '\'" alt="" loading="lazy">' +
+                                '<img src="' + thumb + '" onerror="this.onerror=null; this.src=\'' + fallback + '\'" alt="' + escapeHtml(item.title) + '" loading="lazy" style="aspect-ratio:16/9; object-fit:cover;">' +
                                 '<span class="badge-pill">' + escapeHtml(item.category || 'செய்திகள்') + '</span>' +
                             '</div>' +
                             '<div class="mini-content">' +
                                 '<h4 class="mini-title">' + escapeHtml(item.title) + '</h4>' +
                                 '<div class="mini-meta">🕒 ' + formatDate(item.createdAt) + (src ? ' &bull; ' + escapeHtml(src) : '') + '</div>' +
                             '</div>' +
-                        '</div>';
+                        '</a>';
                     }).join('');
                 } else {
                     leftContainer.innerHTML = '<div style="padding:16px; color:var(--text-muted); font-size:12px; text-align:center;">செய்திகள் இல்லை.</div>';
@@ -2576,10 +2636,10 @@ func RenderPortalPage() string {
                 if (data.pressReleases && data.pressReleases.length > 0) {
                     pressContainer.innerHTML = data.pressReleases.map(function(item) {
                         const src = getSourceDomain(item.sourceUrl);
-                        return '<div class="press-item" onclick="openArticleByID(\'' + item.id + '\', event)">' +
+                        return '<a href="/portal?post=' + encodeURIComponent(item.id) + '" class="press-item" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:block;">' +
                             '<div class="press-title">' + escapeHtml(item.title) + '</div>' +
                             '<div class="press-meta">🕒 ' + formatDate(item.createdAt) + (src ? ' &bull; ' + escapeHtml(src) : '') + ' &bull; ' + escapeHtml(item.district || 'அரசு செய்தி') + '</div>' +
-                        '</div>';
+                        '</a>';
                     }).join('');
                 } else {
                     pressContainer.innerHTML = '<div style="padding:12px; color:var(--text-muted); font-size:12px; text-align:center;">அறிவிப்புகள் இல்லை.</div>';
@@ -2635,19 +2695,21 @@ func RenderPortalPage() string {
                                 const langBadge = isTa ? '<span style="background:#b45309; color:#fef3c7; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px;">🇮🇳 தமிழ்</span>' : '<span style="background:#1d4ed8; color:#dbeafe; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px;">🇬🇧 EN</span>';
                                 const src = getSourceDomain(item.sourceUrl);
                                 const sourceDist = src ? (escapeHtml(src) + ' &bull; ' + escapeHtml(item.district || 'தமிழ்நாடு')) : escapeHtml(item.district || 'தமிழ்நாடு');
-                                html += '<div class="article-card" onclick="openArticleByID(\'' + item.id + '\', event)">' +
-                                    '<div class="article-card-thumb">' +
-                                        '<img src="' + thumb + '" onerror="this.onerror=null; this.src=\'' + fallback + '\'" alt="" loading="lazy">' +
-                                        '<div style="position:absolute; top:8px; left:8px; display:flex; gap:4px;">' +
-                                            '<span class="badge-pill">' + escapeHtml(item.category || 'செய்திகள்') + '</span>' +
-                                            langBadge +
+                                html += '<div class="article-card">' +
+                                    '<a href="/portal?post=' + encodeURIComponent(item.id) + '" class="article-card-link" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:flex; flex-direction:column; height:100%;">' +
+                                        '<div class="article-card-thumb">' +
+                                            '<img src="' + thumb + '" onerror="this.onerror=null; this.src=\'' + fallback + '\'" alt="' + escapeHtml(item.title) + '" loading="lazy" style="aspect-ratio:16/9; object-fit:cover;">' +
+                                            '<div style="position:absolute; top:8px; left:8px; display:flex; gap:4px;">' +
+                                                '<span class="badge-pill">' + escapeHtml(item.category || 'செய்திகள்') + '</span>' +
+                                                langBadge +
+                                            '</div>' +
                                         '</div>' +
-                                    '</div>' +
-                                    '<div class="article-card-body">' +
-                                        '<h3 class="article-card-title">' + escapeHtml(item.title) + '</h3>' +
-                                        '<div class="article-card-meta">🕒 ' + formatDate(item.createdAt) + ' &bull; ' + sourceDist + '</div>' +
-                                        '<p class="article-card-desc">' + escapeHtml(item.description || 'வட்டார நிகழ்வுகள் குறித்த நேரடி செய்தி தொகுப்பு.') + '</p>' +
-                                    '</div>' +
+                                        '<div class="article-card-body">' +
+                                            '<h3 class="article-card-title">' + escapeHtml(item.title) + '</h3>' +
+                                            '<div class="article-card-meta">🕒 ' + formatDate(item.createdAt) + ' &bull; ' + sourceDist + '</div>' +
+                                            '<p class="article-card-desc">' + escapeHtml(item.description || 'வட்டார நிகழ்வுகள் குறித்த நேரடி செய்தி தொகுப்பு.') + '</p>' +
+                                        '</div>' +
+                                    '</a>' +
                                 '</div>';
                             });
                         });
@@ -2665,16 +2727,21 @@ func RenderPortalPage() string {
                             const langBadge = isTa ? '<span style="background:#b45309; color:#fef3c7; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px; margin-left:4px;">🇮🇳 தமிழ்</span>' : '<span style="background:#1d4ed8; color:#dbeafe; font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px; margin-left:4px;">🇬🇧 EN</span>';
                             const src = getSourceDomain(item.sourceUrl);
                             const sourceDist = src ? (escapeHtml(src) + ' &bull; ' + escapeHtml(item.district || 'தமிழ்நாடு')) : escapeHtml(item.district || 'தமிழ்நாடு');
-                            html += '<div class="article-card" onclick="openArticleByID(\'' + item.id + '\', event)">' +
-                                '<div class="article-card-thumb">' +
-                                    '<img src="' + thumb + '" onerror="this.onerror=null; this.src=\'' + fallback + '\'" alt="" loading="lazy">' +
-                                    '<span class="badge-pill">' + escapeHtml(item.category || 'செய்திகள்') + '</span>' +
-                                '</div>' +
-                                '<div class="article-card-body">' +
-                                    '<h3 class="article-card-title">' + escapeHtml(item.title) + langBadge + '</h3>' +
-                                    '<div class="article-card-meta">🕒 ' + formatDate(item.createdAt) + ' &bull; ' + sourceDist + '</div>' +
-                                    '<p class="article-card-desc">' + escapeHtml(item.description || 'தமிழ்நாடு மற்றும் வட்டார நிகழ்வுகள் குறித்த நேரடி செய்தி தொகுப்பு.') + '</p>' +
-                                '</div>' +
+                            html += '<div class="article-card">' +
+                                '<a href="/portal?post=' + encodeURIComponent(item.id) + '" class="article-card-link" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:flex; flex-direction:column; height:100%;">' +
+                                    '<div class="article-card-thumb">' +
+                                        '<img src="' + thumb + '" onerror="this.onerror=null; this.src=\'' + fallback + '\'" alt="' + escapeHtml(item.title) + '" loading="lazy" style="aspect-ratio:16/9; object-fit:cover;">' +
+                                        '<div style="position:absolute; top:8px; left:8px; display:flex; gap:4px;">' +
+                                            '<span class="badge-pill">' + escapeHtml(item.category || 'செய்திகள்') + '</span>' +
+                                            langBadge +
+                                        '</div>' +
+                                    '</div>' +
+                                    '<div class="article-card-body">' +
+                                        '<h3 class="article-card-title">' + escapeHtml(item.title) + langBadge + '</h3>' +
+                                        '<div class="article-card-meta">🕒 ' + formatDate(item.createdAt) + ' &bull; ' + sourceDist + '</div>' +
+                                        '<p class="article-card-desc">' + escapeHtml(item.description || 'தமிழ்நாடு மற்றும் வட்டார நிகழ்வுகள் குறித்த நேரடி செய்தி தொகுப்பு.') + '</p>' +
+                                    '</div>' +
+                                '</a>' +
                             '</div>';
                         });
                         gridContainer.innerHTML = html;
@@ -2689,10 +2756,10 @@ func RenderPortalPage() string {
             if (mostReadContainer) {
                 if (data.mostRead && data.mostRead.length > 0) {
                     mostReadContainer.innerHTML = data.mostRead.map(function(item, idx) {
-                        return '<div class="most-read-item" onclick="openArticleByID(\'' + item.id + '\', event)">' +
+                        return '<a href="/portal?post=' + encodeURIComponent(item.id) + '" class="most-read-item" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:flex;">' +
                             '<div class="num-box">' + (idx + 1) + '</div>' +
                             '<div class="most-read-title">' + escapeHtml(item.title) + '</div>' +
-                        '</div>';
+                        '</a>';
                     }).join('');
                 } else {
                     mostReadContainer.innerHTML = '<div style="padding:12px; color:var(--text-muted); font-size:12px; text-align:center;">செய்திகள் இல்லை.</div>';
@@ -2724,6 +2791,7 @@ func RenderPortalPage() string {
 
         // Article Modal Open/Close
         function openHeroArticle(e) {
+            if (e && e.preventDefault) e.preventDefault();
             if (e && e.stopPropagation) e.stopPropagation();
             if (activeHeroArticle) {
                 showArticleModal(activeHeroArticle);
@@ -2731,6 +2799,7 @@ func RenderPortalPage() string {
         }
 
         function openArticleByID(id, e) {
+            if (e && e.preventDefault) e.preventDefault();
             if (e && e.stopPropagation) e.stopPropagation();
             if (!portalData) return;
             const all = [
@@ -2778,11 +2847,11 @@ func RenderPortalPage() string {
                     mediaContainer.innerHTML = '<iframe src="https://www.youtube.com/embed/' + ytId + '?autoplay=1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="width:100%; height:380px; border:0; display:block;"></iframe>';
                 } else {
                     const thumb = item.thumbnail || ('/admin/api/maps/svg?district=' + encodeURIComponent(item.district || 'Tamil Nadu'));
-                    mediaContainer.innerHTML = '<img src="' + thumb + '" alt="">';
+                    mediaContainer.innerHTML = '<img src="' + thumb + '" alt="' + escapeHtml(item.title || '') + '">';
                 }
             } else {
                 const thumb = item.thumbnail || ('/admin/api/maps/svg?district=' + encodeURIComponent(item.district || 'Tamil Nadu'));
-                mediaContainer.innerHTML = '<img src="' + thumb + '" alt="">';
+                mediaContainer.innerHTML = '<img src="' + thumb + '" alt="' + escapeHtml(item.title || '') + '">';
             }
 
             document.getElementById('articleModal').style.display = 'flex';
@@ -2794,7 +2863,12 @@ func RenderPortalPage() string {
             document.getElementById('modalMediaContainer').innerHTML = '';
             document.body.style.overflow = '';
             if (window.history && window.history.replaceState) {
-                window.history.replaceState(null, '', '/portal');
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.has('post')) {
+                    urlParams.delete('post');
+                    const newQuery = urlParams.toString();
+                    window.history.replaceState(null, '', newQuery ? ('/portal?' + newQuery) : '/portal');
+                }
             }
         }
 
@@ -3024,18 +3098,24 @@ func RenderPortalPage() string {
         }
 
         // Filtering
-        function filterDistrict(name) {
+        function filterDistrict(name, ev) {
+            if (ev && ev.preventDefault) ev.preventDefault();
             const isAll = (!name || name === 'All Districts' || name === 'TN-ALL / REGIONAL' || name === 'அனைத்து மாவட்டங்கள் (38+)');
+            const targetDistrict = isAll ? '' : name;
             document.getElementById('selectedDistrictLabel').textContent = isAll ? 'தமிழ்நாடு - அனைத்து வட்டாரங்கள்' : name.toUpperCase();
             setActiveNavTab('nav-item-districts');
             currentCategory = '';
             currentQuery = '';
             currentIsViral = false;
-            loadPortalFeed(isAll ? '' : name, '', '', false);
+            if (window.history && window.history.pushState) {
+                window.history.pushState(null, '', isAll ? '/portal' : ('/portal?district=' + encodeURIComponent(name)));
+            }
+            loadPortalFeed(targetDistrict, '', '', false);
             showToast(isAll ? 'அனைத்து மாவட்ட செய்திகளும் காண்பிக்கப்படுகின்றன' : name + ' மாவட்டச் செய்திகள்');
         }
 
-        function filterCategory(cat) {
+        function filterCategory(cat, ev) {
+            if (ev && ev.preventDefault) ev.preventDefault();
             currentQuery = '';
             if (!cat || cat === 'All') {
                 currentCategory = '';
@@ -3043,6 +3123,9 @@ func RenderPortalPage() string {
                 currentIsViral = false;
                 document.getElementById('selectedDistrictLabel').textContent = 'தமிழ்நாடு - அனைத்து வட்டாரங்கள்';
                 setActiveNavTab('nav-item-home');
+                if (window.history && window.history.pushState) {
+                    window.history.pushState(null, '', '/portal');
+                }
                 loadPortalFeed('', '', '', false);
                 showToast('அனைத்து செய்திகளும் புதுப்பிக்கப்பட்டன');
                 return;
@@ -3056,20 +3139,30 @@ func RenderPortalPage() string {
             } else {
                 setActiveNavTab('nav-item-categories');
             }
+            if (window.history && window.history.pushState) {
+                window.history.pushState(null, '', '/portal?category=' + encodeURIComponent(cat));
+            }
             loadPortalFeed('', cat, '', false);
             showToast('செய்திப் பிரிவு: ' + cat);
         }
 
-        function filterViral() {
+        function filterViral(ev) {
+            if (ev && ev.preventDefault) ev.preventDefault();
             currentQuery = '';
             if (currentIsViral) {
                 currentIsViral = false;
                 setActiveNavTab('nav-item-home');
+                if (window.history && window.history.pushState) {
+                    window.history.pushState(null, '', '/portal');
+                }
                 loadPortalFeed(currentDistrict || '', currentCategory || '', '', false);
                 showToast('வைரல் வடிகட்டி நீக்கப்பட்டது');
             } else {
                 currentIsViral = true;
                 setActiveNavTab('nav-item-viral');
+                if (window.history && window.history.pushState) {
+                    window.history.pushState(null, '', '/portal?viral=true');
+                }
                 loadPortalFeed('', '', '', true);
                 showToast('🔥 வைரல் செய்திகள் வரிசைப்படுத்தப்பட்டுள்ளன');
             }
@@ -3081,6 +3174,9 @@ func RenderPortalPage() string {
 
         function executeSearch() {
             const q = document.getElementById('searchInput').value.trim();
+            if (window.history && window.history.pushState) {
+                window.history.pushState(null, '', q ? ('/portal?q=' + encodeURIComponent(q)) : '/portal');
+            }
             loadPortalFeed('', '', q, false);
             if (q) showToast('தேடப்படுகிறது: ' + q);
         }

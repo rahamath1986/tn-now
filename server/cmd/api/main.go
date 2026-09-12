@@ -171,8 +171,12 @@ func main() {
 		ua := r.Header.Get("User-Agent")
 		isCrawler := strings.Contains(ua, "WhatsApp") || strings.Contains(ua, "facebookexternalhit") ||
 			strings.Contains(ua, "Twitterbot") || strings.Contains(ua, "TelegramBot") ||
-			strings.Contains(ua, "Instagram") || strings.Contains(ua, "LinkedInBot")
-		if strings.Contains(r.Header.Get("Accept"), "text/html") || isCrawler || r.URL.Query().Get("post") != "" {
+			strings.Contains(ua, "Instagram") || strings.Contains(ua, "LinkedInBot") ||
+			strings.Contains(ua, "Googlebot") || strings.Contains(ua, "Googlebot-News") ||
+			strings.Contains(ua, "bingbot") || strings.Contains(ua, "Baiduspider") ||
+			strings.Contains(ua, "YandexBot") || strings.Contains(ua, "DuckDuckBot") ||
+			strings.Contains(ua, "Slurp") || strings.Contains(ua, "applebot")
+		if strings.Contains(r.Header.Get("Accept"), "text/html") || isCrawler || r.URL.Query().Get("post") != "" || r.URL.Query().Get("district") != "" || r.URL.Query().Get("category") != "" {
 			if portalHandler != nil {
 				portalHandler.HandlePortalPage(w, r)
 				return
