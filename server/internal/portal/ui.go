@@ -218,7 +218,12 @@ func RenderPortalPage() string {
     }
     </script>
 
+    <!-- Favicon & Application Icons -->
     <link rel="icon" type="image/svg+xml" href="/portal/assets/brand/tn24-icon.svg">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="alternate icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="/portal/assets/brand/tn24-icon.svg">
+    <link rel="shortcut icon" href="/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Inter:wght@400;500;600;700;800&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap" rel="stylesheet">

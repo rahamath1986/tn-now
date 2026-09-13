@@ -23,7 +23,12 @@ func RenderLoginPage(errorMsg string) string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TN24 Console &mdash; நிர்வாகி உள்நுழைவு (Admin Login)</title>
+    <!-- Favicon & Application Icons -->
     <link rel="icon" type="image/svg+xml" href="/portal/assets/brand/tn24-icon.svg">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="alternate icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="/portal/assets/brand/tn24-icon.svg">
+    <link rel="shortcut icon" href="/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">

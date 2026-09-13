@@ -150,6 +150,48 @@ func TestGoogleAdSenseUnit(t *testing.T) {
 	}
 }
 
+func TestFaviconAndWebsiteTitle(t *testing.T) {
+	// Test website title in main portal page
+	portalHTML := RenderPortalPage()
+	if !strings.Contains(portalHTML, "<title>TN24 &mdash; Tamil Nadu News | தமிழ் செய்திகள் | Latest Tamil News Today Live 24x7 | TN 24</title>") {
+		t.Errorf("expected primary title in RenderPortalPage")
+	}
+
+	// Test favicon link tags
+	if !strings.Contains(portalHTML, `rel="icon" type="image/svg+xml" href="/portal/assets/brand/tn24-icon.svg"`) {
+		t.Errorf("expected SVG favicon link in RenderPortalPage")
+	}
+	if !strings.Contains(portalHTML, `rel="icon" type="image/x-icon" href="/favicon.ico"`) {
+		t.Errorf("expected ICO favicon link in RenderPortalPage")
+	}
+	if !strings.Contains(portalHTML, `rel="apple-touch-icon"`) {
+		t.Errorf("expected apple-touch-icon in RenderPortalPage")
+	}
+
+	// Test favicon HTTP endpoint
+	h := NewPortalHandler(nil, nil)
+	recFav := httptest.NewRecorder()
+	h.HandleFavicon(recFav, httptest.NewRequest(http.MethodGet, "/favicon.ico", nil))
+	if recFav.Code != http.StatusOK {
+		t.Errorf("expected 200 OK from /favicon.ico, got %d", recFav.Code)
+	}
+	favSVG := recFav.Body.String()
+	if !strings.Contains(favSVG, "<svg") || !strings.Contains(favSVG, "TN") || !strings.Contains(favSVG, "24") {
+		t.Errorf("expected valid SVG favicon with TN and 24, got %s", favSVG)
+	}
+
+	// Test static page favicon and title
+	recContact := httptest.NewRecorder()
+	h.HandleContactUs(recContact, httptest.NewRequest(http.MethodGet, "/contact", nil))
+	contactBody := recContact.Body.String()
+	if !strings.Contains(contactBody, "<title>Contact Us | TN24 — Tamil Nadu News | தமிழ் செய்திகள்</title>") {
+		t.Errorf("expected title in contact page, got %s", contactBody)
+	}
+	if !strings.Contains(contactBody, `href="/favicon.ico"`) {
+		t.Errorf("expected favicon link in contact page")
+	}
+}
+
 func TestRSSFeed(t *testing.T) {
 	h := NewPortalHandler(nil, nil)
 

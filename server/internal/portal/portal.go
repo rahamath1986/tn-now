@@ -90,6 +90,12 @@ func (h *PortalHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/assets/", h.HandleBrandAssets)
 	mux.HandleFunc("/admin/assets/", h.HandleBrandAssets)
 
+	// Favicon & Application Icon Endpoints
+	mux.HandleFunc("/favicon.ico", h.HandleFavicon)
+	mux.HandleFunc("/favicon.svg", h.HandleFavicon)
+	mux.HandleFunc("/apple-touch-icon.png", h.HandleFavicon)
+	mux.HandleFunc("/apple-touch-icon-precomposed.png", h.HandleFavicon)
+
 	// SEO Crawler & Indexing Endpoints
 	mux.HandleFunc("/robots.txt", h.HandleRobotsTxt)
 	mux.HandleFunc("/sitemap.xml", h.HandleSitemapXML)
@@ -1407,28 +1413,11 @@ func (h *PortalHandler) HandleBrandAssets(w http.ResponseWriter, r *http.Request
 			<!-- Bottom State Tagline -->
 			<text x="256" y="442" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="800" font-size="14" fill="#38bdf8" text-anchor="middle" letter-spacing="4">TAMIL NADU NEWS</text>
 		</svg>`))
-	case "tn24-icon.svg":
-		_, _ = w.Write([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-			<defs>
-				<linearGradient id="iconBg" x1="0%" y1="0%" x2="100%" y2="100%">
-					<stop offset="0%" stop-color="#0b1329" />
-					<stop offset="100%" stop-color="#030712" />
-				</linearGradient>
-				<linearGradient id="iconBorder" x1="0%" y1="0%" x2="100%" y2="100%">
-					<stop offset="0%" stop-color="#38bdf8" />
-					<stop offset="50%" stop-color="#6366f1" />
-					<stop offset="100%" stop-color="#f43f5e" />
-				</linearGradient>
-				<linearGradient id="badge24Sm" x1="0%" y1="0%" x2="100%" y2="100%">
-					<stop offset="0%" stop-color="#ef4444" />
-					<stop offset="100%" stop-color="#f97316" />
-				</linearGradient>
-			</defs>
-			<rect x="2" y="2" width="60" height="60" rx="14" fill="url(#iconBg)" stroke="url(#iconBorder)" stroke-width="2" />
-			<text x="32" y="31" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="21" fill="#ffffff" text-anchor="middle">TN</text>
-			<rect x="14" y="37" width="36" height="18" rx="4" fill="url(#badge24Sm)" />
-			<text x="32" y="51" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="13" fill="#ffffff" text-anchor="middle">24</text>
-		</svg>`))
+	case "tn24-icon.svg", "favicon.svg", "favicon.ico", "favicon.png", "icon.svg":
+		w.Header().Set("Content-Type", "image/svg+xml")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		_, _ = w.Write([]byte(GetBrandFaviconSVG()))
+		return
 	case "tn24-header.svg", "tn24-leaderboard.svg":
 		_, _ = w.Write([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 728 90" width="728" height="90">
 			<defs>
@@ -2179,7 +2168,7 @@ func (h *PortalHandler) HandleContactUs(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(renderStaticPage("Contact Us | TN24 — Tamil Nadu News", "தொடர்பு கொள்ளுங்கள் — Contact Us", `
+	_, _ = w.Write([]byte(renderStaticPage("Contact Us | TN24 — Tamil Nadu News | தமிழ் செய்திகள்", "தொடர்பு கொள்ளுங்கள் — Contact Us", `
 <h2>Contact TN24</h2>
 <p>In accordance with <strong>IT Rules 2021</strong>, you may submit a content grievance via our <a href="/portal">portal grievance form</a> or by writing to:</p>
 <p><a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a></p>
@@ -2202,6 +2191,12 @@ func renderStaticPage(title, heading, bodyHTML string) string {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>` + title + `</title>
+<!-- Favicon & Application Icons -->
+<link rel="icon" type="image/svg+xml" href="/portal/assets/brand/tn24-icon.svg">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="alternate icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/portal/assets/brand/tn24-icon.svg">
+<link rel="shortcut icon" href="/favicon.ico">
 <meta name="description" content="TN24 (tn 24) — Tamil Nadu news, latest tamil news &amp; தமிழ் செய்திகள் live 24x7. Breaking updates across 38 districts.">
 <meta name="keywords" content="tn 24, news tamil 24x7 live, tamil nadu news, news live tamilnadu, தமிழ் செய்திகள், today news in tamil, news tamil today, tamil news online, latest tamil news, tamil nadu news in tamil, news tamil nadu">
 <meta name="robots" content="index, follow">
@@ -2276,5 +2271,40 @@ func renderStaticPage(title, heading, bodyHTML string) string {
 </footer>
 </body>
 </html>`
+}
+
+// HandleFavicon serves the high-resolution brand favicon for /favicon.ico and /favicon.svg
+func (h *PortalHandler) HandleFavicon(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "image/svg+xml")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(GetBrandFaviconSVG()))
+}
+
+// GetBrandFaviconSVG returns a high-contrast, scalable SVG favicon optimized for 16x16, 32x32, and high-DPI displays.
+func GetBrandFaviconSVG() string {
+	return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+	<defs>
+		<linearGradient id="favBg" x1="0%" y1="0%" x2="100%" y2="100%">
+			<stop offset="0%" stop-color="#0b1329" />
+			<stop offset="100%" stop-color="#020617" />
+		</linearGradient>
+		<linearGradient id="favBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+			<stop offset="0%" stop-color="#38bdf8" />
+			<stop offset="50%" stop-color="#6366f1" />
+			<stop offset="100%" stop-color="#ef4444" />
+		</linearGradient>
+		<linearGradient id="favRedPill" x1="0%" y1="0%" x2="100%" y2="100%">
+			<stop offset="0%" stop-color="#ef4444" />
+			<stop offset="100%" stop-color="#dc2626" />
+		</linearGradient>
+	</defs>
+	<rect x="1.5" y="1.5" width="61" height="61" rx="14" fill="url(#favBg)" stroke="url(#favBorder)" stroke-width="2.5" />
+	<!-- TN in Bold White -->
+	<text x="20.5" y="44" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="28" fill="#ffffff" text-anchor="middle" letter-spacing="-0.5">TN</text>
+	<!-- 24 in Red Badge -->
+	<rect x="34.5" y="16" width="26" height="32" rx="6" fill="url(#favRedPill)" />
+	<text x="47.5" y="40.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="900" font-size="21" fill="#ffffff" text-anchor="middle">24</text>
+</svg>`
 }
 

@@ -7,7 +7,12 @@ func RenderAdminDashboard() string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TN24 Control Hub &mdash; Management &amp; Analytics Console</title>
+    <!-- Favicon & Application Icons -->
     <link rel="icon" type="image/svg+xml" href="/portal/assets/brand/tn24-icon.svg">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="alternate icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="/portal/assets/brand/tn24-icon.svg">
+    <link rel="shortcut icon" href="/favicon.ico">
     <style>
         :root {
             --bg-primary: #09090b;

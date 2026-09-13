@@ -104,6 +104,26 @@ func main() {
 		_, _ = w.Write([]byte("google-site-verification: googled74d5deb9e22bc5d.html\n"))
 	})
 
+	// Root Favicon & Application Touch Icons
+	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(portal.GetBrandFaviconSVG()))
+	})
+	mux.HandleFunc("/favicon.svg", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(portal.GetBrandFaviconSVG()))
+	})
+	mux.HandleFunc("/apple-touch-icon.png", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(portal.GetBrandFaviconSVG()))
+	})
+
 	var portalHandler *portal.PortalHandler
 	// Initialize database accessors & auth modules if connection succeeded
 	if pool != nil {
