@@ -3,6 +3,7 @@ package cron
 import (
 	"context"
 	"testing"
+	"time"
 )
 
 func TestSchedulerOperations(t *testing.T) {
@@ -51,5 +52,68 @@ func TestSchedulerOperations(t *testing.T) {
 	}
 	if !found {
 		t.Error("Newly created job not found in scheduler job list")
+	}
+}
+
+func TestCheckAndRunJobsNoDeadlock(t *testing.T) {
+	scheduler := NewScheduler(nil)
+
+	ran := false
+	past := time.Now().Add(-1 * time.Minute)
+	testJob := &CronJob{
+		ID:               "test_deadlock_job",
+		Name:             "Test Deadlock Job",
+		ScheduleInterval: "1m",
+		IsActive:         true,
+		NextRunAt:        &past,
+		Handler: func(ctx context.Context) (string, error) {
+			ran = true
+			return "executed successfully", nil
+		},
+	}
+	scheduler.RegisterJob(testJob)
+
+	// Ensure NextRunAt is in the past
+	testJob.NextRunAt = &past
+
+	// checkAndRunJobs must not prematurely lock IsRunning and block TriggerJob
+	scheduler.checkAndRunJobs()
+
+	// Wait briefly for the async goroutine to execute
+	time.Sleep(100 * time.Millisecond)
+
+	if !ran {
+		t.Error("expected job handler to execute when checkAndRunJobs was invoked")
+	}
+
+	// Verify job is NOT permanently stuck in IsRunning
+	jobs := scheduler.GetJobs(context.Background())
+	for _, j := range jobs {
+		if j.ID == "test_deadlock_job" && j.IsRunning {
+			t.Error("expected test_deadlock_job to have IsRunning=false after execution")
+		}
+	}
+}
+
+func TestTNLiveNewsCronConfig(t *testing.T) {
+	scheduler := NewScheduler(nil)
+	jobs := scheduler.GetJobs(context.Background())
+
+	var liveJob *CronJob
+	for _, j := range jobs {
+		if j.ID == "tn_live_news_cron" {
+			liveJob = j
+			break
+		}
+	}
+
+	if liveJob == nil {
+		t.Fatal("expected tn_live_news_cron to be registered")
+	}
+	if !liveJob.IsActive {
+		t.Error("expected tn_live_news_cron to be active")
+	}
+	if len(liveJob.SourceURLs) < 4 {
+		t.Errorf("expected at least 4 source URLs for tn_live_news_cron, got %d", len(liveJob.SourceURLs))
 	}
 }

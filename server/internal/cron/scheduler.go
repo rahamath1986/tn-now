@@ -78,6 +78,8 @@ func (s *Scheduler) loadPersistedJobs() {
 	defer cancel()
 
 	_, _ = s.conn.Exec(ctx, "ALTER TABLE cron_jobs ADD COLUMN IF NOT EXISTS source_urls TEXT[] DEFAULT '{}'")
+	// Ensure tn_live_news_cron is active in the database
+	_, _ = s.conn.Exec(ctx, "UPDATE cron_jobs SET is_active = true WHERE id = 'tn_live_news_cron' AND is_active = false")
 
 	// Automatically normalize any website homepage URLs in tn_live_news_cron to their official RSS feeds
 	var currentSources []string
@@ -98,14 +100,18 @@ func (s *Scheduler) loadPersistedJobs() {
 			WHERE id = 'tn_live_news_cron'
 		`, resolvedSources)
 	} else {
-		// If empty, seed with core regional feeds
+		// If empty, seed with core regional feeds and broadcast YouTube feeds
 		_, _ = s.conn.Exec(ctx, `
 			UPDATE cron_jobs
 			SET source_urls = ARRAY[
 				'https://www.thehindu.com/news/national/tamil-nadu/feeder/default.rss',
 				'https://feeds.bbci.co.uk/tamil/rss.xml',
 				'https://tamil.oneindia.com/rss/tamil-news-fb.xml',
-				'https://news.google.com/rss/search?q=Tamil+Nadu&hl=ta&gl=IN&ceid=IN:ta'
+				'https://news.google.com/rss/search?q=Tamil+Nadu&hl=ta&gl=IN&ceid=IN:ta',
+				'https://www.youtube.com/feeds/videos.xml?channel_id=UCnrf2x9o_qXlSfZg1sK4Nqg',
+				'https://www.youtube.com/feeds/videos.xml?channel_id=UCsk8w_v9N6f7qK0rB0r9bAQ',
+				'https://www.youtube.com/feeds/videos.xml?channel_id=UCeE_wR_o1W_3j2VpU6m-6zg',
+				'https://www.youtube.com/feeds/videos.xml?channel_id=UCn6m2H_Zc6_0iE_1_6jC7wA'
 			], updated_at = NOW()
 			WHERE id = 'tn_live_news_cron'
 		`)
@@ -165,7 +171,16 @@ func (s *Scheduler) loadPersistedJobs() {
 			}
 		}
 		dur := parseInterval(j.ScheduleInterval)
-		next := time.Now().Add(dur)
+		var next time.Time
+		if j.LastRunAt == nil || time.Since(*j.LastRunAt) > dur {
+			// Job has never run or is overdue — schedule to run shortly after startup (10s)
+			next = time.Now().Add(10 * time.Second)
+		} else {
+			next = j.LastRunAt.Add(dur)
+			if next.Before(time.Now()) {
+				next = time.Now().Add(10 * time.Second)
+			}
+		}
 		j.NextRunAt = &next
 		s.jobs[j.ID] = &j
 		loadedCount++
@@ -218,7 +233,7 @@ func (s *Scheduler) registerDefaultTasks() {
 		ID:               "tn_live_news_cron",
 		Name:             "TN Live News & Video Scraper",
 		Description:      "Scrapes Tamil Nadu text stories, video links, and images across regional sources and stages them for review.",
-		ScheduleInterval: "30m",
+		ScheduleInterval: "15m",
 		JobType:          "INGESTION",
 		IsActive:         true,
 		SourceURLs: []string{
@@ -226,6 +241,10 @@ func (s *Scheduler) registerDefaultTasks() {
 			"https://feeds.bbci.co.uk/tamil/rss.xml",
 			"https://tamil.oneindia.com/rss/tamil-news-fb.xml",
 			"https://news.google.com/rss/search?q=Tamil+Nadu&hl=ta&gl=IN&ceid=IN:ta",
+			"https://www.youtube.com/feeds/videos.xml?channel_id=UCnrf2x9o_qXlSfZg1sK4Nqg",
+			"https://www.youtube.com/feeds/videos.xml?channel_id=UCsk8w_v9N6f7qK0rB0r9bAQ",
+			"https://www.youtube.com/feeds/videos.xml?channel_id=UCeE_wR_o1W_3j2VpU6m-6zg",
+			"https://www.youtube.com/feeds/videos.xml?channel_id=UCn6m2H_Zc6_0iE_1_6jC7wA",
 		},
 		Handler:          s.runLiveNewsScraper,
 	})
@@ -305,35 +324,34 @@ func (s *Scheduler) Stop() {
 func (s *Scheduler) checkAndRunJobs() {
 	now := time.Now()
 	s.mu.Lock()
-	var toRun []*CronJob
+	var toRunIDs []string
 	for _, job := range s.jobs {
 		if job.IsActive && !job.IsRunning && job.NextRunAt != nil && now.After(*job.NextRunAt) {
-			job.IsRunning = true
 			interval := parseInterval(job.ScheduleInterval)
 			next := now.Add(interval)
 			job.NextRunAt = &next
-			toRun = append(toRun, job)
+			toRunIDs = append(toRunIDs, job.ID)
 		}
 	}
 	s.mu.Unlock()
 
-	if len(toRun) == 0 {
+	if len(toRunIDs) == 0 {
 		return
 	}
 
 	// Run all due jobs sequentially in a SINGLE goroutine so they never
 	// execute in parallel. This is the single biggest memory win: concurrent
 	// scraper + dedup + auto-moderation would spike RSS to 3× a single job.
-	go func(jobs []*CronJob) {
-		for _, j := range jobs {
+	go func(jobIDs []string) {
+		for _, id := range jobIDs {
 			bgCtx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
-			_, _ = s.TriggerJob(bgCtx, j.ID)
+			_, _ = s.TriggerJob(bgCtx, id)
 			cancel()
 			// Release memory between jobs before starting the next one
 			runtime.GC()
 			debug.FreeOSMemory()
 		}
-	}(toRun)
+	}(toRunIDs)
 }
 
 func (s *Scheduler) TriggerJob(ctx context.Context, jobID string) (*JobExecutionResult, error) {
@@ -345,13 +363,19 @@ func (s *Scheduler) TriggerJob(ctx context.Context, jobID string) (*JobExecution
 	}
 
 	if job.IsRunning {
-		s.mu.Unlock()
-		return &JobExecutionResult{
-			JobID:      jobID,
-			Status:     "RUNNING",
-			DurationMs: 0,
-			Message:    "Job is already actively running",
-		}, nil
+		// Safety watchdog: if job has been marked running for > 5 minutes without resetting, recover it
+		if job.LastRunAt != nil && time.Since(*job.LastRunAt) > 5*time.Minute {
+			slog.Warn("Job appeared stuck in IsRunning state for > 5m, resetting", slog.String("job", jobID))
+			job.IsRunning = false
+		} else {
+			s.mu.Unlock()
+			return &JobExecutionResult{
+				JobID:      jobID,
+				Status:     "RUNNING",
+				DurationMs: 0,
+				Message:    "Job is already actively running",
+			}, nil
+		}
 	}
 
 	job.IsRunning = true
@@ -877,7 +901,7 @@ func (s *Scheduler) runLiveNewsScraper(ctx context.Context) (string, error) {
 			feedSem <- struct{}{}
 			defer func() { <-feedSem }()
 
-			feedCtx, feedCancel := context.WithTimeout(ctx, 15*time.Second)
+			feedCtx, feedCancel := context.WithTimeout(ctx, 35*time.Second)
 			defer feedCancel()
 
 			slog.Info("Starting scrape for source", slog.String("url", urlStr))
@@ -896,6 +920,12 @@ func (s *Scheduler) runLiveNewsScraper(ctx context.Context) (string, error) {
 		}(feedURL)
 	}
 	wg.Wait()
+
+	// If new items were staged, immediately evaluate them through auto-moderation to publish to live portal
+	if totalStaged > 0 {
+		slog.Info("Auto-evaluating newly staged live news items", slog.Int("count", totalStaged))
+		_, _ = s.runAutoModeration(ctx)
+	}
 
 	// Proactively trigger GC and return unused memory pages to the OS to stay well under 512MB
 	runtime.GC()
