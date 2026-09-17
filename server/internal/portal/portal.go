@@ -82,11 +82,22 @@ type PortalFeedResponse struct {
 }
 
 func (h *PortalHandler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("/portal", h.HandlePortalPage)
+	// "/" is the canonical homepage — served directly from main.go.
+	// "/portal" is kept as a legacy alias with a permanent redirect to preserve any
+	// old bookmarks, social shares, and search-indexed URLs.
+	mux.HandleFunc("/portal", func(w http.ResponseWriter, r *http.Request) {
+		// Preserve all query params (post, district, category, etc.) on redirect
+		target := "/"
+		if r.URL.RawQuery != "" {
+			target = "/?" + r.URL.RawQuery
+		}
+		http.Redirect(w, r, target, http.StatusMovedPermanently)
+	})
 	mux.HandleFunc("/api/portal/feed", h.HandlePortalFeed)
 	mux.HandleFunc("/api/portal/post", h.HandleGetSinglePost)
-	mux.HandleFunc("/portal/assets/brand/", h.HandleBrandAssets)
-	mux.HandleFunc("/portal/assets/", h.HandleBrandAssets)
+	mux.HandleFunc("/assets/brand/", h.HandleBrandAssets)
+	mux.HandleFunc("/portal/assets/brand/", h.HandleBrandAssets) // legacy asset path alias
+	mux.HandleFunc("/portal/assets/", h.HandleBrandAssets)       // legacy asset path alias
 	mux.HandleFunc("/assets/", h.HandleBrandAssets)
 	mux.HandleFunc("/admin/assets/", h.HandleBrandAssets)
 
@@ -112,6 +123,7 @@ func (h *PortalHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/terms-of-service", h.HandleTermsOfService)
 	mux.HandleFunc("/about", h.HandleAboutUs)
 	mux.HandleFunc("/contact", h.HandleContactUs)
+	mux.HandleFunc("/editorial", h.HandleEditorialPolicy)
 
 	// ads.txt — required by Google AdSense to authorize ad sellers
 	mux.HandleFunc("/ads.txt", h.HandleAdsTxt)
@@ -264,7 +276,7 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 	if r != nil && r.Host != "" {
 		host = r.Host
 	}
-	fullPostURL := fmt.Sprintf("%s://%s/portal?post=%s", scheme, host, url.QueryEscape(postID))
+	fullPostURL := fmt.Sprintf("%s://%s/?post=%s", scheme, host, url.QueryEscape(postID))
 
 	hasVideo := vidID != "" || vidURL != ""
 	var embedURL, contentURL string
@@ -394,10 +406,10 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 		"publisher": map[string]interface{}{
 			"@type": "NewsMediaOrganization",
 			"name":  "TN24 — Tamil Nadu News",
-			"url":   fmt.Sprintf("%s://%s/portal", scheme, host),
+			"url":   fmt.Sprintf("%s://%s/", scheme, host),
 			"logo": map[string]string{
 				"@type": "ImageObject",
-				"url":   fmt.Sprintf("%s://%s/portal/assets/brand/tn24-profile.jpg", scheme, host),
+				"url":   fmt.Sprintf("%s://%s/assets/brand/tn24-profile.jpg", scheme, host),
 			},
 		},
 	})
@@ -417,10 +429,10 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 			"publisher": map[string]interface{}{
 				"@type": "NewsMediaOrganization",
 				"name":  "TN24 — Tamil Nadu News",
-				"url":   fmt.Sprintf("%s://%s/portal", scheme, host),
+				"url":   fmt.Sprintf("%s://%s/", scheme, host),
 				"logo": map[string]string{
 					"@type": "ImageObject",
-					"url":   fmt.Sprintf("%s://%s/portal/assets/brand/tn24-profile.jpg", scheme, host),
+					"url":   fmt.Sprintf("%s://%s/assets/brand/tn24-profile.jpg", scheme, host),
 				},
 			},
 		}
@@ -440,19 +452,19 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 				"@type":    "ListItem",
 				"position": 1,
 				"name":     "TN24 News",
-				"item":     fmt.Sprintf("%s://%s/portal", scheme, host),
+				"item":     fmt.Sprintf("%s://%s/", scheme, host),
 			},
 			{
 				"@type":    "ListItem",
 				"position": 2,
 				"name":     district,
-				"item":     fmt.Sprintf("%s://%s/portal?district=%s", scheme, host, url.QueryEscape(district)),
+				"item":     fmt.Sprintf("%s://%s/?district=%s", scheme, host, url.QueryEscape(district)),
 			},
 			{
 				"@type":    "ListItem",
 				"position": 3,
 				"name":     category,
-				"item":     fmt.Sprintf("%s://%s/portal?category=%s", scheme, host, url.QueryEscape(category)),
+				"item":     fmt.Sprintf("%s://%s/?category=%s", scheme, host, url.QueryEscape(category)),
 			},
 			{
 				"@type":    "ListItem",
@@ -477,26 +489,46 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 	}
 
 	ssrArticleBlock := fmt.Sprintf(`
-    <article id="article-crawler-ssr" class="sr-only" style="position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0;">
-        <h1>%s</h1>
-        <div class="article-meta">
-            <span>பதிவு: %s</span>
-            <span>மாவட்டம்: %s</span>
-            <span>பிரிவு: %s</span>
-            <span>ஆசிரியர்: TN24 Editorial Desk</span>
-        </div>
-        %s
-        <img src="%s" alt="%s" />
-        <div class="article-content">%s</div>
-        <a href="%s">TN24 நேரலை செய்தி விவரம்</a>
-    </article>`,
+<article id="article-crawler-ssr" itemscope itemtype="https://schema.org/NewsArticle" style="background:#0d1b2a;border-top:3px solid #e53e3e;padding:18px 20px 24px;margin:0;font-family:'Segoe UI',Arial,sans-serif;color:#e0e0e0;">
+  <div style="max-width:900px;margin:0 auto;">
+    <nav aria-label="breadcrumb" style="font-size:0.78rem;color:#888;margin-bottom:10px;">
+      <a href="/" style="color:#e53e3e;text-decoration:none;">TN24</a>
+      <span style="margin:0 6px;">›</span>
+      <a href="/?district=%s" style="color:#aaa;text-decoration:none;">%s</a>
+      <span style="margin:0 6px;">›</span>
+      <a href="/?category=%s" style="color:#aaa;text-decoration:none;">%s</a>
+    </nav>
+    <h1 itemprop="headline" style="font-size:1.35rem;font-weight:800;color:#fff;line-height:1.4;margin:0 0 10px;">%s</h1>
+    <div style="font-size:0.82rem;color:#aaa;display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;">
+      <span>📅 <time itemprop="datePublished" datetime="%s">%s</time></span>
+      <span>📍 <span itemprop="contentLocation">%s, Tamil Nadu</span></span>
+      <span>🏷️ %s</span>
+      <span>✍️ <span itemprop="author">TN24 Editorial Desk</span></span>
+    </div>
+    %s
+    %s
+    <div itemprop="description" style="font-size:0.97rem;color:#ccc;line-height:1.75;margin:14px 0;">
+      %s
+    </div>
+    <div style="margin-top:16px;padding-top:12px;border-top:1px solid #222;font-size:0.82rem;color:#666;">
+      <a href="%s" style="color:#e53e3e;font-weight:600;">🔗 TN24-ல் முழு செய்தி படிக்க / Read Full Story on TN24 →</a>
+    </div>
+  </div>
+</article>`,
+		html.EscapeString(district), html.EscapeString(district),
+		html.EscapeString(category), html.EscapeString(category),
 		cleanTitleEscaped,
-		pubAt.Format("02 January 2006, 15:04 MST"),
+		pubAt.Format(time.RFC3339),
+		pubAt.Format("02 Jan 2006, 3:04 PM"),
 		html.EscapeString(district),
 		html.EscapeString(category),
 		videoPlayerMarkup,
-		html.EscapeString(thumb),
-		cleanTitleEscaped,
+		func() string {
+			if strings.TrimSpace(thumb) != "" {
+				return fmt.Sprintf(`<img itemprop="image" src="%s" alt="%s" style="width:100%%;max-height:420px;object-fit:cover;border-radius:6px;margin:10px 0;display:block;">`, html.EscapeString(thumb), cleanTitleEscaped)
+			}
+			return ""
+		}(),
 		cleanDescEscaped,
 		fullPostURL,
 	)
@@ -570,7 +602,7 @@ func (h *PortalHandler) injectDistrictMetadata(baseHTML string, district string,
 	if !ok {
 		taName = district
 	}
-	pageURL := fmt.Sprintf("%s://%s/portal?district=%s", scheme, host, url.QueryEscape(district))
+	pageURL := fmt.Sprintf("%s://%s/?district=%s", scheme, host, url.QueryEscape(district))
 
 	title := fmt.Sprintf("%s News | %s செய்திகள் &amp; முக்கிய நிகழ்வுகள் 24x7 Live | TN24", html.EscapeString(district), html.EscapeString(taName))
 	desc := fmt.Sprintf("%s latest news in Tamil. %s மாவட்ட முக்கியச் செய்திகள், அரசியல், சட்டம் ஒழுங்கு, அரசு அறிவிப்புகள் உடனுக்குடன் நேரலை — TN24", html.EscapeString(district), html.EscapeString(taName))
@@ -606,7 +638,7 @@ func (h *PortalHandler) injectCategoryMetadata(baseHTML string, category string,
 	if !ok {
 		taName = category
 	}
-	pageURL := fmt.Sprintf("%s://%s/portal?category=%s", scheme, host, url.QueryEscape(category))
+	pageURL := fmt.Sprintf("%s://%s/?category=%s", scheme, host, url.QueryEscape(category))
 
 	title := fmt.Sprintf("%s News in Tamil | %s செய்திகள் &amp; நேரலை தகவல்கள் | TN24", html.EscapeString(category), html.EscapeString(taName))
 	desc := fmt.Sprintf("Latest %s news in Tamil. தமிழ்நாடு %s முக்கிய நிகழ்வுகள், உண்மைச் செய்திகள் மற்றும் பிரேக்கிங் தகவல்கள் உடனுக்குடன் — TN24", html.EscapeString(category), html.EscapeString(taName))
@@ -638,7 +670,7 @@ func (h *PortalHandler) injectViralMetadata(baseHTML string, r *http.Request) st
 	if r != nil && r.Host != "" {
 		host = r.Host
 	}
-	pageURL := fmt.Sprintf("%s://%s/portal?viral=true", scheme, host)
+	pageURL := fmt.Sprintf("%s://%s/?viral=true", scheme, host)
 	title := "Trending Tamil News | வைரல் செய்திகள் &amp; டிரெண்டிங் வீடியோக்கள் 24x7 | TN24"
 	desc := "தமிழ்நாட்டின் அதிக கவனம்பெற்ற வைரல் செய்திகள், டிரெண்டிங் வீடியோக்கள் மற்றும் அதிவேக பிரேக்கிங் தகவல்கள் — TN24"
 
@@ -723,7 +755,7 @@ func (h *PortalHandler) HandleRSSFeed(w http.ResponseWriter, r *http.Request) {
 				if err := rows.Scan(&id, &title, &desc, &thumb, &district, &cat, &pubAt); err == nil {
 					cleanTitle := html.EscapeString(strings.TrimSpace(scraper.CleanHTML(title)))
 					cleanDesc := html.EscapeString(strings.TrimSpace(scraper.CleanHTML(desc)))
-					postURL := fmt.Sprintf("%s/portal?post=%s", base, url.QueryEscape(id))
+					postURL := fmt.Sprintf("%s/?post=%s", base, url.QueryEscape(id))
 					if strings.TrimSpace(thumb) == "" {
 						thumb = scraper.GetFallbackImageWithPerson(cleanTitle, district, cat)
 					}
@@ -1090,7 +1122,7 @@ func (h *PortalHandler) HandlePortalFeed(w http.ResponseWriter, r *http.Request)
 		}
 		resp.Banners[slotName] = &AdBannerSlot{
 			Type:     "brand",
-			AssetURL: "/portal/assets/brand/tn24-" + slotName + ".svg?v=20260908c",
+			AssetURL: "/assets/brand/tn24-" + slotName + ".svg?v=20260908c",
 		}
 	}
 
@@ -1763,7 +1795,7 @@ func (h *PortalHandler) HandleSitemapXML(w http.ResponseWriter, r *http.Request)
 	// Target Keyword Query URLs
 	for _, kw := range keywordUrls {
 		sb.WriteString(fmt.Sprintf(`    <url>
-        <loc>%s/portal?q=%s</loc>
+        <loc>%s/?q=%s</loc>
         <lastmod>%s</lastmod>
         <changefreq>hourly</changefreq>
         <priority>0.85</priority>
@@ -1775,7 +1807,7 @@ func (h *PortalHandler) HandleSitemapXML(w http.ResponseWriter, r *http.Request)
 	cats := []string{"News", "Politics", "Sports", "Business", "Entertainment", "Technical"}
 	for _, c := range cats {
 		sb.WriteString(fmt.Sprintf(`    <url>
-        <loc>%s/portal?category=%s</loc>
+        <loc>%s/?category=%s</loc>
         <lastmod>%s</lastmod>
         <changefreq>hourly</changefreq>
         <priority>0.8</priority>
@@ -1796,7 +1828,7 @@ func (h *PortalHandler) HandleSitemapXML(w http.ResponseWriter, r *http.Request)
 	}
 	for _, d := range allDistricts {
 		sb.WriteString(fmt.Sprintf(`    <url>
-        <loc>%s/portal?district=%s</loc>
+        <loc>%s/?district=%s</loc>
         <lastmod>%s</lastmod>
         <changefreq>hourly</changefreq>
         <priority>0.8</priority>
@@ -1820,7 +1852,7 @@ func (h *PortalHandler) HandleSitemapXML(w http.ResponseWriter, r *http.Request)
 				var aMod time.Time
 				if err := rows.Scan(&aID, &aMod); err == nil {
 					sb.WriteString(fmt.Sprintf(`    <url>
-        <loc>%s/portal?post=%s</loc>
+        <loc>%s/?post=%s</loc>
         <lastmod>%s</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.75</priority>
@@ -1875,7 +1907,7 @@ func (h *PortalHandler) HandleNewsSitemapXML(w http.ResponseWriter, r *http.Requ
 						aLang = "ta"
 					}
 					sb.WriteString(fmt.Sprintf(`    <url>
-        <loc>%s/portal?post=%s</loc>
+        <loc>%s/?post=%s</loc>
         <news:news>
             <news:publication>
                 <news:name>TN24 — Tamil Nadu News</news:name>
@@ -1985,7 +2017,7 @@ func (h *PortalHandler) HandleVideoSitemapXML(w http.ResponseWriter, r *http.Req
 						if aVidID != "" && (aPlatform == "youtube" || (!strings.HasPrefix(aVidID, "vid_") && !strings.HasPrefix(aVidID, "bbc_"))) {
 							aThumb = fmt.Sprintf("https://img.youtube.com/vi/%s/hqdefault.jpg", aVidID)
 						} else {
-							aThumb = fmt.Sprintf("%s/portal/assets/brand/tn24-profile.jpg", base)
+							aThumb = fmt.Sprintf("%s/assets/brand/tn24-profile.jpg", base)
 						}
 					}
 					if strings.HasPrefix(aThumb, "/") {
@@ -1994,7 +2026,7 @@ func (h *PortalHandler) HandleVideoSitemapXML(w http.ResponseWriter, r *http.Req
 					aThumb = html.EscapeString(aThumb)
 
 					sb.WriteString(fmt.Sprintf(`    <url>
-        <loc>%s/portal?post=%s</loc>
+        <loc>%s/?post=%s</loc>
         <video:video>
             <video:thumbnail_loc>%s</video:thumbnail_loc>
             <video:title>%s</video:title>
@@ -2022,9 +2054,9 @@ func (h *PortalHandler) HandleVideoSitemapXML(w http.ResponseWriter, r *http.Req
 	if videoCount == 0 {
 		nowStr := time.Now().Format("2006-01-02T15:04:05Z07:00")
 		sb.WriteString(fmt.Sprintf(`    <url>
-        <loc>%s/portal?viral=true</loc>
+        <loc>%s/?viral=true</loc>
         <video:video>
-            <video:thumbnail_loc>%s/portal/assets/brand/tn24-profile.jpg</video:thumbnail_loc>
+            <video:thumbnail_loc>%s/assets/brand/tn24-profile.jpg</video:thumbnail_loc>
             <video:title>TN24 Tamil Nadu Live News &amp; Trending Videos | தமிழ்நாடு நேரலை வீடியோ</video:title>
             <video:description>TN24 24x7 live Tamil Nadu breaking news, trending video coverage, politics, and civic updates.</video:description>
             <video:player_loc allow_embed="yes">https://www.youtube.com/embed/live_stream?channel=UCnrf2x9o_qXlSfZg1sK4Nqg</video:player_loc>
@@ -2044,46 +2076,64 @@ func (h *PortalHandler) HandlePrivacyPolicy(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(renderStaticPage("Privacy Policy | TN24 — Tamil Nadu News", "தனியுரிமைக் கொள்கை — Privacy Policy", `
+	_, _ = w.Write([]byte(renderStaticPage(
+		"Privacy Policy | TN24 — Tamil Nadu News",
+		"தனியுரிமைக் கொள்கை — Privacy Policy",
+		"TN24 Privacy Policy — How we collect, use, and protect your data as a reader of Tamil Nadu's leading digital news platform.",
+		`
 <h2>Privacy Policy</h2>
 <p><strong>Effective Date:</strong> September 2026</p>
-<p>TN24 (<strong>www.tn24.in</strong>) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you visit our website.</p>
+<p>TN24 (<strong>www.tn24.in</strong>) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you visit our website. By using TN24, you agree to the practices described in this policy.</p>
 
 <h3>1. Information We Collect</h3>
 <ul>
-  <li><strong>Log Data:</strong> Browser type, IP address, operating system, and pages visited.</li>
-  <li><strong>Cookies:</strong> Essential session cookies and analytics cookies to enhance user experience.</li>
-  <li><strong>Advertising Cookies:</strong> Google AdSense uses cookies to serve personalized or non-personalized ads based on prior visits. Users may opt out of personalized advertising by visiting <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">Google Ads Settings</a>.</li>
+  <li><strong>Log Data:</strong> Browser type, IP address, operating system, referring URLs, and pages visited — collected automatically via server logs for security and diagnostics.</li>
+  <li><strong>Session Cookies:</strong> Essential short-lived cookies required to maintain your browsing session on the portal.</li>
+  <li><strong>Analytics Cookies:</strong> We use analytics tools to understand aggregate site traffic, popular content categories, and reader behaviour. All analytics data is anonymised before processing.</li>
+  <li><strong>Advertising Cookies:</strong> Google AdSense uses cookies to serve relevant advertisements based on prior visits to our site and other websites. You may opt out of personalised advertising at any time by visiting <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">Google Ads Settings</a> or <a href="https://optout.aboutads.info" target="_blank" rel="noopener">aboutads.info</a>.</li>
 </ul>
 
-<h3>2. How We Use Information</h3>
+<h3>2. How We Use Your Information</h3>
 <ul>
-  <li>To provide and maintain the TN24 Tamil news portal.</li>
-  <li>To analyze site traffic, popular content, and improve reader experience.</li>
-  <li>To display advertisements that support our free news publishing operations.</li>
+  <li>To operate and maintain the TN24 Tamil news portal and deliver breaking news across all 38 Tamil Nadu districts.</li>
+  <li>To analyse site traffic patterns and improve reader experience, page performance, and content relevance.</li>
+  <li>To display advertisements that financially support our free, independent news publishing operations.</li>
+  <li>To investigate and respond to content grievances as required under IT Rules 2021.</li>
 </ul>
 
 <h3>3. Third-Party Services</h3>
-<p>We work with trusted third-party providers including:</p>
+<p>TN24 works with the following trusted third-party providers. Each has its own privacy policy and data practices:</p>
 <ul>
-  <li><strong>Google AdSense:</strong> Advertising network (<a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a>).</li>
-  <li><strong>Google Analytics:</strong> Audience measurement and aggregated reporting.</li>
+  <li><strong>Google AdSense:</strong> Advertising network — <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a></li>
+  <li><strong>Google Analytics:</strong> Audience measurement and anonymised reporting.</li>
+  <li><strong>YouTube / Google:</strong> Embedded video content served from YouTube's platform.</li>
+  <li><strong>Cloudflare:</strong> CDN and security layer for fast, secure content delivery.</li>
 </ul>
 
 <h3>4. Data Retention</h3>
-<p>News articles published on TN24 are automatically retained for 24 hours before being removed or archived per our editorial retention policy.</p>
+<p>News articles, editorial content, and associated metadata published on TN24 are retained indefinitely as part of our permanent public news archive. We believe in maintaining a complete and accessible record of local Tamil Nadu news for readers, researchers, and the public. Log data is retained for up to 90 days for security purposes, after which it is purged.</p>
 
-<h3>5. Your Rights</h3>
-<p>You have the right to access, correct, or request deletion of your personal data. Contact us at <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a>.</p>
+<h3>5. Cookies — Your Choices</h3>
+<p>You can control and delete cookies through your browser settings at any time. Disabling cookies may affect certain features of the TN24 portal. For more information on managing cookies, visit <a href="https://www.allaboutcookies.org" target="_blank" rel="noopener">allaboutcookies.org</a>.</p>
 
-<h3>6. Grievance Officer</h3>
-<p>In accordance with the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021:</p>
+<h3>6. Children's Privacy</h3>
+<p>TN24 is a general-audience news portal and is not directed to children under the age of 13. We do not knowingly collect personal data from children. If you believe a child has provided us with personal information, please contact us at the email below and we will promptly delete it.</p>
+
+<h3>7. Your Rights</h3>
+<p>Under applicable Indian data protection law, you have the right to access, correct, or request deletion of your personal data. To exercise these rights, please contact us at <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a>. We will respond within 15 business days.</p>
+
+<h3>8. Grievance Officer</h3>
+<p>In accordance with the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, our designated Grievance Officer can be reached at:</p>
 <p><strong>Grievance Officer:</strong> Editorial Desk, TN24 Media<br>
 Email: <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a><br>
-Tamil Nadu, India</p>
+Response time: Within 24 hours of receipt. Resolution within 15 days.<br>
+Region: Tamil Nadu, India</p>
 
-<h3>7. Contact Us</h3>
-<p>If you have questions about this Privacy Policy, please contact us at <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a>.</p>
+<h3>9. Changes to This Policy</h3>
+<p>We may update this Privacy Policy from time to time to reflect changes in law, technology, or our editorial practices. The effective date at the top of this page will always reflect the most recent revision. We encourage you to review this policy periodically.</p>
+
+<h3>10. Contact Us</h3>
+<p>If you have any questions, concerns, or requests regarding this Privacy Policy, please reach out to us at <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a>. We are committed to addressing your concerns promptly and transparently.</p>
 `)))
 }
 
@@ -2092,7 +2142,9 @@ func (h *PortalHandler) HandleTermsOfService(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(renderStaticPage("Terms of Service | TN24 — Tamil Nadu News", "பயன்பாட்டு விதிகள் — Terms of Service", `
+	_, _ = w.Write([]byte(renderStaticPage("Terms of Service | TN24 — Tamil Nadu News", "பயன்பாட்டு விதிகள் — Terms of Service",
+		"TN24 Terms of Service — the rules and conditions for using Tamil Nadu's leading digital news platform, including content usage, user submissions, advertising, and grievance redressal.",
+		`
 <h2>Terms of Service</h2>
 <p><strong>Effective Date:</strong> September 2026</p>
 <p>Welcome to <strong>TN24</strong> (<strong>www.tn24.in</strong>). By accessing or using our news portal, newsletter, or related digital services, you agree to comply with and be bound by these Terms of Service.</p>
@@ -2138,28 +2190,50 @@ func (h *PortalHandler) HandleAboutUs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(renderStaticPage("About Us | TN24 — Tamil Nadu News | தமிழ் செய்திகள்", "எங்களைப் பற்றி — About Us", `
-<h2>About TN24</h2>
-<p><strong>TN24</strong> (www.tn24.in) is Tamil Nadu's leading 24/7 digital news platform, dedicated to delivering accurate, fast, and comprehensive news coverage across all 38 districts of Tamil Nadu.</p>
+	_, _ = w.Write([]byte(renderStaticPage(
+		"About Us | TN24 — Tamil Nadu News | தமிழ் செய்திகள்",
+		"எங்களைப் பற்றி — About TN24",
+		"Learn about TN24 — Tamil Nadu's independent 24/7 digital news platform covering breaking news, politics, civic affairs, and cultural events across all 38 districts in Tamil and English.",
+		`
+<h2>About TN24 — Tamil Nadu's Digital Newsroom</h2>
 
-<h3>Our Mission</h3>
-<p>To provide unbiased, community-verified news in Tamil and English, empowering citizens with timely information about governance, civic issues, sports, entertainment, and cultural events.</p>
+<p><strong>TN24</strong> (www.tn24.in) is Tamil Nadu's independent, round-the-clock digital news platform. Launched with a singular purpose — to bring fast, accurate, and community-grounded journalism to every corner of Tamil Nadu — TN24 covers breaking news, politics, civic affairs, entertainment, sports, and cultural events across all 38 districts of the state, in both Tamil and English.</p>
 
-<h3>Key Features</h3>
+<p>In a media landscape often dominated by metropolitan voices, TN24 was built to amplify local stories: the civic grievance in Dindigul that deserves national attention, the festival in Tirunelveli that captures Tamil culture, the policy announcement in Madurai that affects hundreds of thousands of residents. Every story matters. Every district has a voice on TN24.</p>
+
+<h3>நமது நோக்கம் — Our Mission</h3>
+<p>Our mission is to deliver unbiased, verified, and timely news in Tamil and English — empowering Tamil Nadu citizens with the information they need to participate meaningfully in civic, cultural, and democratic life. We are committed to independent journalism that serves the public interest, free from political pressure or commercial compromise in our editorial decisions.</p>
+
+<h3>What We Cover</h3>
 <ul>
-  <li><strong>38 District Coverage:</strong> Dedicated hyper-local feeds for Chennai, Coimbatore, Madurai, Salem, Trichy, Tirunelveli, and every district of Tamil Nadu.</li>
-  <li><strong>24/7 Live Updates:</strong> Breaking news alerts, live tickers, and real-time updates as events unfold.</li>
-  <li><strong>Editorial Integrity:</strong> Independent reporting with source attribution and factual verification.</li>
-  <li><strong>Civic Focus:</strong> Highlighting citizen reports, public announcements, and administrative updates.</li>
+  <li><strong>Breaking News &amp; Live Updates:</strong> Real-time coverage of major events as they unfold across Tamil Nadu — from government announcements to natural events, accidents, and social developments.</li>
+  <li><strong>Politics &amp; Governance:</strong> Comprehensive coverage of state politics, election updates, legislative developments, and government policy — with source attribution and editorial fact-checking on every major claim.</li>
+  <li><strong>District-Level Hyper-Local News:</strong> Dedicated feeds for all 38 Tamil Nadu districts including Chennai, Madurai, Coimbatore, Trichy, Salem, Tirunelveli, Erode, Vellore, Thanjavur, Kanyakumari, and more — ensuring local news doesn't get buried under statewide headlines.</li>
+  <li><strong>Sports:</strong> Tamil Nadu cricket, IPL, CSK fan coverage, football, kabaddi, local tournaments, and athlete spotlights.</li>
+  <li><strong>Entertainment &amp; Cinema:</strong> Kollywood film releases, star interviews, box office updates, music launches, and cultural events.</li>
+  <li><strong>Civic Affairs &amp; Public Service:</strong> Government job notifications (TNPSC), exam results, public utility announcements, and welfare scheme updates that directly impact everyday lives.</li>
+  <li><strong>Business &amp; Economy:</strong> Daily gold and silver rates for major Tamil Nadu cities, market updates, MSME news, and economic policy coverage.</li>
+  <li><strong>Weather &amp; Environment:</strong> Real-time weather alerts, monsoon tracking, cyclone warnings, and environmental news specific to Tamil Nadu.</li>
 </ul>
 
-<h3>Editorial Team</h3>
-<p>TN24 follows strict editorial guidelines. All news content is verified before publication. We are committed to accuracy, fairness, and transparency in all reporting.</p>
+<h3>எங்கள் ஆசிரியக் குழு — Editorial Standards</h3>
+<p>TN24 operates under a strict editorial code. Every article published on our platform goes through a structured review process: factual claims are sourced and attributed, sensitive topics are handled with care for community impact, and corrections are issued transparently when errors are identified. We follow the editorial principles outlined in our <a href="/editorial">Editorial &amp; Corrections Policy</a>.</p>
 
-<h3>Contact &amp; Corporate Information</h3>
-<p>Email: <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a></p>
-<p>Website: <a href="https://www.tn24.in">www.tn24.in</a></p>
-<p>Operating Region: Tamil Nadu, India</p>
+<p>Our editorial team is made up of experienced journalists, digital reporters, and community contributors from across Tamil Nadu. We believe journalism is a public service, and every story we publish reflects that responsibility. Reader feedback, tips, and corrections are welcomed — they make our reporting stronger.</p>
+
+<h3>Community Reporting</h3>
+<p>TN24 invites verified community contributors to submit news tips, photo reports, and local event coverage. All community submissions go through editorial moderation before publication, ensuring accuracy and adherence to our content standards. Verified contributors earn trust scores and recognition within our platform.</p>
+
+<h3>Legal Compliance</h3>
+<p>TN24 operates in full compliance with the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021. We have a designated Grievance Officer, respond to content complaints within 24 hours, and resolve grievances within 15 days as mandated by law. Our content moderation systems actively screen for defamatory, communally sensitive, and unlawful content before publication.</p>
+
+<h3>தொடர்பு கொள்ள — Connect With Us</h3>
+<p>Email: <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a><br>
+Website: <a href="https://www.tn24.in">www.tn24.in</a><br>
+Operating Region: Tamil Nadu, India<br>
+Newsroom Language: Tamil (தமிழ்) and English</p>
+
+<p>For editorial queries, corrections, content partnerships, or advertising, please use our <a href="/contact">Contact page</a>.</p>
 `)))
 }
 
@@ -2168,23 +2242,103 @@ func (h *PortalHandler) HandleContactUs(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(renderStaticPage("Contact Us | TN24 — Tamil Nadu News | தமிழ் செய்திகள்", "தொடர்பு கொள்ளுங்கள் — Contact Us", `
-<h2>Contact TN24</h2>
-<p>In accordance with <strong>IT Rules 2021</strong>, you may submit a content grievance via our <a href="/portal">portal grievance form</a> or by writing to:</p>
-<p><a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a></p>
-<p>We acknowledge grievances within <strong>24 hours</strong> and resolve them within <strong>15 days</strong> as required by law.</p>
+	_, _ = w.Write([]byte(renderStaticPage(
+		"Contact Us | TN24 — Tamil Nadu News | தமிழ் செய்திகள்",
+		"தொடர்பு கொள்ளுங்கள் — Contact TN24",
+		"Contact TN24 newsroom for news tips, editorial corrections, content grievances, advertising inquiries, and partnership opportunities. We respond within 24 hours.",
+		`
+<h2>தொடர்பு கொள்ளுங்கள் — Get in Touch</h2>
+<p>TN24 is Tamil Nadu's independent 24/7 digital newsroom. We welcome reader feedback, news tips, corrections, and partnership inquiries. Our team is committed to responding promptly and transparently.</p>
 
-<h3>📢 Contact for Advertisement (விளம்பர தொடர்புக்கு)</h3>
-<p>To showcase your brand, business, or service across TN24 digital network reaching readers across 38 districts in Tamil Nadu:</p>
-<p>Direct Advertising Desk: <a href="mailto:tn24now@gmail.com"><strong>tn24now@gmail.com</strong></a></p>
+<h3>📰 Newsroom &amp; Editorial (செய்தி அறை)</h3>
+<p>Have a news tip, local story lead, or correction request? Our editorial desk reviews every submission.</p>
+<p>Email: <a href="mailto:tn24now@gmail.com"><strong>tn24now@gmail.com</strong></a><br>
+Response time: Within 24 hours on working days.</p>
+<p>For factual corrections, please include the article title, the specific claim you believe is incorrect, and the source of the accurate information. See our <a href="/editorial">Editorial &amp; Corrections Policy</a> for full details.</p>
+
+<h3>⚠️ Content Grievance / IT Rules 2021 (புகார் அளிக்க)</h3>
+<p>In accordance with the <strong>Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021</strong>, you may submit a formal content grievance via our <a href="/">portal grievance form</a> or by writing directly to our Grievance Officer:</p>
+<p><strong>Grievance Officer:</strong> TN24 Editorial Desk<br>
+Email: <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a><br>
+Acknowledgement: Within <strong>24 hours</strong> of receipt.<br>
+Resolution: Within <strong>15 days</strong> as mandated by law.</p>
+
+<h3>📢 Advertising &amp; Brand Partnerships (விளம்பர தொடர்புக்கு)</h3>
+<p>TN24 reaches engaged Tamil-language readers across all 38 districts of Tamil Nadu. We offer a range of digital advertising formats including banner placements, sponsored content, and district-targeted campaigns.</p>
+<p>To discuss advertising options, rates, or brand partnerships:<br>
+Email: <a href="mailto:tn24now@gmail.com"><strong>tn24now@gmail.com</strong></a></p>
+
+<h3>🤝 Community Contributors (சமூக செய்தியாளர்கள்)</h3>
+<p>TN24 welcomes community reporters and local journalists from every district of Tamil Nadu. If you are interested in contributing local news, civic updates, or cultural event coverage to TN24, please write to us with your area of expertise and district. All contributions go through editorial review before publication.</p>
 
 <h3>🌐 Website</h3>
-<p><a href="https://www.tn24.in">www.tn24.in</a></p>
+<p><a href="https://www.tn24.in">www.tn24.in</a><br>
+Operating Region: Tamil Nadu, India</p>
 `)))
 }
 
-// renderStaticPage renders a simple, SEO-friendly HTML page for Privacy Policy, About Us, Contact.
-func renderStaticPage(title, heading, bodyHTML string) string {
+// HandleEditorialPolicy serves the Editorial & Corrections Policy page — key trust signal for AdSense and Google News.
+func (h *PortalHandler) HandleEditorialPolicy(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(renderStaticPage(
+		"Editorial Policy | TN24 — Tamil Nadu News",
+		"ஆசிரியக் கொள்கை — Editorial & Corrections Policy",
+		"TN24 Editorial Policy — our standards for accuracy, fact-checking, source verification, corrections, and independent journalism across Tamil Nadu.",
+		`
+<h2>TN24 Editorial &amp; Corrections Policy</h2>
+<p>TN24 is committed to delivering accurate, fair, and independent journalism in Tamil and English. This page outlines the editorial standards and principles that govern every piece of content we publish on www.tn24.in.</p>
+
+<h3>1. Editorial Independence</h3>
+<p>TN24's editorial team operates with full independence from advertisers, commercial partners, and political interests. Advertising revenue supports our operations, but no advertiser has any influence over our editorial decisions, headlines, or content. Our journalists select, report, and publish stories based solely on news value, public interest, and editorial merit.</p>
+
+<h3>2. Accuracy &amp; Fact-Checking</h3>
+<p>Accuracy is the foundation of everything we publish. Before any article goes live on TN24:</p>
+<ul>
+  <li>All factual claims are cross-referenced with at least one credible, verifiable primary source — government press releases, official statements, established news agencies, or direct reporter observation.</li>
+  <li>Quantitative data (statistics, vote counts, financial figures, commodity prices) are sourced from official or recognised authoritative bodies and clearly attributed in the article body.</li>
+  <li>Breaking news articles carry a clear timestamp and are updated in real-time as verified information becomes available. Unverified early reports are labelled appropriately.</li>
+  <li>Photographs, videos, and embedded media are verified for authenticity before publication. Manipulated or out-of-context media is not published.</li>
+</ul>
+
+<h3>3. Source Transparency</h3>
+<p>TN24 attributes sources clearly in every article. When sources request anonymity for legitimate safety reasons, we indicate that sources have been withheld while stating the nature of the source (e.g., "a senior district official"). We do not fabricate sources or misrepresent anonymous information. Readers are encouraged to flag articles where sourcing appears unclear.</p>
+
+<h3>4. Corrections Policy (திருத்தக் கொள்கை)</h3>
+<p>We take errors seriously. If an article on TN24 contains a factual inaccuracy, we correct it promptly and transparently:</p>
+<ul>
+  <li>Corrections are clearly noted at the top or bottom of the corrected article, stating what was changed and when.</li>
+  <li>Minor typographical corrections are fixed silently. Substantive factual corrections are always disclosed.</li>
+  <li>We do not remove published articles to hide errors — instead, we correct them in place and note the correction.</li>
+  <li>To report an error, email us at <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a> with the article title, the claim you believe is incorrect, and supporting evidence. We will review and respond within 48 hours.</li>
+</ul>
+
+<h3>5. Content Moderation Standards</h3>
+<p>TN24 does not publish content that is defamatory, communally inflammatory, sexually explicit, abusive, or unlawful. Community-submitted tips and contributions go through an automated moderation layer and editorial human review before publication. Content that violates our community standards is rejected or quarantined for review. Serious violations are reported to appropriate authorities as required by law.</p>
+
+<h3>6. Sensitive Reporting Guidelines</h3>
+<p>TN24 follows established responsible reporting guidelines for sensitive topics including:</p>
+<ul>
+  <li><strong>Communal &amp; Religious Issues:</strong> Language is chosen carefully to avoid inflaming tensions. Both sides of disputes are represented where possible.</li>
+  <li><strong>Suicide &amp; Mental Health:</strong> We follow WHO media guidelines on suicide reporting — details of methods are not published, and helpline information is included where relevant.</li>
+  <li><strong>Crime Reporting:</strong> Victims of crimes, especially minors and sexual assault survivors, are not identified by name. Accused persons are referred to as suspects until convicted.</li>
+  <li><strong>Disaster Reporting:</strong> During natural disasters and emergencies, our priority is to publish verified emergency information (helplines, shelter locations, official warnings) promptly over narrative reporting.</li>
+</ul>
+
+<h3>7. Sponsored &amp; Promotional Content</h3>
+<p>Any sponsored, promoted, or paid content on TN24 is clearly labelled as "Sponsored" or "Advertisement". Paid content does not influence or appear within our editorial news feeds. Native advertising, if any, is always clearly distinguished from organic editorial content.</p>
+
+<h3>8. Complaints &amp; Feedback</h3>
+<p>Readers, sources, and subjects of our reporting may direct complaints or feedback to our editorial desk at <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a>. Formal content grievances under IT Rules 2021 may be submitted via our <a href="/">grievance portal</a> or directly to our designated Grievance Officer at the same email address. We acknowledge all editorial complaints within 24 hours and resolve them within 15 days.</p>
+
+<h3>9. Updates to This Policy</h3>
+<p>This Editorial Policy reflects TN24's ongoing commitment to responsible journalism. It may be updated from time to time as our coverage grows and editorial practices evolve. The most current version is always available at www.tn24.in/editorial.</p>
+`)))
+}
+
+// renderStaticPage renders a simple, SEO-friendly HTML page for Privacy Policy, About Us, Contact, Editorial, etc.
+func renderStaticPage(title, heading, metaDesc, bodyHTML string) string {
 	return `<!DOCTYPE html>
 <html lang="ta">
 <head>
@@ -2192,12 +2346,12 @@ func renderStaticPage(title, heading, bodyHTML string) string {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>` + title + `</title>
 <!-- Favicon & Application Icons -->
-<link rel="icon" type="image/svg+xml" href="/portal/assets/brand/tn24-icon.svg">
+<link rel="icon" type="image/svg+xml" href="/assets/brand/tn24-icon.svg">
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
 <link rel="alternate icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="apple-touch-icon" sizes="180x180" href="/portal/assets/brand/tn24-icon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/brand/tn24-icon.svg">
 <link rel="shortcut icon" href="/favicon.ico">
-<meta name="description" content="TN24 (tn 24) — Tamil Nadu news, latest tamil news &amp; தமிழ் செய்திகள் live 24x7. Breaking updates across 38 districts.">
+<meta name="description" content="` + metaDesc + `">
 <meta name="keywords" content="tn 24, news tamil 24x7 live, tamil nadu news, news live tamilnadu, தமிழ் செய்திகள், today news in tamil, news tamil today, tamil news online, latest tamil news, tamil nadu news in tamil, news tamil nadu">
 <meta name="robots" content="index, follow">
 <link rel="canonical" href="https://www.tn24.in">
@@ -2237,12 +2391,13 @@ func renderStaticPage(title, heading, bodyHTML string) string {
 </head>
 <body>
 <header>
-  <a href="/portal">TN<span>24</span></a>
+  <a href="/">TN<span>24</span></a>
   <span style="color:#aaa;font-size:0.85rem;">TN24 &mdash; Tamil Nadu News | தமிழ் செய்திகள் | 24x7 Live</span>
 </header>
 <nav>
-  <a href="/portal">🏠 Home</a>
+  <a href="/">🏠 Home</a>
   <a href="/about">About</a>
+  <a href="/editorial">Editorial Policy</a>
   <a href="/privacy">Privacy</a>
   <a href="/terms">Terms</a>
   <a href="/contact">Contact</a>

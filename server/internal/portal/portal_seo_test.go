@@ -81,7 +81,7 @@ func TestSitemapAndRobots(t *testing.T) {
 	if !strings.Contains(sitemapBody, "<urlset") {
 		t.Errorf("expected <urlset> in sitemap, got %s", sitemapBody)
 	}
-	if !strings.Contains(sitemapBody, "portal?q=tamil+nadu+news") {
+	if !strings.Contains(sitemapBody, "?q=tamil+nadu+news") {
 		t.Errorf("expected target keyword URL in sitemap.xml")
 	}
 
@@ -158,7 +158,7 @@ func TestFaviconAndWebsiteTitle(t *testing.T) {
 	}
 
 	// Test favicon link tags
-	if !strings.Contains(portalHTML, `rel="icon" type="image/svg+xml" href="/portal/assets/brand/tn24-icon.svg"`) {
+	if !strings.Contains(portalHTML, `rel="icon" type="image/svg+xml" href="/assets/brand/tn24-icon.svg"`) {
 		t.Errorf("expected SVG favicon link in RenderPortalPage")
 	}
 	if !strings.Contains(portalHTML, `rel="icon" type="image/x-icon" href="/favicon.ico"`) {
@@ -218,7 +218,7 @@ func TestRSSFeed(t *testing.T) {
 	if !strings.Contains(body, "<title>TN24") {
 		t.Errorf("expected RSS channel title")
 	}
-	if !strings.Contains(body, "<link>https://www.tn24.in/portal</link>") {
+	if !strings.Contains(body, "<link>https://www.tn24.in/") {
 		t.Errorf("expected canonical portal link in RSS channel")
 	}
 }
@@ -238,7 +238,7 @@ func TestSitemap38DistrictsAndRobots(t *testing.T) {
 		"Ranipet", "Tirupathur", "Chengalpattu", "Mayiladuthurai", "Tenkasi",
 	}
 	for _, d := range districts {
-		if !strings.Contains(sitemapBody, "portal?district="+d) {
+		if !strings.Contains(sitemapBody, "?district="+d) {
 			t.Errorf("expected district %s in sitemap.xml", d)
 		}
 	}
@@ -263,7 +263,7 @@ func TestSEOInjectors(t *testing.T) {
 
 	// Test District injector
 	distHTML := h.injectDistrictMetadata(baseHTML, "Madurai", nil)
-	if !strings.Contains(distHTML, "https://www.tn24.in/portal?district=Madurai") {
+	if !strings.Contains(distHTML, "https://www.tn24.in/?district=Madurai") {
 		t.Errorf("expected district canonical in injected HTML, got %s", distHTML)
 	}
 	if !strings.Contains(distHTML, "மதுரை செய்திகள்") {
@@ -272,7 +272,7 @@ func TestSEOInjectors(t *testing.T) {
 
 	// Test Category injector
 	catHTML := h.injectCategoryMetadata(baseHTML, "cinema", nil)
-	if !strings.Contains(catHTML, "https://www.tn24.in/portal?category=cinema") {
+	if !strings.Contains(catHTML, "https://www.tn24.in/?category=cinema") {
 		t.Errorf("expected category canonical in injected HTML, got %s", catHTML)
 	}
 	if !strings.Contains(catHTML, "சினிமா செய்திகள்") {
@@ -281,7 +281,7 @@ func TestSEOInjectors(t *testing.T) {
 
 	// Test Viral injector
 	viralHTML := h.injectViralMetadata(baseHTML, nil)
-	if !strings.Contains(viralHTML, "https://www.tn24.in/portal?viral=true") {
+	if !strings.Contains(viralHTML, "https://www.tn24.in/?viral=true") {
 		t.Errorf("expected viral canonical in injected HTML, got %s", viralHTML)
 	}
 

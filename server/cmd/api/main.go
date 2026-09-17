@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -163,34 +162,23 @@ func main() {
 	}
 
 	// Core application routes
+	// "/" is the canonical homepage — serves the portal HTML directly.
+	// All query params (?post=, ?district=, ?category=, ?viral=, ?q=) are handled
+	// by HandlePortalPage just as they were under /portal.
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
 			return
 		}
-		ua := r.Header.Get("User-Agent")
-		isCrawler := strings.Contains(ua, "WhatsApp") || strings.Contains(ua, "facebookexternalhit") ||
-			strings.Contains(ua, "Twitterbot") || strings.Contains(ua, "TelegramBot") ||
-			strings.Contains(ua, "Instagram") || strings.Contains(ua, "LinkedInBot") ||
-			strings.Contains(ua, "Googlebot") || strings.Contains(ua, "Googlebot-News") ||
-			strings.Contains(ua, "Googlebot-Video") ||
-			strings.Contains(ua, "bingbot") || strings.Contains(ua, "Baiduspider") ||
-			strings.Contains(ua, "YandexBot") || strings.Contains(ua, "DuckDuckBot") ||
-			strings.Contains(ua, "Slurp") || strings.Contains(ua, "applebot")
-		if strings.Contains(r.Header.Get("Accept"), "text/html") || isCrawler || r.URL.Query().Get("post") != "" || r.URL.Query().Get("district") != "" || r.URL.Query().Get("category") != "" {
-			if portalHandler != nil {
-				portalHandler.HandlePortalPage(w, r)
-				return
-			}
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.Header().Set("X-Frame-Options", "SAMEORIGIN")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(portal.RenderPortalPage()))
+		if portalHandler != nil {
+			portalHandler.HandlePortalPage(w, r)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
+		// Fallback if DB not yet connected (static portal shell)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"success":true,"data":{"service":"TN NOW API","status":"online","docs":"/swagger/doc.json","portal":"/portal","admin":"/admin"},"message":"Welcome to TN NOW API Server","errors":[]}`))
+		_, _ = w.Write([]byte(portal.RenderPortalPage()))
 	})
 
 	mux.HandleFunc("/health/live", func(w http.ResponseWriter, r *http.Request) {
