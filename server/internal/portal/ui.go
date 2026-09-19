@@ -1051,11 +1051,14 @@ func RenderPortalPage() string {
             justify-content: space-between;
             font-size: 11px;
             border: 1px solid rgba(56, 189, 248, 0.18);
+            flex-wrap: wrap;
+            gap: 8px;
         }
         .calc-left {
             display: flex;
             align-items: center;
             gap: 6px;
+            flex-wrap: wrap;
         }
         .calc-input {
             width: 44px;
