@@ -1457,6 +1457,7 @@ func RenderPortalPage() string {
             }
         }
         @media (max-width: 768px) {
+            .hide-on-mobile { display: none !important; }
             /* Compact Header */
             .top-banner {
                 padding: 8px 12px;
@@ -1715,234 +1716,30 @@ func RenderPortalPage() string {
 </head>
 <body>
 
-    <!-- ═══════════════════════════════════════════════════════
-         TN24 EDITORIAL CONTENT — Server-Side Rendered.
-         Visible to all crawlers, AdSense reviewers, and users
-         before JavaScript hydration. Contains authentic editorial
-         articles demonstrating the depth and quality of TN24's
-         Tamil Nadu news coverage.
-    ═══════════════════════════════════════════════════════ -->
-    <section id="ssr-editorial" aria-label="TN24 Tamil Nadu News — Latest Articles" itemscope itemtype="https://schema.org/NewsMediaOrganization" style="background:#080f1c;font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#d4d4d4;padding:0 0 32px;">
 
-      <!-- Masthead -->
-      <div style="background:linear-gradient(135deg,#0d1b2e 0%,#111827 100%);border-bottom:3px solid #e53e3e;padding:18px 24px 20px;">
-        <div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-          <div>
-            <h1 itemprop="name" style="font-size:1.6rem;font-weight:900;color:#fff;margin:0 0 4px;letter-spacing:-0.3px;">TN24 — Tamil Nadu's Independent Digital Newsroom</h1>
-            <p style="font-size:0.85rem;color:#aaa;margin:0;">தமிழ்நாட்டின் 38 மாவட்டங்களுக்கான நம்பகமான செய்தி தளம் | Breaking news, politics, civic affairs &amp; more — 24/7 in Tamil &amp; English</p>
-          </div>
-          <div style="font-size:0.78rem;color:#555;text-align:right;">
-            <div style="color:#34d399;font-weight:600;">● LIVE</div>
-            <div>Updated: September 2026</div>
-          </div>
+
+
+    <!-- HEADER BAR -->
+    <header style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;padding:14px 20px;background:#0d1421;border-bottom:1px solid #1a2540;">
+        <div style="display:flex;align-items:center;gap:16px;">
+            <a href="/" class="brand-logo" title="TN24" style="text-decoration:none;flex-shrink:0;">
+                <img src="/assets/brand/tn24-logo.svg?v=20260908d" alt="TN24 Tamil Nadu News" style="height:42px;display:block;" />
+            </a>
+            <div class="hide-on-mobile" style="display:flex; flex-direction:column; justify-content:center;">
+                <div style="font-size:1.1rem;font-weight:800;color:#fff;margin:0 0 2px;letter-spacing:-0.2px;">TN24 — Your Source for Tamil Nadu News</div>
+                <div style="font-size:0.75rem;color:#94a3b8;margin:0;">தமிழ்நாட்டின் நம்பகமான செய்தி தொகுப்பு தளம் | அரசியல், விளையாட்டு, வணிகம், சினிமா மற்றும் மாவட்ட செய்திகள் — 24/7</div>
+            </div>
         </div>
-      </div>
-
-      <!-- Category Nav -->
-      <div style="background:#0d1421;border-bottom:1px solid #1a2540;padding:10px 24px;overflow-x:auto;white-space:nowrap;">
-        <div style="max-width:1100px;margin:0 auto;display:flex;gap:8px;">
-          <a href="/?category=Politics" style="background:#1e0a0a;color:#e53e3e;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #3a1010;white-space:nowrap;">🏛️ அரசியல் / Politics</a>
-          <a href="/?category=Sports"   style="background:#0a1622;color:#38bdf8;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #0e2a3e;white-space:nowrap;">🏏 விளையாட்டு / Sports</a>
-          <a href="/?category=Entertainment" style="background:#1a1200;color:#f59e0b;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #3a2800;white-space:nowrap;">🎬 சினிமா / Cinema</a>
-          <a href="/?category=Business" style="background:#001a0f;color:#34d399;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #003820;white-space:nowrap;">📈 வணிகம் / Business</a>
-          <a href="/?category=Technical" style="background:#100a22;color:#a78bfa;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #221544;white-space:nowrap;">💻 தொழில்நுட்பம்</a>
-          <a href="/?category=Civic"    style="background:#0a1600;color:#86efac;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #1a2e00;white-space:nowrap;">🏙️ பொது நலன்</a>
-          <a href="/?viral=true"         style="background:#1a000a;color:#f43f5e;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #3a0015;white-space:nowrap;">🔥 வைரல்</a>
-        </div>
-      </div>
-
-      <!-- ── EDITORIAL ARTICLES ── -->
-      <div style="max-width:1100px;margin:0 auto;padding:24px 24px 0;">
-
-        <h2 style="font-size:1.1rem;font-weight:700;color:#e53e3e;margin:0 0 20px;text-transform:uppercase;letter-spacing:1px;border-left:3px solid #e53e3e;padding-left:10px;">📰 Latest Tamil Nadu News — செய்திகள்</h2>
-
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;">
-
-          <!-- Article 1 -->
-          <article itemscope itemtype="https://schema.org/NewsArticle" style="background:#0d1b2a;border:1px solid #1e2d42;border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:0.73rem;">
-              <span style="background:#1e0a0a;color:#e53e3e;padding:2px 8px;border-radius:4px;">அரசியல் / Politics</span>
-              <span style="color:#555;">📍 Chennai</span>
-              <time itemprop="datePublished" datetime="2026-09-17" style="color:#555;">Sep 17, 2026</time>
-            </div>
-            <h3 itemprop="headline" style="font-size:1rem;font-weight:700;color:#fff;margin:0;line-height:1.4;">தமிழ்நாடு அரசின் புதிய திட்டங்கள் — New State Government Welfare Schemes for 2026-27</h3>
-            <div itemprop="description" style="font-size:0.88rem;color:#aaa;line-height:1.7;">
-              <p style="margin:0 0 8px;">தமிழ்நாடு அரசு 2026-27 நிதியாண்டிற்கான பல்வேறு நலத்திட்டங்களை அறிவித்துள்ளது. இந்தத் திட்டங்கள் விவசாயிகள், மாணவர்கள், மற்றும் சிறு தொழிலாளர்களுக்கு நேரடி நலன் அளிக்கும் வகையில் வடிவமைக்கப்பட்டுள்ளன.</p>
-              <p style="margin:0;">The Tamil Nadu government has announced a comprehensive set of welfare schemes for fiscal year 2026-27, covering agricultural subsidies, student scholarships, and small enterprise support. The schemes are estimated to benefit over 45 lakh families across all 38 districts. Officials confirmed that applications will be accepted via the e-Sevai portal from October 1, 2026.</p>
-            </div>
-            <div style="font-size:0.75rem;color:#555;margin-top:auto;padding-top:8px;border-top:1px solid #1a2540;">✍️ TN24 Political Desk · 📖 4 min read</div>
-          </article>
-
-          <!-- Article 2 -->
-          <article itemscope itemtype="https://schema.org/NewsArticle" style="background:#0d1b2a;border:1px solid #1e2d42;border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:0.73rem;">
-              <span style="background:#0a1622;color:#38bdf8;padding:2px 8px;border-radius:4px;">விளையாட்டு / Sports</span>
-              <span style="color:#555;">📍 Chennai</span>
-              <time itemprop="datePublished" datetime="2026-09-17" style="color:#555;">Sep 17, 2026</time>
-            </div>
-            <h3 itemprop="headline" style="font-size:1rem;font-weight:700;color:#fff;margin:0;line-height:1.4;">CSK 2026 IPL Season Preview — சென்னை சூப்பர் கிங்ஸ் அணி பலம் பலவீனம் பகுப்பாய்வு</h3>
-            <div itemprop="description" style="font-size:0.88rem;color:#aaa;line-height:1.7;">
-              <p style="margin:0 0 8px;">சென்னை சூப்பர் கிங்ஸ் அணி 2026 ஐபிஎல் சீசனுக்கான தயாரிப்புகளை தீவிரமாக மேற்கொண்டு வருகிறது. இந்தாண்டு நடைபெற்ற திட்டவட்டமான ஆட்டக்காரர் ஏலத்தில் அணி புதிய வேகப்பந்துவீச்சாளர்களை சேர்த்துக்கொண்டுள்ளது.</p>
-              <p style="margin:0;">Chennai Super Kings' squad for the 2026 IPL season features a blend of experienced campaigners and exciting young talent. The team management has focused on strengthening the pace attack after last season's struggles on bouncy pitches. Former Tamil Nadu Ranji Trophy stars form the backbone of the domestic contingent, with the CSK academy graduates expected to make their IPL debut this season.</p>
-            </div>
-            <div style="font-size:0.75rem;color:#555;margin-top:auto;padding-top:8px;border-top:1px solid #1a2540;">✍️ TN24 Sports Desk · 📖 5 min read</div>
-          </article>
-
-          <!-- Article 3 -->
-          <article itemscope itemtype="https://schema.org/NewsArticle" style="background:#0d1b2a;border:1px solid #1e2d42;border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:0.73rem;">
-              <span style="background:#001a0f;color:#34d399;padding:2px 8px;border-radius:4px;">வணிகம் / Business</span>
-              <span style="color:#555;">📍 Madurai</span>
-              <time itemprop="datePublished" datetime="2026-09-17" style="color:#555;">Sep 17, 2026</time>
-            </div>
-            <h3 itemprop="headline" style="font-size:1rem;font-weight:700;color:#fff;margin:0;line-height:1.4;">மதுரையில் தங்கம் விலை — Gold &amp; Silver Rates in Madurai Today | நவரத்ரி சிறப்பு</h3>
-            <div itemprop="description" style="font-size:0.88rem;color:#aaa;line-height:1.7;">
-              <p style="margin:0 0 8px;">மதுரையில் இன்று (செப்டம்பர் 17, 2026) தங்கம் விலை 22 காரட் ஒரு கிராமுக்கு ₹6,840 ஆகவும், 24 காரட் ₹7,450 ஆகவும் நிர்ணயிக்கப்பட்டுள்ளது. வெள்ளி விலை ஒரு கிராமுக்கு ₹98.50 ஆக உள்ளது. நவரத்ரி பண்டிகையை முன்னிட்டு நகைக்கடைகளில் கூட்டம் அதிகமாக உள்ளது.</p>
-              <p style="margin:0;">Gold prices in Madurai today stand at ₹6,840 per gram for 22-carat and ₹7,450 per gram for 24-carat gold. With Navratri celebrations driving demand, jewellery shops across the city report strong footfall. Market analysts expect prices to remain firm through the festive season. Silver is trading at ₹98.50 per gram. For the latest rates in Chennai, Coimbatore, and Salem, visit TN24's daily commodity tracker.</p>
-            </div>
-            <div style="font-size:0.75rem;color:#555;margin-top:auto;padding-top:8px;border-top:1px solid #1a2540;">✍️ TN24 Business Desk · 📖 3 min read</div>
-          </article>
-
-          <!-- Article 4 -->
-          <article itemscope itemtype="https://schema.org/NewsArticle" style="background:#0d1b2a;border:1px solid #1e2d42;border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:0.73rem;">
-              <span style="background:#1a000a;color:#f43f5e;padding:2px 8px;border-radius:4px;">வானிலை / Weather</span>
-              <span style="color:#555;">📍 Tamil Nadu</span>
-              <time itemprop="datePublished" datetime="2026-09-17" style="color:#555;">Sep 17, 2026</time>
-            </div>
-            <h3 itemprop="headline" style="font-size:1rem;font-weight:700;color:#fff;margin:0;line-height:1.4;">தமிழ்நாட்டில் வடகிழக்கு பருவமழை எதிர்பார்ப்பு — Northeast Monsoon 2026 Forecast for Tamil Nadu</h3>
-            <div itemprop="description" style="font-size:0.88rem;color:#aaa;line-height:1.7;">
-              <p style="margin:0 0 8px;">இந்திய வானிலை ஆய்வு மையம் (IMD) வெளியிட்ட அறிக்கையின்படி, 2026 வடகிழக்கு பருவமழை அக்டோபர் மாதம் இரண்டாவது வாரத்தில் தமிழ்நாட்டை வந்தடையும் என எதிர்பார்க்கப்படுகிறது. சென்னை, டெல்டா மாவட்டங்கள், மற்றும் கடலோர மாவட்டங்களில் இந்த ஆண்டு சாதாரண மழை பதிவாகும் என அறிவிக்கப்பட்டுள்ளது.</p>
-              <p style="margin:0;">The Indian Meteorological Department (IMD) has forecast a normal Northeast Monsoon for Tamil Nadu in 2026, with onset expected in the second week of October. Chennai, the delta districts (Thanjavur, Tiruvarur, Nagapattinam), and coastal belts are likely to receive adequate rainfall. The department has also issued early cyclone watch advisories for the Bay of Bengal. Farmers in the Cauvery delta region are advised to prepare paddy cultivation by mid-September.</p>
-            </div>
-            <div style="font-size:0.75rem;color:#555;margin-top:auto;padding-top:8px;border-top:1px solid #1a2540;">✍️ TN24 Weather Desk · 📖 4 min read</div>
-          </article>
-
-          <!-- Article 5 -->
-          <article itemscope itemtype="https://schema.org/NewsArticle" style="background:#0d1b2a;border:1px solid #1e2d42;border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:0.73rem;">
-              <span style="background:#1a1200;color:#f59e0b;padding:2px 8px;border-radius:4px;">சினிமா / Cinema</span>
-              <span style="color:#555;">📍 Chennai · Kollywood</span>
-              <time itemprop="datePublished" datetime="2026-09-16" style="color:#555;">Sep 16, 2026</time>
-            </div>
-            <h3 itemprop="headline" style="font-size:1rem;font-weight:700;color:#fff;margin:0;line-height:1.4;">கோலிவுட் செய்திகள் — Kollywood Roundup: Upcoming Tamil Films &amp; Box Office Report</h3>
-            <div itemprop="description" style="font-size:0.88rem;color:#aaa;line-height:1.7;">
-              <p style="margin:0 0 8px;">இந்த வாரம் கோலிவுட்டில் பல முக்கியமான அறிவிப்புகள் வெளியாயின. பிரபல நடிகர்களின் புதிய படங்கள் தயாரிப்பு கட்டத்தில் இருப்பதாக தகவல் வெளியாகியுள்ளது. திரை விழாக்களில் தமிழ் திரைப்படங்கள் சர்வதேச அளவில் கவனம் பெறுவது குறிப்பிடத்தக்கது.</p>
-              <p style="margin:0;">This week in Kollywood sees several high-profile announcements. Multiple A-list actor-director combinations have been confirmed, with production set to begin in Q4 2026. Tamil cinema continues to gain international recognition, with several films selected for prestigious film festivals. The box office this week was dominated by a successful family drama that crossed the ₹50 crore mark. TN24's cinema desk brings you daily updates on shoots, releases, and industry news.</p>
-            </div>
-            <div style="font-size:0.75rem;color:#555;margin-top:auto;padding-top:8px;border-top:1px solid #1a2540;">✍️ TN24 Cinema Desk · 📖 5 min read</div>
-          </article>
-
-          <!-- Article 6 -->
-          <article itemscope itemtype="https://schema.org/NewsArticle" style="background:#0d1b2a;border:1px solid #1e2d42;border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:0.73rem;">
-              <span style="background:#0a1600;color:#86efac;padding:2px 8px;border-radius:4px;">அரசு வேலை / Govt Jobs</span>
-              <span style="color:#555;">📍 Tamil Nadu</span>
-              <time itemprop="datePublished" datetime="2026-09-15" style="color:#555;">Sep 15, 2026</time>
-            </div>
-            <h3 itemprop="headline" style="font-size:1rem;font-weight:700;color:#fff;margin:0;line-height:1.4;">TNPSC குரூப் 2 தேர்வு 2026 — அறிவிப்பு, தேதி, விண்ணப்ப முறை | TNPSC Group 2 Exam Notification</h3>
-            <div itemprop="description" style="font-size:0.88rem;color:#aaa;line-height:1.7;">
-              <p style="margin:0 0 8px;">தமிழ்நாடு அரசுப் பணியாளர் தேர்வாணையம் (TNPSC) குரூப் 2 மற்றும் குரூப் 2A தேர்வுக்கான அதிகாரப்பூர்வ அறிவிப்பு வெளியிடப்பட்டுள்ளது. மொத்தம் 1,200-க்கும் மேற்பட்ட காலிப் பணியிடங்கள் நிரப்பப்படவுள்ளன. ஆன்லைன் விண்ணப்பம் செப்டம்பர் 20 முதல் அக்டோபர் 20, 2026 வரை ஏற்கப்படும்.</p>
-              <p style="margin:0;">TNPSC has released the official notification for Group 2 and Group 2A examinations 2026, with over 1,200 vacancies across various departments including Revenue, Cooperative, and Social Welfare. Online applications open on September 20 and close on October 20, 2026. The written examination is tentatively scheduled for January 2027. Candidates must hold a degree from a recognised university. TN24 will provide detailed eligibility criteria, syllabus breakdown, and preparation tips in our dedicated TNPSC coverage section.</p>
-            </div>
-            <div style="font-size:0.75rem;color:#555;margin-top:auto;padding-top:8px;border-top:1px solid #1a2540;">✍️ TN24 Careers Desk · 📖 6 min read</div>
-          </article>
-
-          <!-- Article 7 -->
-          <article itemscope itemtype="https://schema.org/NewsArticle" style="background:#0d1b2a;border:1px solid #1e2d42;border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:0.73rem;">
-              <span style="background:#0a1622;color:#67e8f9;padding:2px 8px;border-radius:4px;">குடிமக்கள் / Civic</span>
-              <span style="color:#555;">📍 Coimbatore</span>
-              <time itemprop="datePublished" datetime="2026-09-16" style="color:#555;">Sep 16, 2026</time>
-            </div>
-            <h3 itemprop="headline" style="font-size:1rem;font-weight:700;color:#fff;margin:0;line-height:1.4;">கோவையில் புதிய மெட்ரோ திட்டம் — Coimbatore Metro Rail Phase 2 Update &amp; Route Map</h3>
-            <div itemprop="description" style="font-size:0.88rem;color:#aaa;line-height:1.7;">
-              <p style="margin:0 0 8px;">கோவை மெட்ரோ ரயில் திட்டத்தின் இரண்டாம் கட்டத்திற்கான டெண்டர் செயல்முறை தொடங்கி உள்ளது. நகர மேம்பாட்டு அமைச்சகம் புதிய பாதைகளையும், நிலையங்களையும் அறிவித்துள்ளது. இந்த விரிவாக்கம் கோவை, திருப்பூர் மற்றும் ஈரோடு மாவட்டங்களை இணைக்கும் வகையில் வடிவமைக்கப்பட்டுள்ளது.</p>
-              <p style="margin:0;">The Tamil Nadu government has initiated the tendering process for Coimbatore Metro Rail Phase 2, which will extend the network to connect key industrial corridors in Tiruppur and Erode. The proposed route will add 18 new stations covering approximately 28 kilometres of new track. Urban planners estimate that the expansion will reduce private vehicle commutes by 25% in the Coimbatore urban agglomeration. Land acquisition for the first segment is expected to begin in Q1 2027, with construction targeted for completion by 2030.</p>
-            </div>
-            <div style="font-size:0.75rem;color:#555;margin-top:auto;padding-top:8px;border-top:1px solid #1a2540;">✍️ TN24 Civic Affairs Desk · 📖 5 min read</div>
-          </article>
-
-          <!-- Article 8 -->
-          <article itemscope itemtype="https://schema.org/NewsArticle" style="background:#0d1b2a;border:1px solid #1e2d42;border-radius:8px;padding:18px;display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:0.73rem;">
-              <span style="background:#100a22;color:#a78bfa;padding:2px 8px;border-radius:4px;">தொழில்நுட்பம் / Tech</span>
-              <span style="color:#555;">📍 Chennai · Tamil Nadu</span>
-              <time itemprop="datePublished" datetime="2026-09-14" style="color:#555;">Sep 14, 2026</time>
-            </div>
-            <h3 itemprop="headline" style="font-size:1rem;font-weight:700;color:#fff;margin:0;line-height:1.4;">தமிழ்நாட்டில் AI மற்றும் டிஜிட்டல் திறன் மையங்கள் — Tamil Nadu AI &amp; Digital Skills Hubs Launch</h3>
-            <div itemprop="description" style="font-size:0.88rem;color:#aaa;line-height:1.7;">
-              <p style="margin:0 0 8px;">தமிழ்நாடு அரசு 10 மாவட்டங்களில் செயற்கை நுண்ணறிவு (AI) மற்றும் டிஜிட்டல் திறன் மையங்களை நிறுவவுள்ளது. இந்த மையங்கள் மூலம் இளைஞர்களுக்கு தரமான தொழில்நுட்பப் பயிற்சி வழங்கப்படும். கோவை, சென்னை, மதுரை, திருச்சி, சேலம் உள்ளிட்ட நகரங்கள் இந்தத் திட்டத்தில் முதல் கட்டமாக சேர்க்கப்பட்டுள்ளன.</p>
-              <p style="margin:0;">Tamil Nadu has announced the launch of 10 AI and Digital Skills Hubs across the state as part of its Digital Tamil Nadu 2030 initiative. These centres, to be established in Coimbatore, Chennai, Madurai, Trichy, Salem, Tirunelveli, Vellore, Thanjavur, Erode, and Dindigul, will offer free training in artificial intelligence, data science, cloud computing, and cybersecurity to youth between 18 and 30. Each hub will have the capacity to train 500 students per month in collaboration with leading IT companies and engineering colleges.</p>
-            </div>
-            <div style="font-size:0.75rem;color:#555;margin-top:auto;padding-top:8px;border-top:1px solid #1a2540;">✍️ TN24 Technology Desk · 📖 5 min read</div>
-          </article>
-
-        </div><!-- /grid -->
-
-        <!-- District Quick Links -->
-        <div style="margin-top:28px;padding:16px 20px;background:#0d1421;border:1px solid #1a2540;border-radius:8px;">
-          <h3 style="font-size:0.85rem;font-weight:700;color:#e53e3e;margin:0 0 12px;text-transform:uppercase;letter-spacing:0.5px;">📍 Browse by District — மாவட்ட செய்திகள்</h3>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:0.8rem;">
-            <a href="/?district=Chennai" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Chennai</a>
-            <a href="/?district=Madurai" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Madurai</a>
-            <a href="/?district=Coimbatore" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Coimbatore</a>
-            <a href="/?district=Tiruchirappalli" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Trichy</a>
-            <a href="/?district=Salem" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Salem</a>
-            <a href="/?district=Tirunelveli" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Tirunelveli</a>
-            <a href="/?district=Erode" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Erode</a>
-            <a href="/?district=Vellore" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Vellore</a>
-            <a href="/?district=Thanjavur" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Thanjavur</a>
-            <a href="/?district=Kanyakumari" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Kanyakumari</a>
-            <a href="/?district=Tiruppur" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Tiruppur</a>
-            <a href="/?district=Dindigul" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Dindigul</a>
-            <a href="/?district=Dharmapuri" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Dharmapuri</a>
-            <a href="/?district=Nilgiris" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Nilgiris (Ooty)</a>
-            <a href="/?district=Thoothukudi" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Thoothukudi</a>
-            <a href="/?district=Ramanathapuram" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Ramanathapuram</a>
-            <a href="/?district=Virudhunagar" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Virudhunagar</a>
-            <a href="/?district=Sivagangai" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Sivagangai</a>
-            <a href="/?district=Cuddalore" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Cuddalore</a>
-            <a href="/?district=Villupuram" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Villupuram</a>
-            <a href="/?district=Nagapattinam" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Nagapattinam</a>
-            <a href="/?district=Ariyalur" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Ariyalur</a>
-          </div>
-        </div>
-
-        <!-- Footer Nav -->
-        <div style="margin-top:20px;padding-top:16px;border-top:1px solid #1a2540;font-size:0.78rem;color:#555;display:flex;gap:16px;flex-wrap:wrap;">
-          <a href="/about" style="color:#e53e3e;text-decoration:none;">About TN24</a>
-          <a href="/editorial" style="color:#aaa;text-decoration:none;">Editorial Policy</a>
-          <a href="/privacy" style="color:#aaa;text-decoration:none;">Privacy Policy</a>
-          <a href="/terms" style="color:#aaa;text-decoration:none;">Terms of Service</a>
-          <a href="/contact" style="color:#aaa;text-decoration:none;">Contact</a>
-          <a href="/rss.xml" style="color:#aaa;text-decoration:none;">RSS Feed</a>
-          <span style="color:#333;margin-left:auto;">© 2026 TN24 — www.tn24.in</span>
-        </div>
-
-      </div><!-- /max-width wrapper -->
-    </section>
-
-
-    <!-- TOP BANNER -->
-    <header class="top-banner">
-        <div class="top-banner-inner">
-            <div class="top-left">
+        <div style="display:flex;align-items:center;gap:16px;">
+            <div class="hide-on-mobile" style="display:flex; flex-direction:column; align-items:flex-end; color:#94a3b8;font-size:13px;font-weight:600;white-space:nowrap;margin-right:4px;">
+                <div style="color:#ef4444;font-weight:700;font-size:11px;letter-spacing:1px;margin-bottom:2px;">● LIVE</div>
                 <span id="currentDateDisplay">செப்டம்பர் 8, 2026</span>
             </div>
-
-            <a href="/" class="brand-logo" title="TN24 — Tamil Nadu News Live 24x7 | தமிழ் செய்திகள்" style="text-decoration:none;">
-                <img src="/assets/brand/tn24-logo.svg?v=20260908d" alt="TN24 — Tamil Nadu News | தமிழ் செய்திகள் | News Live Tamilnadu 24x7" style="height:46px; display:block;" />
-                <span class="sr-only">TN24 (tn 24) — News Tamil 24x7 Live | Tamil Nadu News | தமிழ் செய்திகள் | Today News in Tamil</span>
-            </a>
-
-            <div class="top-right">
-                <div class="social-icons">
-                    <a href="javascript:void(0)" title="Facebook"><svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M9 8H6v4h3v12h5V12h3.642L18 8h-4V6.333C14 5.374 14.5 5 15.5 5H18V0h-3.808C10.595 0 9 1.582 9 4.615V8z"/></svg></a>
-                    <a href="javascript:void(0)" title="Twitter / X"><svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
-                    <a href="javascript:void(0)" title="RSS Feed"><svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><circle cx="6.18" cy="17.82" r="2.18"/><path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56zm0 5.66v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z"/></svg></a>
-                    <a href="javascript:void(0)" title="Telegram"><svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18.718-1.5 6.305-2.174 9.141-.285 1.2-.727 1.4-1.156 1.439-.933.086-1.642-.617-2.546-1.21-1.415-.929-2.215-1.507-3.589-2.413-1.587-1.047-.558-1.623.346-2.564.237-.246 4.343-3.981 4.422-4.321.01-.043.018-.204-.078-.29-.096-.085-.237-.056-.34-.033-.146.033-2.476 1.573-6.99 4.622-.662.455-1.261.678-1.798.666-.592-.013-1.73-.334-2.578-.609-1.04-.338-1.868-.517-1.796-1.091.037-.299.434-.605 1.189-.918 4.654-2.028 7.759-3.364 9.314-4.009 4.434-1.841 5.356-2.161 5.957-2.172.132-.002.427.031.618.187.161.132.206.311.228.436.022.126.049.414.027.64z"/></svg></a>
-                </div>
+            <div class="nav-search-box" style="margin:0;">
+                <input type="text" id="searchInput" class="nav-search-input" placeholder="தேடுக..." onkeyup="handleSearchKey(event)">
+                <button class="nav-search-btn" onclick="executeSearch()" title="தேடுக">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                </button>
             </div>
         </div>
     </header>
@@ -2024,59 +1821,243 @@ func RenderPortalPage() string {
                 </li>
             </ul>
 
-            <div class="nav-search-box">
-                <input type="text" id="searchInput" class="nav-search-input" placeholder="செய்திகளைத் தேடுக..." onkeyup="handleSearchKey(event)">
-                <button class="nav-search-btn" onclick="executeSearch()" title="தேடுக">
-                    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                </button>
-            </div>
         </div>
     </nav>
 
-    <!-- MARKET & REGION TICKER BAR -->
-    <div class="market-ticker-bar">
-        <div class="ticker-inner">
-            <div class="ticker-selector-wrap">
-                <button class="ticker-select-btn" id="tickerSelectBtn" onclick="toggleTickerDropdown()">
-                    <span id="selectedDistrictLabel">தமிழ்நாடு - அனைத்து வட்டாரங்கள்</span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
-                </button>
-            </div>
+    <!-- ── NEWS MARQUEE TICKER — below main nav ── -->
+    <div style="background:#0d1421;border-bottom:2px solid #1a2540;">
+      <div style="max-width:1320px;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:14px;">
 
-            <!-- Feed View Mode Toggle -->
-            <div style="display: flex; gap: 4px; align-items: center; margin-right: 12px;">
-                <button type="button" id="portal-view-feed-btn" class="action-btn" style="font-size: 11px; padding: 2px 8px; background: #0284c7; color: #fff; border-color: #38bdf8; font-weight: 700; border-radius: 4px;" onclick="setPortalViewMode('feed')">📰 செய்தி ஓட்டம்</button>
-                <button type="button" id="portal-view-grouped-btn" class="action-btn" style="font-size: 11px; padding: 2px 8px; color: #94a3b8; border: 1px solid #334155; background: transparent; font-weight: 600; border-radius: 4px;" onclick="setPortalViewMode('grouped')">📑 தொகுப்பு</button>
-            </div>
-
-            <!-- Animated Trend Sparkline -->
-            <div class="sparkline-box">
-                <svg class="sparkline-svg" viewBox="0 0 140 28">
-                    <path d="M 0 22 Q 25 24, 40 16 T 70 18 T 95 10 T 120 14 L 140 4" fill="none" stroke="#10b981" stroke-width="2.2" stroke-linecap="round"/>
-                    <circle cx="140" cy="4" r="3" fill="#10b981"/>
-                </svg>
-            </div>
-
-            <div class="ticker-stats">
-                <div class="ticker-stat-item">
-                    <span class="stat-label">நேரலை 2026</span>
-                    <span class="stat-val up" id="tickerLiveCount">143 செய்திகள்</span>
-                </div>
-                <div class="ticker-stat-item">
-                    <span class="stat-label">சரிபார்க்கப்பட்டவை</span>
-                    <span class="stat-val">98.4%</span>
-                </div>
-                <div class="ticker-stat-item">
-                    <span class="stat-label">அதிவேக வைரல்</span>
-                    <span class="stat-val up" id="tickerViralCount">42 பதிவுகள்</span>
-                </div>
-                <div class="ticker-stat-item">
-                    <span class="stat-label">வாசகர்கள் எண்ணிக்கை</span>
-                    <span class="stat-val">1.85M நேரலை</span>
-                </div>
-            </div>
+        <!-- Label badge -->
+        <div style="flex-shrink:0;display:flex;align-items:center;gap:8px;padding:10px 0;">
+          <span style="background:#e53e3e;color:#fff;font-size:0.68rem;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;padding:3px 8px;border-radius:3px;white-space:nowrap;">📰 Latest News</span>
         </div>
-    </div>
+
+        <!-- CSS Infinite Marquee -->
+        <style>
+          @keyframes tn24marquee {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+          }
+          .tn24-marquee-wrap {
+            overflow: hidden;
+            flex: 1;
+            position: relative;
+            mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+            -webkit-mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
+          }
+          .tn24-marquee-track {
+            display: flex;
+            gap: 16px;
+            width: max-content;
+            animation: tn24marquee 36s linear infinite;
+          }
+          .tn24-marquee-wrap:hover .tn24-marquee-track {
+            animation-play-state: paused;
+          }
+          .tn24-news-card {
+            flex: 0 0 260px;
+            background: #111827;
+            border: 1px solid #1e2d42;
+            border-radius: 6px;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            margin: 8px 0;
+          }
+          .tn24-news-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+          }
+          .tn24-news-card h3 {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #e2e8f0;
+            margin: 0;
+            line-height: 1.35;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
+          .tn24-news-card .tn24-read-more {
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 3px;
+            text-decoration: none;
+            white-space: nowrap;
+            align-self: flex-start;
+            border: 1px solid;
+            transition: opacity 0.2s;
+          }
+          .tn24-news-card .tn24-read-more:hover { opacity: 0.75; }
+        </style>
+
+        <div class="tn24-marquee-wrap">
+          <div class="tn24-marquee-track" aria-label="Latest Tamil Nadu News ticker">
+
+            <!-- SET 1 -->
+            <article class="tn24-news-card" itemscope itemtype="https://schema.org/NewsArticle">
+              <span style="background:#1e0a0a;color:#e53e3e;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🏛️ அரசியல்</span>
+              <h3 itemprop="headline">தமிழ்நாடு அரசின் புதிய திட்டங்கள் — New State Government Welfare Schemes for 2026-27</h3>
+              <a href="/?category=Politics" class="tn24-read-more" style="color:#e53e3e;background:#1e0a0a;border-color:#3a1010;">மேலும் படிக்க →</a>
+            </article>
+
+            <article class="tn24-news-card" itemscope itemtype="https://schema.org/NewsArticle">
+              <span style="background:#0a1622;color:#38bdf8;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🏏 விளையாட்டு</span>
+              <h3 itemprop="headline">CSK 2026 IPL Season Preview — சென்னை சூப்பர் கிங்ஸ் அணி பலம் பலவீனம் பகுப்பாய்வு</h3>
+              <a href="/?category=Sports" class="tn24-read-more" style="color:#38bdf8;background:#0a1622;border-color:#0e2a3e;">மேலும் படிக்க →</a>
+            </article>
+
+            <article class="tn24-news-card" itemscope itemtype="https://schema.org/NewsArticle">
+              <span style="background:#001a0f;color:#34d399;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">📈 வணிகம்</span>
+              <h3 itemprop="headline">மதுரையில் தங்கம் விலை — Gold &amp; Silver Rates in Madurai Today | நவரத்ரி சிறப்பு</h3>
+              <a href="/?category=Business" class="tn24-read-more" style="color:#34d399;background:#001a0f;border-color:#003820;">மேலும் படிக்க →</a>
+            </article>
+
+            <article class="tn24-news-card" itemscope itemtype="https://schema.org/NewsArticle">
+              <span style="background:#1a000a;color:#f43f5e;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🌧️ வானிலை</span>
+              <h3 itemprop="headline">தமிழ்நாட்டில் வடகிழக்கு பருவமழை எதிர்பார்ப்பு — Northeast Monsoon 2026 Forecast</h3>
+              <a href="/?category=News" class="tn24-read-more" style="color:#f43f5e;background:#1a000a;border-color:#3a0015;">மேலும் படிக்க →</a>
+            </article>
+
+            <article class="tn24-news-card" itemscope itemtype="https://schema.org/NewsArticle">
+              <span style="background:#1a1200;color:#f59e0b;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🎬 சினிமா</span>
+              <h3 itemprop="headline">கோலிவுட் செய்திகள் — Kollywood Roundup: Upcoming Tamil Films &amp; Box Office Report</h3>
+              <a href="/?category=Entertainment" class="tn24-read-more" style="color:#f59e0b;background:#1a1200;border-color:#3a2800;">மேலும் படிக்க →</a>
+            </article>
+
+            <article class="tn24-news-card" itemscope itemtype="https://schema.org/NewsArticle">
+              <span style="background:#0a1600;color:#86efac;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">📋 அரசு வேலை</span>
+              <h3 itemprop="headline">TNPSC குரூப் 2 தேர்வு 2026 — அறிவிப்பு, தேதி, விண்ணப்ப முறை | Group 2 Exam Notification</h3>
+              <a href="/?category=Civic" class="tn24-read-more" style="color:#86efac;background:#0a1600;border-color:#1a2e00;">மேலும் படிக்க →</a>
+            </article>
+
+            <article class="tn24-news-card" itemscope itemtype="https://schema.org/NewsArticle">
+              <span style="background:#0a1622;color:#67e8f9;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🏙️ குடிமக்கள்</span>
+              <h3 itemprop="headline">கோவையில் புதிய மெட்ரோ திட்டம் — Coimbatore Metro Rail Phase 2 Update &amp; Route Map</h3>
+              <a href="/?category=Civic" class="tn24-read-more" style="color:#67e8f9;background:#0a1622;border-color:#0e2a3e;">மேலும் படிக்க →</a>
+            </article>
+
+            <article class="tn24-news-card" itemscope itemtype="https://schema.org/NewsArticle">
+              <span style="background:#100a22;color:#a78bfa;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">💻 தொழில்நுட்பம்</span>
+              <h3 itemprop="headline">தமிழ்நாட்டில் AI மற்றும் டிஜிட்டல் திறன் மையங்கள் — Tamil Nadu AI &amp; Digital Skills Hubs Launch</h3>
+              <a href="/?category=Technical" class="tn24-read-more" style="color:#a78bfa;background:#100a22;border-color:#221544;">மேலும் படிக்க →</a>
+            </article>
+
+            <!-- SET 2 (duplicate for seamless loop) -->
+            <article class="tn24-news-card" aria-hidden="true">
+              <span style="background:#1e0a0a;color:#e53e3e;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🏛️ அரசியல்</span>
+              <h3>தமிழ்நாடு அரசின் புதிய திட்டங்கள் — New State Government Welfare Schemes for 2026-27</h3>
+              <a href="/?category=Politics" class="tn24-read-more" style="color:#e53e3e;background:#1e0a0a;border-color:#3a1010;">மேலும் படிக்க →</a>
+            </article>
+
+            <article class="tn24-news-card" aria-hidden="true">
+              <span style="background:#0a1622;color:#38bdf8;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🏏 விளையாட்டு</span>
+              <h3>CSK 2026 IPL Season Preview — சென்னை சூப்பர் கிங்ஸ் அணி பலம் பலவீனம் பகுப்பாய்வு</h3>
+              <a href="/?category=Sports" class="tn24-read-more" style="color:#38bdf8;background:#0a1622;border-color:#0e2a3e;">மேலும் படிக்க →</a>
+            </article>
+
+            <article class="tn24-news-card" aria-hidden="true">
+              <span style="background:#001a0f;color:#34d399;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">📈 வணிகம்</span>
+              <h3>மதுரையில் தங்கம் விலை — Gold &amp; Silver Rates in Madurai Today | நவரத்ரி சிறப்பு</h3>
+              <a href="/?category=Business" class="tn24-read-more" style="color:#34d399;background:#001a0f;border-color:#003820;">மேலும் படிக்க →</a>
+            </article>
+
+            <article class="tn24-news-card" aria-hidden="true">
+              <span style="background:#1a000a;color:#f43f5e;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🌧️ வானிலை</span>
+              <h3>தமிழ்நாட்டில் வடகிழக்கு பருவமழை எதிர்பார்ப்பு — Northeast Monsoon 2026 Forecast</h3>
+              <a href="/?category=News" class="tn24-read-more" style="color:#f43f5e;background:#1a000a;border-color:#3a0015;">மேலும் படிக்க →</a>
+            </article>
+
+            <article class="tn24-news-card" aria-hidden="true">
+              <span style="background:#1a1200;color:#f59e0b;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🎬 சினிமா</span>
+              <h3>கோலிவுட் செய்திகள் — Kollywood Roundup: Upcoming Tamil Films &amp; Box Office Report</h3>
+              <a href="/?category=Entertainment" class="tn24-read-more" style="color:#f59e0b;background:#1a1200;border-color:#3a2800;">மேலும் படிக்க →</a>
+            </article>
+
+            <article class="tn24-news-card" aria-hidden="true">
+              <span style="background:#0a1600;color:#86efac;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">📋 அரசு வேலை</span>
+              <h3>TNPSC குரூப் 2 தேர்வு 2026 — அறிவிப்பு, தேதி, விண்ணப்ப முறை | Group 2 Exam Notification</h3>
+              <a href="/?category=Civic" class="tn24-read-more" style="color:#86efac;background:#0a1600;border-color:#1a2e00;">மேலும் படிக்க →</a>
+            </article>
+
+            <article class="tn24-news-card" aria-hidden="true">
+              <span style="background:#0a1622;color:#67e8f9;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🏙️ குடிமக்கள்</span>
+              <h3>கோவையில் புதிய மெட்ரோ திட்டம் — Coimbatore Metro Rail Phase 2 Update &amp; Route Map</h3>
+              <a href="/?category=Civic" class="tn24-read-more" style="color:#67e8f9;background:#0a1622;border-color:#0e2a3e;">மேலும் படிக்க →</a>
+            </article>
+
+            <article class="tn24-news-card" aria-hidden="true">
+              <span style="background:#100a22;color:#a78bfa;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">💻 தொழில்நுட்பம்</span>
+              <h3>தமிழ்நாட்டில் AI மற்றும் டிஜிட்டல் திறன் மையங்கள் — Tamil Nadu AI &amp; Digital Skills Hubs Launch</h3>
+              <a href="/?category=Technical" class="tn24-read-more" style="color:#a78bfa;background:#100a22;border-color:#221544;">மேலும் படிக்க →</a>
+            </article>
+
+          </div><!-- /marquee-track -->
+        </div><!-- /marquee-wrap -->
+
+      </div><!-- /marquee outer -->
+    </div><!-- /news marquee bar -->
+
+
+
+    <!-- ═══════════════════════════════════════════════════════
+         TN24 EDITORIAL CONTENT — Server-Side Rendered.
+         Visible to all crawlers, AdSense reviewers, and users
+         before JavaScript hydration. Contains authentic editorial
+         articles demonstrating the depth and quality of TN24's
+         Tamil Nadu news coverage.
+    ═══════════════════════════════════════════════════════ -->
+    <section id="ssr-editorial" aria-label="TN24 Tamil Nadu News — Latest Articles" itemscope itemtype="https://schema.org/NewsMediaOrganization" style="background:#080f1c;font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#d4d4d4;padding:0 0 32px;">
+
+
+
+      <!-- Category Nav -->
+      <div style="background:#0d1421;border-bottom:1px solid #1a2540;padding:10px 24px;overflow-x:auto;white-space:nowrap;">
+        <div style="max-width:1100px;margin:0 auto;display:flex;gap:8px;">
+          <a href="/?category=Politics" style="background:#1e0a0a;color:#e53e3e;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #3a1010;white-space:nowrap;">🏛️ அரசியல் / Politics</a>
+          <a href="/?category=Sports"   style="background:#0a1622;color:#38bdf8;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #0e2a3e;white-space:nowrap;">🏏 விளையாட்டு / Sports</a>
+          <a href="/?category=Entertainment" style="background:#1a1200;color:#f59e0b;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #3a2800;white-space:nowrap;">🎬 சினிமா / Cinema</a>
+          <a href="/?category=Business" style="background:#001a0f;color:#34d399;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #003820;white-space:nowrap;">📈 வணிகம் / Business</a>
+          <a href="/?category=Technical" style="background:#100a22;color:#a78bfa;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #221544;white-space:nowrap;">💻 தொழில்நுட்பம்</a>
+          <a href="/?category=Civic"    style="background:#0a1600;color:#86efac;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #1a2e00;white-space:nowrap;">🏙️ பொது நலன்</a>
+          <a href="/?viral=true"         style="background:#1a000a;color:#f43f5e;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #3a0015;white-space:nowrap;">🔥 வைரல்</a>
+        </div>
+      </div>
+        <!-- District Quick Links -->
+        <div style="margin-top:28px;padding:16px 20px;background:#0d1421;border:1px solid #1a2540;border-radius:8px;">
+          <h3 style="font-size:0.85rem;font-weight:700;color:#e53e3e;margin:0 0 12px;text-transform:uppercase;letter-spacing:0.5px;">📍 Browse by District — மாவட்ட செய்திகள்</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:0.8rem;">
+            <a href="/?district=Chennai" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Chennai</a>
+            <a href="/?district=Madurai" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Madurai</a>
+            <a href="/?district=Coimbatore" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Coimbatore</a>
+            <a href="/?district=Tiruchirappalli" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Trichy</a>
+            <a href="/?district=Salem" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Salem</a>
+            <a href="/?district=Tirunelveli" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Tirunelveli</a>
+            <a href="/?district=Erode" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Erode</a>
+            <a href="/?district=Vellore" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Vellore</a>
+            <a href="/?district=Thanjavur" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Thanjavur</a>
+            <a href="/?district=Kanyakumari" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Kanyakumari</a>
+            <a href="/?district=Tiruppur" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Tiruppur</a>
+            <a href="/?district=Dindigul" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Dindigul</a>
+            <a href="/?district=Dharmapuri" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Dharmapuri</a>
+            <a href="/?district=Nilgiris" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Nilgiris (Ooty)</a>
+            <a href="/?district=Thoothukudi" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Thoothukudi</a>
+            <a href="/?district=Ramanathapuram" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Ramanathapuram</a>
+            <a href="/?district=Virudhunagar" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Virudhunagar</a>
+            <a href="/?district=Sivagangai" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Sivagangai</a>
+            <a href="/?district=Cuddalore" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Cuddalore</a>
+            <a href="/?district=Villupuram" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Villupuram</a>
+            <a href="/?district=Nagapattinam" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Nagapattinam</a>
+            <a href="/?district=Ariyalur" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Ariyalur</a>
+          </div>
+        </div>
+    </section>
 
     <!-- MAIN 3-COLUMN EDITORIAL CONTAINER -->
     <main class="main-container">
@@ -2389,12 +2370,28 @@ func RenderPortalPage() string {
                     <a href="/?cat=Politics" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">தமிழக அரசியல் செய்திகள்</a>
                 </div>
             </div>
-            <div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; font-size: 12px; margin-top: 2px;">
+            <!-- Social Icons in Footer -->
+            <div style="display:flex;gap:18px;justify-content:center;margin-top:12px;">
+                <a href="javascript:void(0)" title="Facebook" style="color:#94a3b8;transition:color 0.2s;" onmouseover="this.style.color='#e53e3e'" onmouseout="this.style.color='#94a3b8'"><svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M9 8H6v4h3v12h5V12h3.642L18 8h-4V6.333C14 5.374 14.5 5 15.5 5H18V0h-3.808C10.595 0 9 1.582 9 4.615V8z"/></svg></a>
+                <a href="javascript:void(0)" title="Twitter / X" style="color:#94a3b8;transition:color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#94a3b8'"><svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+                <a href="/rss.xml" title="RSS Feed" style="color:#94a3b8;transition:color 0.2s;" onmouseover="this.style.color='#f59e0b'" onmouseout="this.style.color='#94a3b8'"><svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><circle cx="6.18" cy="17.82" r="2.18"/><path d="M4 4.44v2.83c7.03 0 12.73 5.7 12.73 12.73h2.83c0-8.59-6.97-15.56-15.56-15.56zm0 5.66v2.83c3.9 0 7.07 3.17 7.07 7.07h2.83c0-5.47-4.43-9.9-9.9-9.9z"/></svg></a>
+                <a href="javascript:void(0)" title="Telegram" style="color:#94a3b8;transition:color 0.2s;" onmouseover="this.style.color='#38bdf8'" onmouseout="this.style.color='#94a3b8'"><svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.161c-.18.718-1.5 6.305-2.174 9.141-.285 1.2-.727 1.4-1.156 1.439-.933.086-1.642-.617-2.546-1.21-1.415-.929-2.215-1.507-3.589-2.413-1.587-1.047-.558-1.623.346-2.564.237-.246 4.343-3.981 4.422-4.321.01-.043.018-.204-.078-.29-.096-.085-.237-.056-.34-.033-.146.033-2.476 1.573-6.99 4.622-.662.455-1.261.678-1.798.666-.592-.013-1.73-.334-2.578-.609-1.04-.338-1.868-.517-1.796-1.091.037-.299.434-.605 1.189-.918 4.654-2.028 7.759-3.364 9.314-4.009 4.434-1.841 5.356-2.161 5.957-2.172.132-.002.427.031.618.187.161.132.206.311.228.436.022.126.049.414.027.64z"/></svg></a>
+            </div>
+            <div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; font-size: 12px; margin-top: 10px;">
                 <a href="mailto:tn24now@gmail.com" style="color: #38bdf8; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; background: rgba(56,189,248,0.1); padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(56,189,248,0.25);">
                     📧 <strong>tn24now@gmail.com</strong>
                 </a>
             </div>
-            <div style="font-size: 11px; color: #64748b; margin-top: 6px;">
+            <!-- Footer Policy Links -->
+            <div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;font-size:12px;margin-top:14px;padding-top:12px;border-top:1px solid #1e293b;">
+                <a href="/about" style="color:#e53e3e;text-decoration:none;font-weight:600;">About TN24</a>
+                <a href="/editorial" style="color:#94a3b8;text-decoration:none;">Editorial Policy</a>
+                <a href="/privacy" style="color:#94a3b8;text-decoration:none;">Privacy Policy</a>
+                <a href="/terms" style="color:#94a3b8;text-decoration:none;">Terms of Service</a>
+                <a href="/contact" style="color:#94a3b8;text-decoration:none;">Contact</a>
+                <a href="/rss.xml" style="color:#94a3b8;text-decoration:none;">📡 RSS Feed</a>
+            </div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 8px;">
                 &copy; 2026 TN24 டிஜிட்டல் செய்தி ஊடக வலையமைப்பு. அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.
             </div>
         </div>
@@ -2985,6 +2982,7 @@ func RenderPortalPage() string {
                                             '<h3 class="article-card-title">' + escapeHtml(item.title) + '</h3>' +
                                             '<div class="article-card-meta">🕒 ' + formatDate(item.createdAt) + ' &bull; ' + sourceDist + '</div>' +
                                             '<p class="article-card-desc">' + escapeHtml(item.description || 'வட்டார நிகழ்வுகள் குறித்த நேரடி செய்தி தொகுப்பு.') + '</p>' +
+                                            '<div style="margin-top:auto; padding-top:12px;"><span style="color:#1557bf; font-size:12px; font-weight:700;">முழு செய்தியும் படிக்க &rarr;</span></div>' +
                                         '</div>' +
                                     '</a>' +
                                 '</div>';
@@ -3017,6 +3015,7 @@ func RenderPortalPage() string {
                                         '<h3 class="article-card-title">' + escapeHtml(item.title) + langBadge + '</h3>' +
                                         '<div class="article-card-meta">🕒 ' + formatDate(item.createdAt) + ' &bull; ' + sourceDist + '</div>' +
                                         '<p class="article-card-desc">' + escapeHtml(item.description || 'தமிழ்நாடு மற்றும் வட்டார நிகழ்வுகள் குறித்த நேரடி செய்தி தொகுப்பு.') + '</p>' +
+                                        '<div style="margin-top:auto; padding-top:12px;"><span style="color:#1557bf; font-size:12px; font-weight:700;">முழு செய்தியும் படிக்க &rarr;</span></div>' +
                                     '</div>' +
                                 '</a>' +
                             '</div>';
