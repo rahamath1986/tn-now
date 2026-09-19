@@ -6,7 +6,7 @@ func RenderPortalPage() string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TN24 &mdash; Tamil Nadu News | தமிழ் செய்திகள் | Latest Tamil News Today Live 24x7 | TN 24</title>
+    <title>TN24 — Tamil Nadu News | தமிழ் செய்திகள் 24x7 | Latest Tamil News Live</title>
 
     <!-- ═══════════════════════════════════════════════════════
          CORE SEO META TAGS — TN24 Tamil News Portal
@@ -81,7 +81,7 @@ func RenderPortalPage() string {
     <meta property="og:title" content="TN24 — Tamil Nadu News | தமிழ் செய்திகள் | Latest Tamil News Online 24x7 Live">
     <meta property="og:description" content="TN24 (tn 24) — News Tamil 24x7 Live. Tamil Nadu news in Tamil (தமிழ் செய்திகள்), today news in tamil, latest tamil news online &amp; breaking updates from all 38 districts.">
     <meta property="og:url" content="https://www.tn24.in/">
-    <meta property="og:image" content="https://www.tn24.in/assets/assets/brand/tn24-profile.jpg">
+    <meta property="og:image" content="https://www.tn24.in/assets/brand/tn24-profile.jpg">
     <meta property="og:image:width" content="1024">
     <meta property="og:image:height" content="1024">
     <meta property="og:image:type" content="image/jpeg">
@@ -93,7 +93,7 @@ func RenderPortalPage() string {
     <meta name="twitter:creator" content="@TN24Now">
     <meta name="twitter:title" content="TN24 — Tamil Nadu News Live 24x7 | தமிழ் செய்திகள் | TN 24">
     <meta name="twitter:description" content="Latest Tamil news today, news live tamilnadu, tamil news online &amp; breaking updates from all 38 districts 24/7. தமிழ்நாட்டின் #1 செய்தி தளம்.">
-    <meta name="twitter:image" content="https://www.tn24.in/assets/assets/brand/tn24-profile.jpg">
+    <meta name="twitter:image" content="https://www.tn24.in/assets/brand/tn24-profile.jpg">
     <meta name="twitter:image:alt" content="TN24 — Tamil Nadu News | தமிழ் செய்திகள்">
 
     <!-- Structured Data: Schema.org JSON-LD -->
@@ -120,7 +120,7 @@ func RenderPortalPage() string {
           "url": "https://www.tn24.in/",
           "logo": {
             "@type": "ImageObject",
-            "url": "https://www.tn24.in/assets/assets/brand/tn24-profile.jpg",
+            "url": "https://www.tn24.in/assets/brand/tn24-profile.jpg",
             "width": 1024,
             "height": 1024
           },

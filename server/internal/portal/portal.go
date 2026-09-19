@@ -2076,7 +2076,7 @@ func (h *PortalHandler) HandlePrivacyPolicy(w http.ResponseWriter, r *http.Reque
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(renderStaticPage(
+	_, _ = w.Write([]byte(renderStaticPageWithCanonical(
 		"Privacy Policy | TN24 — Tamil Nadu News",
 		"தனியுரிமைக் கொள்கை — Privacy Policy",
 		"TN24 Privacy Policy — How we collect, use, and protect your data as a reader of Tamil Nadu's leading digital news platform.",
@@ -2134,7 +2134,7 @@ Region: Tamil Nadu, India</p>
 
 <h3>10. Contact Us</h3>
 <p>If you have any questions, concerns, or requests regarding this Privacy Policy, please reach out to us at <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a>. We are committed to addressing your concerns promptly and transparently.</p>
-`)))
+`, "https://www.tn24.in/privacy")))
 }
 
 // HandleTermsOfService serves the Terms of Service page — required by Google Publisher Center and Reader Revenue Manager.
@@ -2142,7 +2142,7 @@ func (h *PortalHandler) HandleTermsOfService(w http.ResponseWriter, r *http.Requ
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(renderStaticPage("Terms of Service | TN24 — Tamil Nadu News", "பயன்பாட்டு விதிகள் — Terms of Service",
+	_, _ = w.Write([]byte(renderStaticPageWithCanonical("Terms of Service | TN24 — Tamil Nadu News", "பயன்பாட்டு விதிகள் — Terms of Service",
 		"TN24 Terms of Service — the rules and conditions for using Tamil Nadu's leading digital news platform, including content usage, user submissions, advertising, and grievance redressal.",
 		`
 <h2>Terms of Service</h2>
@@ -2182,7 +2182,7 @@ Tamil Nadu, India</p>
 
 <h3>8. Contact Us</h3>
 <p>If you have any questions about these Terms of Service, please contact us at <a href="mailto:tn24now@gmail.com">tn24now@gmail.com</a>.</p>
-`)))
+`, "https://www.tn24.in/terms")))
 }
 
 // HandleAboutUs serves the About Us page — required for Google AdSense approval.
@@ -2190,7 +2190,7 @@ func (h *PortalHandler) HandleAboutUs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(renderStaticPage(
+	_, _ = w.Write([]byte(renderStaticPageWithCanonical(
 		"About Us | TN24 — Tamil Nadu News | தமிழ் செய்திகள்",
 		"எங்களைப் பற்றி — About TN24",
 		"Learn about TN24 — Tamil Nadu's independent 24/7 digital news platform covering breaking news, politics, civic affairs, and cultural events across all 38 districts in Tamil and English.",
@@ -2234,7 +2234,7 @@ Operating Region: Tamil Nadu, India<br>
 Newsroom Language: Tamil (தமிழ்) and English</p>
 
 <p>For editorial queries, corrections, content partnerships, or advertising, please use our <a href="/contact">Contact page</a>.</p>
-`)))
+`, "https://www.tn24.in/about")))
 }
 
 // HandleContactUs serves the Contact page — required for Google AdSense approval.
@@ -2242,7 +2242,7 @@ func (h *PortalHandler) HandleContactUs(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(renderStaticPage(
+	_, _ = w.Write([]byte(renderStaticPageWithCanonical(
 		"Contact Us | TN24 — Tamil Nadu News | தமிழ் செய்திகள்",
 		"தொடர்பு கொள்ளுங்கள் — Contact TN24",
 		"Contact TN24 newsroom for news tips, editorial corrections, content grievances, advertising inquiries, and partnership opportunities. We respond within 24 hours.",
@@ -2274,7 +2274,7 @@ Email: <a href="mailto:tn24now@gmail.com"><strong>tn24now@gmail.com</strong></a>
 <h3>🌐 Website</h3>
 <p><a href="https://www.tn24.in">www.tn24.in</a><br>
 Operating Region: Tamil Nadu, India</p>
-`)))
+`, "https://www.tn24.in/contact")))
 }
 
 // HandleEditorialPolicy serves the Editorial & Corrections Policy page — key trust signal for AdSense and Google News.
@@ -2282,7 +2282,7 @@ func (h *PortalHandler) HandleEditorialPolicy(w http.ResponseWriter, r *http.Req
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(renderStaticPage(
+	_, _ = w.Write([]byte(renderStaticPageWithCanonical(
 		"Editorial Policy | TN24 — Tamil Nadu News",
 		"ஆசிரியக் கொள்கை — Editorial & Corrections Policy",
 		"TN24 Editorial Policy — our standards for accuracy, fact-checking, source verification, corrections, and independent journalism across Tamil Nadu.",
@@ -2334,11 +2334,16 @@ func (h *PortalHandler) HandleEditorialPolicy(w http.ResponseWriter, r *http.Req
 
 <h3>9. Updates to This Policy</h3>
 <p>This Editorial Policy reflects TN24's ongoing commitment to responsible journalism. It may be updated from time to time as our coverage grows and editorial practices evolve. The most current version is always available at www.tn24.in/editorial.</p>
-`)))
+`, "https://www.tn24.in/editorial")))
 }
 
 // renderStaticPage renders a simple, SEO-friendly HTML page for Privacy Policy, About Us, Contact, Editorial, etc.
+// canonicalURL should be the full canonical URL for this specific page (e.g. "https://www.tn24.in/privacy")
 func renderStaticPage(title, heading, metaDesc, bodyHTML string) string {
+	return renderStaticPageWithCanonical(title, heading, metaDesc, bodyHTML, "https://www.tn24.in/")
+}
+
+func renderStaticPageWithCanonical(title, heading, metaDesc, bodyHTML, canonicalURL string) string {
 	return `<!DOCTYPE html>
 <html lang="ta">
 <head>
@@ -2354,7 +2359,7 @@ func renderStaticPage(title, heading, metaDesc, bodyHTML string) string {
 <meta name="description" content="` + metaDesc + `">
 <meta name="keywords" content="tn 24, news tamil 24x7 live, tamil nadu news, news live tamilnadu, தமிழ் செய்திகள், today news in tamil, news tamil today, tamil news online, latest tamil news, tamil nadu news in tamil, news tamil nadu">
 <meta name="robots" content="index, follow">
-<link rel="canonical" href="https://www.tn24.in">
+<link rel="canonical" href="` + canonicalURL + `">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f0f0f; color: #e0e0e0; line-height: 1.8; }
