@@ -251,12 +251,19 @@ func RenderPortalPage() string {
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+        }
         body {
             font-family: var(--font-main);
             background-color: var(--bg-body);
             color: var(--text-dark);
             line-height: 1.45;
             -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            width: 100%;
+            position: relative;
         }
 
         a { text-decoration: none; color: inherit; transition: color 0.15s; }
@@ -1494,6 +1501,7 @@ func RenderPortalPage() string {
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
+                justify-content: flex-start;
             }
             .nav-inner::-webkit-scrollbar {
                 display: none;
@@ -1503,6 +1511,7 @@ func RenderPortalPage() string {
                 flex-wrap: nowrap;
                 white-space: nowrap;
                 gap: 2px;
+                width: max-content;
             }
             .nav-link {
                 padding: 9px 12px;
@@ -1845,6 +1854,7 @@ func RenderPortalPage() string {
           .tn24-marquee-wrap {
             overflow: hidden;
             flex: 1;
+            min-width: 0;
             position: relative;
             mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
             -webkit-mask-image: linear-gradient(to right, transparent 0, #000 24px, #000 calc(100% - 24px), transparent 100%);
