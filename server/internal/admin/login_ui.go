@@ -290,7 +290,7 @@ func RenderLoginPage(errorMsg string) string {
 
     <div class="login-card">
         <div class="brand-header">
-            <a href="/portal">
+            <a href="/">
                 <img src="/portal/assets/brand/tn24-logo.svg" alt="TN24 Logo" class="brand-logo-img">
             </a>
             <h1 class="login-title">நிர்வாக மையம்</h1>
@@ -325,7 +325,7 @@ func RenderLoginPage(errorMsg string) string {
 
         <div class="login-footer">
             <span class="badge-live"><span class="live-dot"></span> TN24 24/7 Engine</span>
-            <a href="/portal" class="footer-link">பொது தளம் (Portal) ↗</a>
+            <a href="/" class="footer-link">பொது தளம் (Portal) ↗</a>
         </div>
     </div>
 

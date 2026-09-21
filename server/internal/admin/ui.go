@@ -687,7 +687,7 @@ func RenderAdminDashboard() string {
     <!-- Navigation Sidebar -->
     <aside aria-label="Main Navigation">
         <div class="brand-logo" style="padding-bottom: 18px; margin-bottom: 20px; border-bottom: 1px solid var(--border);">
-            <a href="/portal" target="_blank" title="Open Live Portal in new tab" style="display: flex; align-items: center; text-decoration: none;">
+            <a href="/" target="_blank" title="Open Live Portal in new tab" style="display: flex; align-items: center; text-decoration: none;">
                 <img src="/portal/assets/brand/tn24-logo.svg?v=20260908d" alt="TN24" style="height: 38px; display: block;" />
             </a>
         </div>
@@ -1042,7 +1042,7 @@ func RenderAdminDashboard() string {
                         </div>
                     </div>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <a href="/portal" target="_blank" class="action-btn" style="color: #38bdf8; border-color: #38bdf8; font-size: 12px; text-decoration: none; padding: 4px 10px;">🌐 Open TN24 Live Portal ↗</a>
+                        <a href="/" target="_blank" class="action-btn" style="color: #38bdf8; border-color: #38bdf8; font-size: 12px; text-decoration: none; padding: 4px 10px;">🌐 Open TN24 Live Portal ↗</a>
                         <button type="button" class="action-btn" onclick="loadBannerConfig()" style="font-size: 12px; padding: 4px 8px;">🔄 Refresh Slots</button>
                     </div>
                 </div>

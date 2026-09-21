@@ -33,7 +33,7 @@ func TestPortalSEOKeywords(t *testing.T) {
 	}
 
 	// Verify SEO Title
-	if !strings.Contains(html, "<title>TN24 &mdash; Tamil Nadu News | தமிழ் செய்திகள் | Latest Tamil News Today Live 24x7 | TN 24</title>") {
+	if !strings.Contains(html, "<title>TN24 — Tamil Nadu News | தமிழ் செய்திகள் 24x7 | Latest Tamil News Live</title>") {
 		t.Errorf("expected target title tag not found")
 	}
 
@@ -81,8 +81,11 @@ func TestSitemapAndRobots(t *testing.T) {
 	if !strings.Contains(sitemapBody, "<urlset") {
 		t.Errorf("expected <urlset> in sitemap, got %s", sitemapBody)
 	}
-	if !strings.Contains(sitemapBody, "?q=tamil+nadu+news") {
-		t.Errorf("expected target keyword URL in sitemap.xml")
+	if !strings.Contains(sitemapBody, "<loc>https://www.tn24.in/</loc>") {
+		t.Errorf("expected canonical homepage in sitemap.xml")
+	}
+	if strings.Contains(sitemapBody, "<loc>https://www.tn24.in/portal</loc>") {
+		t.Errorf("sitemap.xml should not contain redirecting /portal URL")
 	}
 
 	// Test Google News Sitemap
@@ -153,7 +156,7 @@ func TestGoogleAdSenseUnit(t *testing.T) {
 func TestFaviconAndWebsiteTitle(t *testing.T) {
 	// Test website title in main portal page
 	portalHTML := RenderPortalPage()
-	if !strings.Contains(portalHTML, "<title>TN24 &mdash; Tamil Nadu News | தமிழ் செய்திகள் | Latest Tamil News Today Live 24x7 | TN 24</title>") {
+	if !strings.Contains(portalHTML, "<title>TN24 — Tamil Nadu News | தமிழ் செய்திகள் 24x7 | Latest Tamil News Live</title>") {
 		t.Errorf("expected primary title in RenderPortalPage")
 	}
 

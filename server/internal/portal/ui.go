@@ -3108,7 +3108,7 @@ func RenderPortalPage() string {
         function showArticleModal(item) {
             currentModalArticle = item;
             if (window.history && window.history.replaceState) {
-                window.history.replaceState(null, '', '/portal?post=' + encodeURIComponent(item.id));
+                window.history.replaceState(null, '', '/?post=' + encodeURIComponent(item.id));
             }
             document.getElementById('modalTitle').textContent = decodeHtml(item.title);
             document.getElementById('modalCategoryBadge').textContent = (item.category || 'செய்திகள்').toUpperCase();
@@ -3156,7 +3156,7 @@ func RenderPortalPage() string {
                 if (urlParams.has('post')) {
                     urlParams.delete('post');
                     const newQuery = urlParams.toString();
-                    window.history.replaceState(null, '', newQuery ? ('/portal?' + newQuery) : '/portal');
+                    window.history.replaceState(null, '', newQuery ? ('/?' + newQuery) : '/');
                 }
             }
         }
@@ -3186,14 +3186,14 @@ func RenderPortalPage() string {
         function shareToWhatsApp() {
             if (!currentModalArticle) return;
             const title = currentModalArticle.title || '';
-            const url = window.location.origin + '/portal?post=' + encodeURIComponent(currentModalArticle.id);
+            const url = window.location.origin + '/?post=' + encodeURIComponent(currentModalArticle.id);
             const text = encodeURIComponent('🔥 *' + title + '*\n\nமுழு செய்தி விவரம் படிக்க:\n' + url + '\n\n— TN24 News');
             window.open('https://api.whatsapp.com/send?text=' + text, '_blank');
         }
 
         function shareNative() {
             if (!currentModalArticle) return;
-            const url = window.location.origin + '/portal?post=' + encodeURIComponent(currentModalArticle.id);
+            const url = window.location.origin + '/?post=' + encodeURIComponent(currentModalArticle.id);
             if (navigator.share) {
                 navigator.share({
                     title: currentModalArticle.title,
@@ -3207,7 +3207,7 @@ func RenderPortalPage() string {
 
         function copyShareLink() {
             if (currentModalArticle) {
-                const shareUrl = window.location.origin + '/portal?post=' + encodeURIComponent(currentModalArticle.id);
+                const shareUrl = window.location.origin + '/?post=' + encodeURIComponent(currentModalArticle.id);
                 navigator.clipboard.writeText(shareUrl).then(() => {
                     showToast('செய்தி இணைப்பு நகலெடுக்கப்பட்டது!');
                 }).catch(() => {
@@ -3397,7 +3397,7 @@ func RenderPortalPage() string {
             currentQuery = '';
             currentIsViral = false;
             if (window.history && window.history.pushState) {
-                window.history.pushState(null, '', isAll ? '/portal' : ('/portal?district=' + encodeURIComponent(name)));
+                window.history.pushState(null, '', isAll ? '/' : ('/?district=' + encodeURIComponent(name)));
             }
             loadPortalFeed(targetDistrict, '', '', false);
             showToast(isAll ? 'அனைத்து மாவட்ட செய்திகளும் காண்பிக்கப்படுகின்றன' : name + ' மாவட்டச் செய்திகள்');
@@ -3413,7 +3413,7 @@ func RenderPortalPage() string {
                 document.getElementById('selectedDistrictLabel').textContent = 'தமிழ்நாடு - அனைத்து வட்டாரங்கள்';
                 setActiveNavTab('nav-item-home');
                 if (window.history && window.history.pushState) {
-                    window.history.pushState(null, '', '/portal');
+                    window.history.pushState(null, '', '/');
                 }
                 loadPortalFeed('', '', '', false);
                 showToast('அனைத்து செய்திகளும் புதுப்பிக்கப்பட்டன');
@@ -3429,7 +3429,7 @@ func RenderPortalPage() string {
                 setActiveNavTab('nav-item-categories');
             }
             if (window.history && window.history.pushState) {
-                window.history.pushState(null, '', '/portal?category=' + encodeURIComponent(cat));
+                window.history.pushState(null, '', '/?category=' + encodeURIComponent(cat));
             }
             loadPortalFeed('', cat, '', false);
             showToast('செய்திப் பிரிவு: ' + cat);
@@ -3442,7 +3442,7 @@ func RenderPortalPage() string {
                 currentIsViral = false;
                 setActiveNavTab('nav-item-home');
                 if (window.history && window.history.pushState) {
-                    window.history.pushState(null, '', '/portal');
+                    window.history.pushState(null, '', '/');
                 }
                 loadPortalFeed(currentDistrict || '', currentCategory || '', '', false);
                 showToast('வைரல் வடிகட்டி நீக்கப்பட்டது');
@@ -3450,7 +3450,7 @@ func RenderPortalPage() string {
                 currentIsViral = true;
                 setActiveNavTab('nav-item-viral');
                 if (window.history && window.history.pushState) {
-                    window.history.pushState(null, '', '/portal?viral=true');
+                    window.history.pushState(null, '', '/?viral=true');
                 }
                 loadPortalFeed('', '', '', true);
                 showToast('🔥 வைரல் செய்திகள் வரிசைப்படுத்தப்பட்டுள்ளன');
@@ -3464,7 +3464,7 @@ func RenderPortalPage() string {
         function executeSearch() {
             const q = document.getElementById('searchInput').value.trim();
             if (window.history && window.history.pushState) {
-                window.history.pushState(null, '', q ? ('/portal?q=' + encodeURIComponent(q)) : '/portal');
+                window.history.pushState(null, '', q ? ('/?q=' + encodeURIComponent(q)) : '/');
             }
             loadPortalFeed('', '', q, false);
             if (q) showToast('தேடப்படுகிறது: ' + q);
