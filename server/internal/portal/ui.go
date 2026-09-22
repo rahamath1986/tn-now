@@ -2118,11 +2118,11 @@ func RenderPortalPage() string {
 
             <!-- Homepage Core Primary H1 -->
             <header class="homepage-seo-header" id="portalMainHeader" style="margin-bottom: 14px;">
-                <h1 class="portal-main-h1" id="portalMainH1" style="font-size: 1.25rem; font-weight: 800; color: #f8fafc; margin: 0 0 4px; display: flex; align-items: center; gap: 8px;">
+                <h1 class="portal-main-h1" id="portalMainH1" style="font-size: 1.25rem; font-weight: 800; color: #000000; margin: 0 0 4px; display: flex; align-items: center; gap: 8px;">
                     <span style="display:inline-block; width:4px; height:18px; background:#ef4444; border-radius:2px;"></span>
                     TN24 – Latest Tamil News &amp; Tamil Nadu News
                 </h1>
-                <p style="font-size: 0.85rem; color: #94a3b8; margin: 0;">தமிழ்நாடு மற்றும் 38 மாவட்டங்களின் உண்மைச் செய்திகள் உடனுக்குடன் 24x7</p>
+                <p style="font-size: 0.85rem; color: #000000; margin: 0;">தமிழ்நாடு மற்றும் 38 மாவட்டங்களின் உண்மைச் செய்திகள் உடனுக்குடன் 24x7</p>
             </header>
 
             <!-- Lead Hero Article -->
