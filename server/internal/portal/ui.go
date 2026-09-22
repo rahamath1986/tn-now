@@ -6,16 +6,14 @@ func RenderPortalPage() string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TN24 — Tamil Nadu News | தமிழ் செய்திகள் 24x7 | Latest Tamil News Live</title>
+    <title>TN24 – Tamil News | Latest Tamil Nadu News &amp; District News</title>
 
     <!-- ═══════════════════════════════════════════════════════
          CORE SEO META TAGS — TN24 Tamil News Portal
-         Optimized for: tn 24, news tamil 24x7 live, tamil nadu news,
-         news live tamilnadu, தமிழ் செய்திகள், today news in tamil,
-         news tamil today, tamil news online, latest tamil news,
-         tamil nadu news in tamil, news tamil nadu
+         Optimized for: TN24, tn 24, Tamil News, Tamil Nadu News,
+         District News, Latest News, Breaking News
     ═══════════════════════════════════════════════════════ -->
-    <meta name="description" content="TN24 (tn 24) — Tamil Nadu news, latest tamil news &amp; today news in tamil live 24x7. தமிழ்நாடு செய்திகள், தமிழ் செய்திகள் ஆன்லைன் (tamil news online), news live tamilnadu, Chennai &amp; 38 districts breaking updates 24/7.">
+    <meta name="description" content="TN24 brings the latest Tamil news, Tamil Nadu district news, politics, cinema, sports and breaking news from across Tamil Nadu.">
 
     <!-- Primary High-Volume Target Keywords -->
     <meta name="keywords" content="
@@ -78,23 +76,23 @@ func RenderPortalPage() string {
     <meta property="og:site_name" content="TN24 — Tamil Nadu News">
     <meta property="og:locale" content="ta_IN">
     <meta property="og:locale:alternate" content="en_IN">
-    <meta property="og:title" content="TN24 — Tamil Nadu News | தமிழ் செய்திகள் | Latest Tamil News Online 24x7 Live">
-    <meta property="og:description" content="TN24 (tn 24) — News Tamil 24x7 Live. Tamil Nadu news in Tamil (தமிழ் செய்திகள்), today news in tamil, latest tamil news online &amp; breaking updates from all 38 districts.">
+    <meta property="og:title" content="TN24 – Tamil News | Latest Tamil Nadu News &amp; District News">
+    <meta property="og:description" content="TN24 brings the latest Tamil news, Tamil Nadu district news, politics, cinema, sports and breaking news from across Tamil Nadu.">
     <meta property="og:url" content="https://www.tn24.in/">
     <meta property="og:image" content="https://www.tn24.in/assets/brand/tn24-profile.jpg">
     <meta property="og:image:width" content="1024">
     <meta property="og:image:height" content="1024">
     <meta property="og:image:type" content="image/jpeg">
-    <meta property="og:image:alt" content="TN24 — Tamil Nadu News | தமிழ் செய்திகள் | News Live Tamilnadu">
+    <meta property="og:image:alt" content="TN24 – Tamil News | Latest Tamil Nadu News &amp; District News">
 
     <!-- Twitter / X Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@TN24Now">
     <meta name="twitter:creator" content="@TN24Now">
-    <meta name="twitter:title" content="TN24 — Tamil Nadu News Live 24x7 | தமிழ் செய்திகள் | TN 24">
-    <meta name="twitter:description" content="Latest Tamil news today, news live tamilnadu, tamil news online &amp; breaking updates from all 38 districts 24/7. தமிழ்நாட்டின் #1 செய்தி தளம்.">
+    <meta name="twitter:title" content="TN24 – Tamil News | Latest Tamil Nadu News &amp; District News">
+    <meta name="twitter:description" content="TN24 brings the latest Tamil news, Tamil Nadu district news, politics, cinema, sports and breaking news from across Tamil Nadu.">
     <meta name="twitter:image" content="https://www.tn24.in/assets/brand/tn24-profile.jpg">
-    <meta name="twitter:image:alt" content="TN24 — Tamil Nadu News | தமிழ் செய்திகள்">
+    <meta name="twitter:image:alt" content="TN24 – Tamil News | Latest Tamil Nadu News &amp; District News">
 
     <!-- Structured Data: Schema.org JSON-LD -->
     <script type="application/ld+json">
@@ -104,19 +102,18 @@ func RenderPortalPage() string {
         {
           "@type": "NewsMediaOrganization",
           "@id": "https://www.tn24.in/#organization",
-          "name": "TN24 — Tamil Nadu News",
+          "name": "TN24",
           "alternateName": [
-            "TN24",
+            "TN24 — Tamil Nadu News",
             "tn 24",
             "TN24 News",
             "TN24 Live",
             "TN24 Tamil News",
             "தமிழ் செய்திகள் TN24",
             "TN24 Now",
-            "tn24now.in",
             "tn24.in"
           ],
-          "description": "Tamil Nadu's #1 digital news portal delivering 24/7 live breaking news in Tamil (தமிழ் செய்திகள்) and English from all 38 districts.",
+          "description": "TN24 brings the latest Tamil news, Tamil Nadu district news, politics, cinema, sports and breaking news from across Tamil Nadu.",
           "url": "https://www.tn24.in/",
           "logo": {
             "@type": "ImageObject",
@@ -133,19 +130,6 @@ func RenderPortalPage() string {
               "name": "India"
             }
           },
-          "keywords": [
-            "tn 24",
-            "news tamil 24x7 live",
-            "tamil nadu news",
-            "news live tamilnadu",
-            "தமிழ் செய்திகள்",
-            "today news in tamil",
-            "news tamil today",
-            "tamil news online",
-            "latest tamil news",
-            "tamil nadu news in tamil",
-            "news tamil nadu"
-          ],
           "contactPoint": {
             "@type": "ContactPoint",
             "contactType": "News Desk",
@@ -164,11 +148,12 @@ func RenderPortalPage() string {
           "@type": "WebSite",
           "@id": "https://www.tn24.in/#website",
           "url": "https://www.tn24.in/",
-          "name": "TN24 — Tamil Nadu News & தமிழ் செய்திகள்",
-          "headline": "TN24: News Tamil 24x7 Live — Today News in Tamil & Latest Tamil Nadu News Online",
-          "description": "TN24 (tn 24) — Live Tamil Nadu news portal covering latest tamil news, today news in tamil, breaking news live tamilnadu, politics, cinema, sports & TNPSC from all 38 districts.",
+          "name": "TN24",
+          "alternateName": "TN24 — Tamil News",
+          "headline": "TN24 – Latest Tamil News & Tamil Nadu News",
+          "description": "TN24 brings the latest Tamil news, Tamil Nadu district news, politics, cinema, sports and breaking news from across Tamil Nadu.",
           "inLanguage": ["ta", "en-IN"],
-          "keywords": "tn 24, news tamil 24x7 live, tamil nadu news, news live tamilnadu, தமிழ் செய்திகள், today news in tamil, news tamil today, tamil news online, latest tamil news, tamil nadu news in tamil, news tamil nadu",
+          "keywords": "TN24, tn 24, Tamil News, Tamil Nadu News, District News, Latest News, Breaking News, தமிழ் செய்திகள்",
           "publisher": {
             "@id": "https://www.tn24.in/#organization"
           },
@@ -204,12 +189,12 @@ func RenderPortalPage() string {
           ],
           "url": [
             "https://www.tn24.in/",
-            "https://www.tn24.in/?category=News",
-            "https://www.tn24.in/?category=Politics",
-            "https://www.tn24.in/?category=Entertainment",
-            "https://www.tn24.in/?category=Sports",
-            "https://www.tn24.in/?category=Business",
-            "https://www.tn24.in/?category=Technical",
+            "https://www.tn24.in/category/news",
+            "https://www.tn24.in/category/politics",
+            "https://www.tn24.in/category/entertainment",
+            "https://www.tn24.in/category/sports",
+            "https://www.tn24.in/category/business",
+            "https://www.tn24.in/category/technical",
             "https://www.tn24.in/#districts",
             "https://www.tn24.in/#government-jobs"
           ]
@@ -728,6 +713,7 @@ func RenderPortalPage() string {
         .ad-banner-square {
             width: 100%;
             height: 200px;
+            min-height: 200px;
             background: linear-gradient(135deg, #a5b4fc 0%, #f472b6 100%);
             border-radius: 4px;
             display: flex;
@@ -866,6 +852,7 @@ func RenderPortalPage() string {
         .ad-banner-horizontal {
             width: 100%;
             height: 90px;
+            min-height: 90px;
             background: linear-gradient(90deg, #a78bfa 0%, #f472b6 50%, #fb923c 100%);
             border-radius: 4px;
             display: flex;
@@ -1201,6 +1188,7 @@ func RenderPortalPage() string {
         .ad-banner-250 {
             width: 100%;
             height: 250px;
+            min-height: 250px;
             background: linear-gradient(135deg, #93c5fd 0%, #f472b6 100%);
             border-radius: 4px;
             display: flex;
@@ -1212,6 +1200,23 @@ func RenderPortalPage() string {
             letter-spacing: 1px;
             text-transform: uppercase;
             position: relative;
+        }
+        .ad-unit-leaderboard {
+            min-height: 90px;
+            width: 100%;
+        }
+        .ad-unit-sidebar {
+            min-height: 250px;
+            width: 100%;
+        }
+        #ad-banner-header-slot {
+            min-height: 90px;
+        }
+        #ad-banner-square-slot {
+            min-height: 200px;
+        }
+        #ad-banner-sidebar-slot {
+            min-height: 250px;
         }
 
         /* Most Read (Numbered 1-5) */
@@ -1735,7 +1740,7 @@ func RenderPortalPage() string {
     <header style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;padding:14px 20px;background:#0d1421;border-bottom:1px solid #1a2540;">
         <div style="display:flex;align-items:center;gap:16px;">
             <a href="/" class="brand-logo" title="TN24" style="text-decoration:none;flex-shrink:0;">
-                <img src="/assets/brand/tn24-logo.svg?v=20260908d" alt="TN24 Tamil Nadu News" style="height:42px;display:block;" />
+                <img src="/assets/brand/tn24-logo.svg?v=20260908d" alt="TN24 Tamil Nadu News" width="210" height="42" loading="eager" fetchpriority="high" style="height:42px;width:auto;display:block;" />
             </a>
             <div class="hide-on-mobile" style="display:flex; flex-direction:column; justify-content:center;">
                 <div style="font-size:1.1rem;font-weight:800;color:#fff;margin:0 0 2px;letter-spacing:-0.2px;">TN24 — Your Source for Tamil Nadu News</div>
@@ -1767,69 +1772,69 @@ func RenderPortalPage() string {
                     <a href="/#districts" class="nav-link">மாவட்டங்கள் <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6"/></svg></a>
                     <div class="nav-dropdown" id="districtDropdownMenu" style="max-height: 380px; overflow-y: auto;">
                         <a href="/" onclick="filterDistrict('All Districts', event)">அனைத்து மாவட்டங்கள் (38)</a>
-                        <a href="/?district=Chennai" onclick="filterDistrict('Chennai', event)">சென்னை (Chennai)</a>
-                        <a href="/?district=Coimbatore" onclick="filterDistrict('Coimbatore', event)">கோயம்புத்தூர் (Coimbatore)</a>
-                        <a href="/?district=Madurai" onclick="filterDistrict('Madurai', event)">மதுரை (Madurai)</a>
-                        <a href="/?district=Tiruchirappalli" onclick="filterDistrict('Tiruchirappalli', event)">திருச்சிராப்பள்ளி (Trichy)</a>
-                        <a href="/?district=Salem" onclick="filterDistrict('Salem', event)">சேலம் (Salem)</a>
-                        <a href="/?district=Tirunelveli" onclick="filterDistrict('Tirunelveli', event)">திருநெல்வேலி (Tirunelveli)</a>
-                        <a href="/?district=Tiruppur" onclick="filterDistrict('Tiruppur', event)">திருப்பூர் (Tiruppur)</a>
-                        <a href="/?district=Erode" onclick="filterDistrict('Erode', event)">ஈரோடு (Erode)</a>
-                        <a href="/?district=Vellore" onclick="filterDistrict('Vellore', event)">வேலூர் (Vellore)</a>
-                        <a href="/?district=Thanjavur" onclick="filterDistrict('Thanjavur', event)">தஞ்சாவூர் (Thanjavur)</a>
-                        <a href="/?district=Dindigul" onclick="filterDistrict('Dindigul', event)">திண்டுக்கல் (Dindigul)</a>
-                        <a href="/?district=Kanyakumari" onclick="filterDistrict('Kanyakumari', event)">கன்னியாகுமரி (Kanyakumari)</a>
-                        <a href="/?district=Thoothukudi" onclick="filterDistrict('Thoothukudi', event)">தூத்துக்குடி (Thoothukudi)</a>
-                        <a href="/?district=Ranipet" onclick="filterDistrict('Ranipet', event)">ராணிப்பேட்டை (Ranipet)</a>
-                        <a href="/?district=Virudhunagar" onclick="filterDistrict('Virudhunagar', event)">விருதுநகர் (Virudhunagar)</a>
-                        <a href="/?district=Sivagangai" onclick="filterDistrict('Sivagangai', event)">சிவகங்கை (Sivagangai)</a>
-                        <a href="/?district=Ramanathapuram" onclick="filterDistrict('Ramanathapuram', event)">ராமநாதபுரம் (Ramanathapuram)</a>
-                        <a href="/?district=Theni" onclick="filterDistrict('Theni', event)">தேனி (Theni)</a>
-                        <a href="/?district=Karur" onclick="filterDistrict('Karur', event)">கரூர் (Karur)</a>
-                        <a href="/?district=Namakkal" onclick="filterDistrict('Namakkal', event)">நாமக்கல் (Namakkal)</a>
-                        <a href="/?district=Nilgiris" onclick="filterDistrict('Nilgiris', event)">நீலகிரி (Nilgiris)</a>
-                        <a href="/?district=Cuddalore" onclick="filterDistrict('Cuddalore', event)">கடலூர் (Cuddalore)</a>
-                        <a href="/?district=Villupuram" onclick="filterDistrict('Villupuram', event)">விழுப்புரம் (Villupuram)</a>
-                        <a href="/?district=Kallakurichi" onclick="filterDistrict('Kallakurichi', event)">கள்ளக்குறிச்சி (Kallakurichi)</a>
-                        <a href="/?district=Chengalpattu" onclick="filterDistrict('Chengalpattu', event)">செங்கல்பட்டு (Chengalpattu)</a>
-                        <a href="/?district=Kanchipuram" onclick="filterDistrict('Kanchipuram', event)">காஞ்சிபுரம் (Kanchipuram)</a>
-                        <a href="/?district=Tiruvallur" onclick="filterDistrict('Tiruvallur', event)">திருவள்ளூர் (Tiruvallur)</a>
-                        <a href="/?district=Tiruvannamalai" onclick="filterDistrict('Tiruvannamalai', event)">திருவண்ணாமலை (Tiruvannamalai)</a>
-                        <a href="/?district=Dharmapuri" onclick="filterDistrict('Dharmapuri', event)">தருமபுரி (Dharmapuri)</a>
-                        <a href="/?district=Krishnagiri" onclick="filterDistrict('Krishnagiri', event)">கிருஷ்ணகிரி (Krishnagiri)</a>
-                        <a href="/?district=Pudukkottai" onclick="filterDistrict('Pudukkottai', event)">புதுக்கோட்டை (Pudukkottai)</a>
-                        <a href="/?district=Ariyalur" onclick="filterDistrict('Ariyalur', event)">அரியலூர் (Ariyalur)</a>
-                        <a href="/?district=Perambalur" onclick="filterDistrict('Perambalur', event)">பெரம்பலூர் (Perambalur)</a>
-                        <a href="/?district=Nagapattinam" onclick="filterDistrict('Nagapattinam', event)">நாகப்பட்டினம் (Nagapattinam)</a>
-                        <a href="/?district=Tiruvarur" onclick="filterDistrict('Tiruvarur', event)">திருவாரூர் (Tiruvarur)</a>
-                        <a href="/?district=Mayiladuthurai" onclick="filterDistrict('Mayiladuthurai', event)">மயிலாடுதுறை (Mayiladuthurai)</a>
-                        <a href="/?district=Tenkasi" onclick="filterDistrict('Tenkasi', event)">தென்காசி (Tenkasi)</a>
-                        <a href="/?district=Tirupathur" onclick="filterDistrict('Tirupathur', event)">திருப்பத்தூர் (Tirupathur)</a>
+                        <a href="/district/chennai" onclick="filterDistrict('Chennai', event)">சென்னை (Chennai)</a>
+                        <a href="/district/coimbatore" onclick="filterDistrict('Coimbatore', event)">கோயம்புத்தூர் (Coimbatore)</a>
+                        <a href="/district/madurai" onclick="filterDistrict('Madurai', event)">மதுரை (Madurai)</a>
+                        <a href="/district/tiruchirappalli" onclick="filterDistrict('Tiruchirappalli', event)">திருச்சிராப்பள்ளி (Trichy)</a>
+                        <a href="/district/salem" onclick="filterDistrict('Salem', event)">சேலம் (Salem)</a>
+                        <a href="/district/tirunelveli" onclick="filterDistrict('Tirunelveli', event)">திருநெல்வேலி (Tirunelveli)</a>
+                        <a href="/district/tiruppur" onclick="filterDistrict('Tiruppur', event)">திருப்பூர் (Tiruppur)</a>
+                        <a href="/district/erode" onclick="filterDistrict('Erode', event)">ஈரோடு (Erode)</a>
+                        <a href="/district/vellore" onclick="filterDistrict('Vellore', event)">வேலூர் (Vellore)</a>
+                        <a href="/district/thanjavur" onclick="filterDistrict('Thanjavur', event)">தஞ்சாவூர் (Thanjavur)</a>
+                        <a href="/district/dindigul" onclick="filterDistrict('Dindigul', event)">திண்டுக்கல் (Dindigul)</a>
+                        <a href="/district/kanyakumari" onclick="filterDistrict('Kanyakumari', event)">கன்னியாகுமரி (Kanyakumari)</a>
+                        <a href="/district/thoothukudi" onclick="filterDistrict('Thoothukudi', event)">தூத்துக்குடி (Thoothukudi)</a>
+                        <a href="/district/ranipet" onclick="filterDistrict('Ranipet', event)">ராணிப்பேட்டை (Ranipet)</a>
+                        <a href="/district/virudhunagar" onclick="filterDistrict('Virudhunagar', event)">விருதுநகர் (Virudhunagar)</a>
+                        <a href="/district/sivagangai" onclick="filterDistrict('Sivagangai', event)">சிவகங்கை (Sivagangai)</a>
+                        <a href="/district/ramanathapuram" onclick="filterDistrict('Ramanathapuram', event)">ராமநாதபுரம் (Ramanathapuram)</a>
+                        <a href="/district/theni" onclick="filterDistrict('Theni', event)">தேனி (Theni)</a>
+                        <a href="/district/karur" onclick="filterDistrict('Karur', event)">கரூர் (Karur)</a>
+                        <a href="/district/namakkal" onclick="filterDistrict('Namakkal', event)">நாமக்கல் (Namakkal)</a>
+                        <a href="/district/nilgiris" onclick="filterDistrict('Nilgiris', event)">நீலகிரி (Nilgiris)</a>
+                        <a href="/district/cuddalore" onclick="filterDistrict('Cuddalore', event)">கடலூர் (Cuddalore)</a>
+                        <a href="/district/villupuram" onclick="filterDistrict('Villupuram', event)">விழுப்புரம் (Villupuram)</a>
+                        <a href="/district/kallakurichi" onclick="filterDistrict('Kallakurichi', event)">கள்ளக்குறிச்சி (Kallakurichi)</a>
+                        <a href="/district/chengalpattu" onclick="filterDistrict('Chengalpattu', event)">செங்கல்பட்டு (Chengalpattu)</a>
+                        <a href="/district/kanchipuram" onclick="filterDistrict('Kanchipuram', event)">காஞ்சிபுரம் (Kanchipuram)</a>
+                        <a href="/district/tiruvallur" onclick="filterDistrict('Tiruvallur', event)">திருவள்ளூர் (Tiruvallur)</a>
+                        <a href="/district/tiruvannamalai" onclick="filterDistrict('Tiruvannamalai', event)">திருவண்ணாமலை (Tiruvannamalai)</a>
+                        <a href="/district/dharmapuri" onclick="filterDistrict('Dharmapuri', event)">தருமபுரி (Dharmapuri)</a>
+                        <a href="/district/krishnagiri" onclick="filterDistrict('Krishnagiri', event)">கிருஷ்ணகிரி (Krishnagiri)</a>
+                        <a href="/district/pudukkottai" onclick="filterDistrict('Pudukkottai', event)">புதுக்கோட்டை (Pudukkottai)</a>
+                        <a href="/district/ariyalur" onclick="filterDistrict('Ariyalur', event)">அரியலூர் (Ariyalur)</a>
+                        <a href="/district/perambalur" onclick="filterDistrict('Perambalur', event)">பெரம்பலூர் (Perambalur)</a>
+                        <a href="/district/nagapattinam" onclick="filterDistrict('Nagapattinam', event)">நாகப்பட்டினம் (Nagapattinam)</a>
+                        <a href="/district/tiruvarur" onclick="filterDistrict('Tiruvarur', event)">திருவாரூர் (Tiruvarur)</a>
+                        <a href="/district/mayiladuthurai" onclick="filterDistrict('Mayiladuthurai', event)">மயிலாடுதுறை (Mayiladuthurai)</a>
+                        <a href="/district/tenkasi" onclick="filterDistrict('Tenkasi', event)">தென்காசி (Tenkasi)</a>
+                        <a href="/district/tirupathur" onclick="filterDistrict('Tirupathur', event)">திருப்பத்தூர் (Tirupathur)</a>
                     </div>
                 </li>
                 <li class="nav-item" id="nav-item-viral">
                     <a href="/?viral=true" onclick="filterViral(event)" class="nav-link" style="color: #f97316; font-weight: 700;">🔥 வைரல் செய்திகள்</a>
                 </li>
                 <li class="nav-item" id="nav-item-sports">
-                    <a href="/?category=Sports" onclick="filterCategory('Sports', event)" class="nav-link" style="color: #38bdf8; font-weight: 700;">⚽ விளையாட்டு</a>
+                    <a href="/category/sports" onclick="filterCategory('Sports', event)" class="nav-link" style="color: #38bdf8; font-weight: 700;">⚽ விளையாட்டு</a>
                 </li>
                 <li class="nav-item" id="nav-item-categories">
                     <a href="/#categories" class="nav-link">பிரிவுகள் <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9l6 6 6-6"/></svg></a>
                     <div class="nav-dropdown">
-                        <a href="/?category=News" onclick="filterCategory('News', event)">செய்திகள் &amp; பொதுமக்கள் (News)</a>
-                        <a href="/?category=Politics" onclick="filterCategory('Politics', event)">அரசியல் &amp; ஆட்சி முறை (Politics)</a>
-                        <a href="/?category=Sports" onclick="filterCategory('Sports', event)">விளையாட்டு &amp; கிரிக்கெட் (Sports)</a>
-                        <a href="/?category=Technical" onclick="filterCategory('Technical', event)">தொழில்நுட்பம் &amp; ஏஐ (Tech)</a>
-                        <a href="/?category=Business" onclick="filterCategory('Business', event)">வணிகம் &amp; பங்குச்சந்தை (Business)</a>
-                        <a href="/?category=Entertainment" onclick="filterCategory('Entertainment', event)">சினிமா &amp; கலை உலகம் (Cinema)</a>
-                        <a href="/?category=Crime" onclick="filterCategory('Crime', event)">குற்ற நிகழ்வுகள் &amp; சட்டம் (Crime)</a>
+                        <a href="/category/news" onclick="filterCategory('News', event)">செய்திகள் &amp; பொதுமக்கள் (News)</a>
+                        <a href="/category/politics" onclick="filterCategory('Politics', event)">அரசியல் &amp; ஆட்சி முறை (Politics)</a>
+                        <a href="/category/sports" onclick="filterCategory('Sports', event)">விளையாட்டு &amp; கிரிக்கெட் (Sports)</a>
+                        <a href="/category/technical" onclick="filterCategory('Technical', event)">தொழில்நுட்பம் &amp; ஏஐ (Tech)</a>
+                        <a href="/category/business" onclick="filterCategory('Business', event)">வணிகம் &amp; பங்குச்சந்தை (Business)</a>
+                        <a href="/category/entertainment" onclick="filterCategory('Entertainment', event)">சினிமா &amp; கலை உலகம் (Cinema)</a>
+                        <a href="/category/crime" onclick="filterCategory('Crime', event)">குற்ற நிகழ்வுகள் &amp; சட்டம் (Crime)</a>
                     </div>
                 </li>
                 <li class="nav-item" id="nav-item-events">
                     <a href="javascript:void(0)" onclick="scrollToSection('calendarWidget')" class="nav-link">📅 நிகழ்வுகள்</a>
                 </li>
                 <li class="nav-item" id="nav-item-news">
-                    <a href="/?category=News" onclick="filterCategory('News', event)" class="nav-link">செய்திகள்</a>
+                    <a href="/category/news" onclick="filterCategory('News', event)" class="nav-link">செய்திகள்</a>
                 </li>
             </ul>
 
@@ -1917,98 +1922,98 @@ func RenderPortalPage() string {
             <article class="tn24-news-card" itemscope itemtype="https://schema.org/NewsArticle">
               <span style="background:#1e0a0a;color:#e53e3e;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🏛️ அரசியல்</span>
               <h3 itemprop="headline">தமிழ்நாடு அரசின் புதிய திட்டங்கள் — New State Government Welfare Schemes for 2026-27</h3>
-              <a href="/?category=Politics" class="tn24-read-more" style="color:#e53e3e;background:#1e0a0a;border-color:#3a1010;">மேலும் படிக்க →</a>
+              <a href="/category/politics" class="tn24-read-more" style="color:#e53e3e;background:#1e0a0a;border-color:#3a1010;">மேலும் படிக்க →</a>
             </article>
 
             <article class="tn24-news-card" itemscope itemtype="https://schema.org/NewsArticle">
               <span style="background:#0a1622;color:#38bdf8;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🏏 விளையாட்டு</span>
               <h3 itemprop="headline">CSK 2026 IPL Season Preview — சென்னை சூப்பர் கிங்ஸ் அணி பலம் பலவீனம் பகுப்பாய்வு</h3>
-              <a href="/?category=Sports" class="tn24-read-more" style="color:#38bdf8;background:#0a1622;border-color:#0e2a3e;">மேலும் படிக்க →</a>
+              <a href="/category/sports" class="tn24-read-more" style="color:#38bdf8;background:#0a1622;border-color:#0e2a3e;">மேலும் படிக்க →</a>
             </article>
 
             <article class="tn24-news-card" itemscope itemtype="https://schema.org/NewsArticle">
               <span style="background:#001a0f;color:#34d399;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">📈 வணிகம்</span>
               <h3 itemprop="headline">மதுரையில் தங்கம் விலை — Gold &amp; Silver Rates in Madurai Today | நவரத்ரி சிறப்பு</h3>
-              <a href="/?category=Business" class="tn24-read-more" style="color:#34d399;background:#001a0f;border-color:#003820;">மேலும் படிக்க →</a>
+              <a href="/category/business" class="tn24-read-more" style="color:#34d399;background:#001a0f;border-color:#003820;">மேலும் படிக்க →</a>
             </article>
 
             <article class="tn24-news-card" itemscope itemtype="https://schema.org/NewsArticle">
               <span style="background:#1a000a;color:#f43f5e;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🌧️ வானிலை</span>
               <h3 itemprop="headline">தமிழ்நாட்டில் வடகிழக்கு பருவமழை எதிர்பார்ப்பு — Northeast Monsoon 2026 Forecast</h3>
-              <a href="/?category=News" class="tn24-read-more" style="color:#f43f5e;background:#1a000a;border-color:#3a0015;">மேலும் படிக்க →</a>
+              <a href="/category/news" class="tn24-read-more" style="color:#f43f5e;background:#1a000a;border-color:#3a0015;">மேலும் படிக்க →</a>
             </article>
 
             <article class="tn24-news-card" itemscope itemtype="https://schema.org/NewsArticle">
               <span style="background:#1a1200;color:#f59e0b;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🎬 சினிமா</span>
               <h3 itemprop="headline">கோலிவுட் செய்திகள் — Kollywood Roundup: Upcoming Tamil Films &amp; Box Office Report</h3>
-              <a href="/?category=Entertainment" class="tn24-read-more" style="color:#f59e0b;background:#1a1200;border-color:#3a2800;">மேலும் படிக்க →</a>
+              <a href="/category/entertainment" class="tn24-read-more" style="color:#f59e0b;background:#1a1200;border-color:#3a2800;">மேலும் படிக்க →</a>
             </article>
 
             <article class="tn24-news-card" itemscope itemtype="https://schema.org/NewsArticle">
               <span style="background:#0a1600;color:#86efac;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">📋 அரசு வேலை</span>
               <h3 itemprop="headline">TNPSC குரூப் 2 தேர்வு 2026 — அறிவிப்பு, தேதி, விண்ணப்ப முறை | Group 2 Exam Notification</h3>
-              <a href="/?category=Civic" class="tn24-read-more" style="color:#86efac;background:#0a1600;border-color:#1a2e00;">மேலும் படிக்க →</a>
+              <a href="/category/civic" class="tn24-read-more" style="color:#86efac;background:#0a1600;border-color:#1a2e00;">மேலும் படிக்க →</a>
             </article>
 
             <article class="tn24-news-card" itemscope itemtype="https://schema.org/NewsArticle">
               <span style="background:#0a1622;color:#67e8f9;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🏙️ குடிமக்கள்</span>
               <h3 itemprop="headline">கோவையில் புதிய மெட்ரோ திட்டம் — Coimbatore Metro Rail Phase 2 Update &amp; Route Map</h3>
-              <a href="/?category=Civic" class="tn24-read-more" style="color:#67e8f9;background:#0a1622;border-color:#0e2a3e;">மேலும் படிக்க →</a>
+              <a href="/category/civic" class="tn24-read-more" style="color:#67e8f9;background:#0a1622;border-color:#0e2a3e;">மேலும் படிக்க →</a>
             </article>
 
             <article class="tn24-news-card" itemscope itemtype="https://schema.org/NewsArticle">
               <span style="background:#100a22;color:#a78bfa;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">💻 தொழில்நுட்பம்</span>
               <h3 itemprop="headline">தமிழ்நாட்டில் AI மற்றும் டிஜிட்டல் திறன் மையங்கள் — Tamil Nadu AI &amp; Digital Skills Hubs Launch</h3>
-              <a href="/?category=Technical" class="tn24-read-more" style="color:#a78bfa;background:#100a22;border-color:#221544;">மேலும் படிக்க →</a>
+              <a href="/category/technical" class="tn24-read-more" style="color:#a78bfa;background:#100a22;border-color:#221544;">மேலும் படிக்க →</a>
             </article>
 
             <!-- SET 2 (duplicate for seamless loop) -->
             <article class="tn24-news-card" aria-hidden="true">
               <span style="background:#1e0a0a;color:#e53e3e;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🏛️ அரசியல்</span>
               <h3>தமிழ்நாடு அரசின் புதிய திட்டங்கள் — New State Government Welfare Schemes for 2026-27</h3>
-              <a href="/?category=Politics" class="tn24-read-more" style="color:#e53e3e;background:#1e0a0a;border-color:#3a1010;">மேலும் படிக்க →</a>
+              <a href="/category/politics" class="tn24-read-more" style="color:#e53e3e;background:#1e0a0a;border-color:#3a1010;">மேலும் படிக்க →</a>
             </article>
 
             <article class="tn24-news-card" aria-hidden="true">
               <span style="background:#0a1622;color:#38bdf8;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🏏 விளையாட்டு</span>
               <h3>CSK 2026 IPL Season Preview — சென்னை சூப்பர் கிங்ஸ் அணி பலம் பலவீனம் பகுப்பாய்வு</h3>
-              <a href="/?category=Sports" class="tn24-read-more" style="color:#38bdf8;background:#0a1622;border-color:#0e2a3e;">மேலும் படிக்க →</a>
+              <a href="/category/sports" class="tn24-read-more" style="color:#38bdf8;background:#0a1622;border-color:#0e2a3e;">மேலும் படிக்க →</a>
             </article>
 
             <article class="tn24-news-card" aria-hidden="true">
               <span style="background:#001a0f;color:#34d399;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">📈 வணிகம்</span>
               <h3>மதுரையில் தங்கம் விலை — Gold &amp; Silver Rates in Madurai Today | நவரத்ரி சிறப்பு</h3>
-              <a href="/?category=Business" class="tn24-read-more" style="color:#34d399;background:#001a0f;border-color:#003820;">மேலும் படிக்க →</a>
+              <a href="/category/business" class="tn24-read-more" style="color:#34d399;background:#001a0f;border-color:#003820;">மேலும் படிக்க →</a>
             </article>
 
             <article class="tn24-news-card" aria-hidden="true">
               <span style="background:#1a000a;color:#f43f5e;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🌧️ வானிலை</span>
               <h3>தமிழ்நாட்டில் வடகிழக்கு பருவமழை எதிர்பார்ப்பு — Northeast Monsoon 2026 Forecast</h3>
-              <a href="/?category=News" class="tn24-read-more" style="color:#f43f5e;background:#1a000a;border-color:#3a0015;">மேலும் படிக்க →</a>
+              <a href="/category/news" class="tn24-read-more" style="color:#f43f5e;background:#1a000a;border-color:#3a0015;">மேலும் படிக்க →</a>
             </article>
 
             <article class="tn24-news-card" aria-hidden="true">
               <span style="background:#1a1200;color:#f59e0b;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🎬 சினிமா</span>
               <h3>கோலிவுட் செய்திகள் — Kollywood Roundup: Upcoming Tamil Films &amp; Box Office Report</h3>
-              <a href="/?category=Entertainment" class="tn24-read-more" style="color:#f59e0b;background:#1a1200;border-color:#3a2800;">மேலும் படிக்க →</a>
+              <a href="/category/entertainment" class="tn24-read-more" style="color:#f59e0b;background:#1a1200;border-color:#3a2800;">மேலும் படிக்க →</a>
             </article>
 
             <article class="tn24-news-card" aria-hidden="true">
               <span style="background:#0a1600;color:#86efac;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">📋 அரசு வேலை</span>
               <h3>TNPSC குரூப் 2 தேர்வு 2026 — அறிவிப்பு, தேதி, விண்ணப்ப முறை | Group 2 Exam Notification</h3>
-              <a href="/?category=Civic" class="tn24-read-more" style="color:#86efac;background:#0a1600;border-color:#1a2e00;">மேலும் படிக்க →</a>
+              <a href="/category/civic" class="tn24-read-more" style="color:#86efac;background:#0a1600;border-color:#1a2e00;">மேலும் படிக்க →</a>
             </article>
 
             <article class="tn24-news-card" aria-hidden="true">
               <span style="background:#0a1622;color:#67e8f9;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">🏙️ குடிமக்கள்</span>
               <h3>கோவையில் புதிய மெட்ரோ திட்டம் — Coimbatore Metro Rail Phase 2 Update &amp; Route Map</h3>
-              <a href="/?category=Civic" class="tn24-read-more" style="color:#67e8f9;background:#0a1622;border-color:#0e2a3e;">மேலும் படிக்க →</a>
+              <a href="/category/civic" class="tn24-read-more" style="color:#67e8f9;background:#0a1622;border-color:#0e2a3e;">மேலும் படிக்க →</a>
             </article>
 
             <article class="tn24-news-card" aria-hidden="true">
               <span style="background:#100a22;color:#a78bfa;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">💻 தொழில்நுட்பம்</span>
               <h3>தமிழ்நாட்டில் AI மற்றும் டிஜிட்டல் திறன் மையங்கள் — Tamil Nadu AI &amp; Digital Skills Hubs Launch</h3>
-              <a href="/?category=Technical" class="tn24-read-more" style="color:#a78bfa;background:#100a22;border-color:#221544;">மேலும் படிக்க →</a>
+              <a href="/category/technical" class="tn24-read-more" style="color:#a78bfa;background:#100a22;border-color:#221544;">மேலும் படிக்க →</a>
             </article>
 
           </div><!-- /marquee-track -->
@@ -2033,12 +2038,12 @@ func RenderPortalPage() string {
       <!-- Category Nav -->
       <div style="background:#0d1421;border-bottom:1px solid #1a2540;padding:10px 24px;overflow-x:auto;white-space:nowrap;">
         <div style="max-width:1100px;margin:0 auto;display:flex;gap:8px;">
-          <a href="/?category=Politics" style="background:#1e0a0a;color:#e53e3e;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #3a1010;white-space:nowrap;">🏛️ அரசியல் / Politics</a>
-          <a href="/?category=Sports"   style="background:#0a1622;color:#38bdf8;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #0e2a3e;white-space:nowrap;">🏏 விளையாட்டு / Sports</a>
-          <a href="/?category=Entertainment" style="background:#1a1200;color:#f59e0b;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #3a2800;white-space:nowrap;">🎬 சினிமா / Cinema</a>
-          <a href="/?category=Business" style="background:#001a0f;color:#34d399;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #003820;white-space:nowrap;">📈 வணிகம் / Business</a>
-          <a href="/?category=Technical" style="background:#100a22;color:#a78bfa;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #221544;white-space:nowrap;">💻 தொழில்நுட்பம்</a>
-          <a href="/?category=Civic"    style="background:#0a1600;color:#86efac;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #1a2e00;white-space:nowrap;">🏙️ பொது நலன்</a>
+          <a href="/category/politics" style="background:#1e0a0a;color:#e53e3e;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #3a1010;white-space:nowrap;">🏛️ அரசியல் / Politics</a>
+          <a href="/category/sports"   style="background:#0a1622;color:#38bdf8;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #0e2a3e;white-space:nowrap;">🏏 விளையாட்டு / Sports</a>
+          <a href="/category/entertainment" style="background:#1a1200;color:#f59e0b;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #3a2800;white-space:nowrap;">🎬 சினிமா / Cinema</a>
+          <a href="/category/business" style="background:#001a0f;color:#34d399;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #003820;white-space:nowrap;">📈 வணிகம் / Business</a>
+          <a href="/category/technical" style="background:#100a22;color:#a78bfa;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #221544;white-space:nowrap;">💻 தொழில்நுட்பம்</a>
+          <a href="/category/civic"    style="background:#0a1600;color:#86efac;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #1a2e00;white-space:nowrap;">🏙️ பொது நலன்</a>
           <a href="/?viral=true"         style="background:#1a000a;color:#f43f5e;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #3a0015;white-space:nowrap;">🔥 வைரல்</a>
         </div>
       </div>
@@ -2046,28 +2051,28 @@ func RenderPortalPage() string {
         <div style="margin-top:28px;padding:16px 20px;background:#0d1421;border:1px solid #1a2540;border-radius:8px;">
           <h3 style="font-size:0.85rem;font-weight:700;color:#e53e3e;margin:0 0 12px;text-transform:uppercase;letter-spacing:0.5px;">📍 Browse by District — மாவட்ட செய்திகள்</h3>
           <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:0.8rem;">
-            <a href="/?district=Chennai" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Chennai</a>
-            <a href="/?district=Madurai" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Madurai</a>
-            <a href="/?district=Coimbatore" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Coimbatore</a>
-            <a href="/?district=Tiruchirappalli" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Trichy</a>
-            <a href="/?district=Salem" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Salem</a>
-            <a href="/?district=Tirunelveli" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Tirunelveli</a>
-            <a href="/?district=Erode" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Erode</a>
-            <a href="/?district=Vellore" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Vellore</a>
-            <a href="/?district=Thanjavur" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Thanjavur</a>
-            <a href="/?district=Kanyakumari" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Kanyakumari</a>
-            <a href="/?district=Tiruppur" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Tiruppur</a>
-            <a href="/?district=Dindigul" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Dindigul</a>
-            <a href="/?district=Dharmapuri" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Dharmapuri</a>
-            <a href="/?district=Nilgiris" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Nilgiris (Ooty)</a>
-            <a href="/?district=Thoothukudi" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Thoothukudi</a>
-            <a href="/?district=Ramanathapuram" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Ramanathapuram</a>
-            <a href="/?district=Virudhunagar" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Virudhunagar</a>
-            <a href="/?district=Sivagangai" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Sivagangai</a>
-            <a href="/?district=Cuddalore" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Cuddalore</a>
-            <a href="/?district=Villupuram" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Villupuram</a>
-            <a href="/?district=Nagapattinam" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Nagapattinam</a>
-            <a href="/?district=Ariyalur" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Ariyalur</a>
+            <a href="/district/chennai" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Chennai</a>
+            <a href="/district/madurai" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Madurai</a>
+            <a href="/district/coimbatore" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Coimbatore</a>
+            <a href="/district/tiruchirappalli" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Trichy</a>
+            <a href="/district/salem" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Salem</a>
+            <a href="/district/tirunelveli" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Tirunelveli</a>
+            <a href="/district/erode" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Erode</a>
+            <a href="/district/vellore" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Vellore</a>
+            <a href="/district/thanjavur" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Thanjavur</a>
+            <a href="/district/kanyakumari" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Kanyakumari</a>
+            <a href="/district/tiruppur" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Tiruppur</a>
+            <a href="/district/dindigul" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Dindigul</a>
+            <a href="/district/dharmapuri" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Dharmapuri</a>
+            <a href="/district/nilgiris" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Nilgiris (Ooty)</a>
+            <a href="/district/thoothukudi" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Thoothukudi</a>
+            <a href="/district/ramanathapuram" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Ramanathapuram</a>
+            <a href="/district/virudhunagar" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Virudhunagar</a>
+            <a href="/district/sivagangai" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Sivagangai</a>
+            <a href="/district/cuddalore" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Cuddalore</a>
+            <a href="/district/villupuram" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Villupuram</a>
+            <a href="/district/nagapattinam" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Nagapattinam</a>
+            <a href="/district/ariyalur" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Ariyalur</a>
           </div>
         </div>
     </section>
@@ -2111,13 +2116,22 @@ func RenderPortalPage() string {
                 </button>
             </div>
 
+            <!-- Homepage Core Primary H1 -->
+            <header class="homepage-seo-header" id="portalMainHeader" style="margin-bottom: 14px;">
+                <h1 class="portal-main-h1" id="portalMainH1" style="font-size: 1.25rem; font-weight: 800; color: #f8fafc; margin: 0 0 4px; display: flex; align-items: center; gap: 8px;">
+                    <span style="display:inline-block; width:4px; height:18px; background:#ef4444; border-radius:2px;"></span>
+                    TN24 – Latest Tamil News &amp; Tamil Nadu News
+                </h1>
+                <p style="font-size: 0.85rem; color: #94a3b8; margin: 0;">தமிழ்நாடு மற்றும் 38 மாவட்டங்களின் உண்மைச் செய்திகள் உடனுக்குடன் 24x7</p>
+            </header>
+
             <!-- Lead Hero Article -->
             <article class="hero-lead-card" id="heroCard">
                 <div class="hero-image-wrap" onclick="openHeroArticle(event)">
-                    <img id="heroImage" src="https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200" alt="தலைப்புச் செய்தி">
+                    <img id="heroImage" src="https://images.unsplash.com/photo-1585829365295-ab7cd400c167?w=1200" alt="தலைப்புச் செய்தி" width="1200" height="675" loading="eager" fetchpriority="high" style="aspect-ratio:16/9;object-fit:cover;width:100%;height:auto;display:block;">
                     <div class="hero-overlay">
                         <span class="badge-pill" id="heroBadge">தலைப்புச் செய்தி</span>
-                        <h1 class="hero-title" id="heroTitle">தமிழ்நாடு செய்திகள் &mdash; Tamil Nadu News Live 24x7 | தமிழ் செய்திகள்</h1>
+                        <h2 class="hero-title" id="heroTitle">தமிழ்நாடு செய்திகள் &mdash; Tamil Nadu News Live 24x7 | தமிழ் செய்திகள்</h2>
                         <p class="hero-desc" id="heroDesc">தமிழ்நாடு மற்றும் வட்டார முக்கிய நிகழ்வுகள் குறித்த விரிவான கள நிலவரம் &mdash; Latest Tamil news today, news live tamilnadu 24x7.</p>
                         <div id="heroDateMeta" style="margin-top: 8px; font-size: 11px; color: #cbd5e1; display: flex; align-items: center; gap: 8px; font-weight: 500;"></div>
                     </div>
@@ -2358,7 +2372,7 @@ func RenderPortalPage() string {
     <!-- FOOTER BRANDING -->
     <footer style="margin-top: 40px; background: #090e17; border-top: 1px solid #1e293b; color: #94a3b8; padding: 36px 20px 24px; text-align: center;">
         <div style="max-width: 1320px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 14px;">
-            <img src="/assets/brand/tn24-logo.svg?v=20260908d" onerror="this.onerror=null; this.src='/admin/api/maps/svg?district=Tamil%20Nadu'" alt="TN24" style="height: 50px; display: block;" />
+            <img src="/assets/brand/tn24-logo.svg?v=20260908d" onerror="this.onerror=null; this.src='/admin/api/maps/svg?district=Tamil%20Nadu'" alt="TN24" width="250" height="50" loading="lazy" style="height: 50px; width: auto; display: block;" />
             <p style="font-size: 13px; color: #cbd5e1; max-width: 780px; margin: 0 auto; line-height: 1.6;">
                 <strong style="color: #ffffff;">TN24 (tn 24) &mdash; Tamil Nadu News | தமிழ் செய்திகள் | 24x7 நேரலை செய்தி தளம்</strong><br>
                 Latest Tamil news today, today news in tamil, news live tamilnadu &amp; tamil news online. தமிழ்நாட்டின் அனைத்து 38 மாவட்டங்கள், சென்னை, கோவை, மதுரை, திருச்சி, சேலம் உள்ளிட்ட முக்கிய நிகழ்வுகள் உடனுக்குடன் நேரலையாக.
@@ -2379,8 +2393,8 @@ func RenderPortalPage() string {
                     <a href="/?q=latest+tamil+news" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">latest tamil news</a>
                     <a href="/?q=tamil+nadu+news+in+tamil" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">tamil nadu news in tamil</a>
                     <a href="/?q=news+tamil+nadu" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">news tamil nadu</a>
-                    <a href="/?district=Chennai" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">சென்னை செய்திகள்</a>
-                    <a href="/?cat=Politics" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">தமிழக அரசியல் செய்திகள்</a>
+                    <a href="/district/chennai" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">சென்னை செய்திகள்</a>
+                    <a href="/category/politics" style="color: #cbd5e1; background: #1e293b; padding: 4px 10px; border-radius: 12px; border: 1px solid #334155; text-decoration: none;">தமிழக அரசியல் செய்திகள்</a>
                 </div>
             </div>
             <!-- Social Icons in Footer -->
@@ -2580,8 +2594,17 @@ func RenderPortalPage() string {
 
         function initFromUrl() {
             const urlParams = new URLSearchParams(window.location.search);
-            const dist = urlParams.get('district');
-            const cat = urlParams.get('category') || urlParams.get('cat');
+            const pathParts = window.location.pathname.split('/').filter(Boolean);
+            let pathDist = '';
+            let pathCat = '';
+            if (pathParts.length >= 2 && pathParts[0] === 'district') {
+                pathDist = decodeURIComponent(pathParts[1]);
+            } else if (pathParts.length >= 2 && pathParts[0] === 'category') {
+                pathCat = decodeURIComponent(pathParts[1]);
+            }
+
+            const dist = (window.INITIAL_DISTRICT || pathDist || urlParams.get('district') || '').trim();
+            const cat = (window.INITIAL_CATEGORY || pathCat || urlParams.get('category') || urlParams.get('cat') || '').trim();
             const q = urlParams.get('q');
             const viral = urlParams.get('viral') === 'true';
 
@@ -2868,9 +2891,15 @@ func RenderPortalPage() string {
                 const heroDesc = document.getElementById('heroDesc');
                 const heroBadge = document.getElementById('heroBadge');
                 const heroDateMeta = document.getElementById('heroDateMeta');
-                if (heroTitle) heroTitle.textContent = 'இந்தத் தேடலுக்கு செய்திகள் எதுவும் கிடைக்கவில்லை.';
-                if (heroDesc) heroDesc.textContent = 'வேறு பிரிவை அல்லது மாவட்டத்தைத் தேர்வு செய்யவும்.';
-                if (heroBadge) heroBadge.textContent = 'செய்திகள் இல்லை';
+                if (currentDistrict && currentDistrict !== 'All Districts' && currentDistrict !== 'TN-ALL / REGIONAL') {
+                    if (heroTitle) heroTitle.textContent = currentDistrict + ' News – செய்திகள்';
+                    if (heroDesc) heroDesc.textContent = 'TN24 will publish the latest ' + currentDistrict + ' news and local updates here as they are reported.';
+                    if (heroBadge) heroBadge.textContent = currentDistrict;
+                } else {
+                    if (heroTitle) heroTitle.textContent = 'இந்தத் தேடலுக்கு செய்திகள் எதுவும் கிடைக்கவில்லை.';
+                    if (heroDesc) heroDesc.textContent = 'வேறு பிரிவை அல்லது மாவட்டத்தைத் தேர்வு செய்யவும்.';
+                    if (heroBadge) heroBadge.textContent = 'செய்திகள் இல்லை';
+                }
                 if (heroDateMeta) heroDateMeta.innerHTML = '';
             }
 
@@ -3035,6 +3064,12 @@ func RenderPortalPage() string {
                         });
                         gridContainer.innerHTML = html;
                     }
+                } else if (currentDistrict && currentDistrict !== 'All Districts' && currentDistrict !== 'TN-ALL / REGIONAL') {
+                    gridContainer.innerHTML = '<div style="grid-column:1/-1; text-align:left; padding:24px; background:#0d1829; border:1px solid #1e293b; border-radius:8px;">' +
+                        '<h2 style="font-size:1.3rem; font-weight:800; color:#f8fafc; margin:0 0 10px;">' + escapeHtml(currentDistrict) + ' News – செய்திகள்</h2>' +
+                        '<p style="font-size:0.98rem; color:#f1f5f9; margin:0 0 6px; font-weight:600;">TN24 will publish the latest ' + escapeHtml(currentDistrict) + ' news and local updates here as they are reported.</p>' +
+                        '<p style="font-size:0.88rem; color:#94a3b8; margin:0; line-height:1.6;">' + escapeHtml(currentDistrict) + ' மாவட்டத்திற்கான சமீபத்திய செய்திகள் மற்றும் புதிய தகவல்கள் உடனுக்குடன் இங்கு தொடர்ந்து பதிவேற்றப்படும்.</p>' +
+                    '</div>';
                 } else {
                     gridContainer.innerHTML = '<div style="padding:40px; color:var(--text-muted); font-size:14px; text-align:center; grid-column:1/-1;">செய்திகள் எதுவும் கிடைக்கவில்லை.</div>';
                 }
@@ -3397,7 +3432,8 @@ func RenderPortalPage() string {
             currentQuery = '';
             currentIsViral = false;
             if (window.history && window.history.pushState) {
-                window.history.pushState(null, '', isAll ? '/' : ('/?district=' + encodeURIComponent(name)));
+                const slug = name.toLowerCase().replace(/\s+/g, '-');
+                window.history.pushState(null, '', isAll ? '/' : ('/district/' + encodeURIComponent(slug)));
             }
             loadPortalFeed(targetDistrict, '', '', false);
             showToast(isAll ? 'அனைத்து மாவட்ட செய்திகளும் காண்பிக்கப்படுகின்றன' : name + ' மாவட்டச் செய்திகள்');
@@ -3429,7 +3465,8 @@ func RenderPortalPage() string {
                 setActiveNavTab('nav-item-categories');
             }
             if (window.history && window.history.pushState) {
-                window.history.pushState(null, '', '/?category=' + encodeURIComponent(cat));
+                const slug = cat.toLowerCase().replace(/\s+/g, '-');
+                window.history.pushState(null, '', '/category/' + encodeURIComponent(slug));
             }
             loadPortalFeed('', cat, '', false);
             showToast('செய்திப் பிரிவு: ' + cat);

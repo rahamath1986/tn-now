@@ -86,13 +86,42 @@ func (h *PortalHandler) RegisterRoutes(mux *http.ServeMux) {
 	// "/portal" is kept as a legacy alias with a permanent redirect to preserve any
 	// old bookmarks, social shares, and search-indexed URLs.
 	mux.HandleFunc("/portal", func(w http.ResponseWriter, r *http.Request) {
-		// Preserve all query params (post, district, category, etc.) on redirect
+		postID := strings.TrimSpace(r.URL.Query().Get("post"))
+		district := strings.TrimSpace(r.URL.Query().Get("district"))
+		category := strings.TrimSpace(r.URL.Query().Get("category"))
+		if category == "" {
+			category = strings.TrimSpace(r.URL.Query().Get("cat"))
+		}
+
+		if postID != "" {
+			http.Redirect(w, r, "/?post="+url.QueryEscape(postID), http.StatusMovedPermanently)
+			return
+		}
+		if district != "" && district != "All Districts" && district != "ALL" && district != "TN-ALL / REGIONAL" {
+			if slug := districtToSlug(district); slug != "" {
+				http.Redirect(w, r, "/district/"+slug, http.StatusMovedPermanently)
+				return
+			}
+		}
+		if category != "" && category != "All" && category != "ALL" {
+			if slug := categoryToSlug(category); slug != "" {
+				http.Redirect(w, r, "/category/"+slug, http.StatusMovedPermanently)
+				return
+			}
+		}
+
+		// Preserve remaining query params (search, viral, etc.) on redirect
 		target := "/"
 		if r.URL.RawQuery != "" {
 			target = "/?" + r.URL.RawQuery
 		}
 		http.Redirect(w, r, target, http.StatusMovedPermanently)
 	})
+
+	// SEO Clean Landing Pages
+	mux.HandleFunc("/district/", h.HandleDistrictPage)
+	mux.HandleFunc("/category/", h.HandleCategoryPage)
+
 	mux.HandleFunc("/api/portal/feed", h.HandlePortalFeed)
 	mux.HandleFunc("/api/portal/post", h.HandleGetSinglePost)
 	mux.HandleFunc("/assets/brand/", h.HandleBrandAssets)
@@ -136,6 +165,7 @@ func (h *PortalHandler) HandlePortalPage(w http.ResponseWriter, r *http.Request)
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+	w.Header().Set("Cache-Control", "public, max-age=60, s-maxage=120, stale-while-revalidate=300")
 
 	postID := strings.TrimSpace(r.URL.Query().Get("post"))
 	district := strings.TrimSpace(r.URL.Query().Get("district"))
@@ -145,6 +175,22 @@ func (h *PortalHandler) HandlePortalPage(w http.ResponseWriter, r *http.Request)
 	}
 	searchQuery := strings.TrimSpace(r.URL.Query().Get("q"))
 	isViral := strings.TrimSpace(r.URL.Query().Get("viral")) == "true"
+
+	// 301 Permanent Redirect for district query parameter -> clean canonical URL
+	if postID == "" && district != "" && district != "All Districts" && district != "ALL" && district != "TN-ALL / REGIONAL" {
+		if slug := districtToSlug(district); slug != "" {
+			http.Redirect(w, r, "/district/"+slug, http.StatusMovedPermanently)
+			return
+		}
+	}
+
+	// 301 Permanent Redirect for category query parameter -> clean canonical URL
+	if postID == "" && category != "" && category != "All" && category != "ALL" {
+		if slug := categoryToSlug(category); slug != "" {
+			http.Redirect(w, r, "/category/"+slug, http.StatusMovedPermanently)
+			return
+		}
+	}
 
 	pageHTML := RenderPortalPage()
 
@@ -234,6 +280,9 @@ func (h *PortalHandler) HandleGetSinglePost(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string, postID string, r *http.Request) string {
+	if h.conn == nil {
+		return baseHTML
+	}
 	var title, desc, thumb, district, category, lang string
 	var vidPlatform, vidID, vidURL string
 	var vidDuration int
@@ -260,6 +309,11 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 		return baseHTML
 	}
 
+	return h.InjectPostMetadataValues(ctx, baseHTML, postID, title, desc, thumb, district, category, lang, pubAt, createdAt, vidPlatform, vidID, vidURL, vidDuration, r)
+}
+
+// InjectPostMetadataValues handles deterministic metadata injection for an article.
+func (h *PortalHandler) InjectPostMetadataValues(ctx context.Context, baseHTML string, postID, title, desc, thumb, district, category, lang string, pubAt, createdAt time.Time, vidPlatform, vidID, vidURL string, vidDuration int, r *http.Request) string {
 	cleanTitle := scraper.CleanHTML(title)
 	cleanTitleEscaped := html.EscapeString(cleanTitle)
 
@@ -275,12 +329,7 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 	}
 	metaDescEscaped := html.EscapeString(metaDesc)
 
-	scheme := "https"
-	host := "www.tn24.in"
-	if r != nil && r.Host != "" {
-		host = r.Host
-	}
-	fullPostURL := fmt.Sprintf("%s://%s/?post=%s", scheme, host, url.QueryEscape(postID))
+	fullPostURL := fmt.Sprintf("https://www.tn24.in/?post=%s", url.QueryEscape(postID))
 
 	hasVideo := vidID != "" || vidURL != ""
 	var embedURL, contentURL string
@@ -309,7 +358,7 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 		}
 	}
 	if strings.HasPrefix(thumb, "/") {
-		thumb = fmt.Sprintf("%s://%s%s", scheme, host, thumb)
+		thumb = fmt.Sprintf("https://www.tn24.in%s", thumb)
 	}
 
 	// 0. Replace canonical URL
@@ -318,15 +367,19 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 
 	// 1. Replace <title>
 	reTitle := regexp.MustCompile(`(?i)<title>.*?</title>`)
-	baseHTML = reTitle.ReplaceAllString(baseHTML, fmt.Sprintf("<title>%s &mdash; TN24 | Tamil Nadu News | தமிழ் செய்திகள்</title>", cleanTitleEscaped))
+	articleTitleTag := fmt.Sprintf("<title>%s | TN24</title>", cleanTitleEscaped)
+	if len([]rune(cleanTitle)) <= 35 {
+		articleTitleTag = fmt.Sprintf("<title>%s | TN24 Tamil News</title>", cleanTitleEscaped)
+	}
+	baseHTML = reTitle.ReplaceAllString(baseHTML, articleTitleTag)
 
 	// 2. Replace meta description
 	reDesc := regexp.MustCompile(`(?i)<meta name="description" content=".*?">`)
-	baseHTML = reDesc.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="description" content="%s — TN24 (tn 24) Tamil Nadu news live 24x7. தமிழ் செய்திகள் உடனுக்குடன்.">`, metaDescEscaped))
+	baseHTML = reDesc.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="description" content="%s">`, metaDescEscaped))
 
 	// 3. Replace og:title
 	reOgTitle := regexp.MustCompile(`(?i)<meta property="og:title" content=".*?">`)
-	baseHTML = reOgTitle.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta property="og:title" content="%s | TN24 — Tamil Nadu News | தமிழ் செய்திகள்">`, cleanTitleEscaped))
+	baseHTML = reOgTitle.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta property="og:title" content="%s | TN24">`, cleanTitleEscaped))
 
 	// 4. Replace og:description
 	reOgDesc := regexp.MustCompile(`(?i)<meta property="og:description" content=".*?">`)
@@ -342,7 +395,7 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 
 	// 7. Replace twitter tags
 	reTwTitle := regexp.MustCompile(`(?i)<meta name="twitter:title" content=".*?">`)
-	baseHTML = reTwTitle.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="twitter:title" content="%s — TN24 Tamil Nadu News">`, cleanTitleEscaped))
+	baseHTML = reTwTitle.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="twitter:title" content="%s | TN24">`, cleanTitleEscaped))
 
 	reTwDesc := regexp.MustCompile(`(?i)<meta name="twitter:description" content=".*?">`)
 	baseHTML = reTwDesc.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="twitter:description" content="%s">`, metaDescEscaped))
@@ -396,7 +449,7 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 			{
 				"@type": "NewsMediaOrganization",
 				"name":  "TN24 Editorial Desk",
-				"url":   fmt.Sprintf("%s://%s/about", scheme, host),
+				"url":   "https://www.tn24.in/about",
 			},
 		},
 		"keywords": []string{
@@ -412,10 +465,10 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 		"publisher": map[string]interface{}{
 			"@type": "NewsMediaOrganization",
 			"name":  "TN24 — Tamil Nadu News",
-			"url":   fmt.Sprintf("%s://%s/", scheme, host),
+			"url":   "https://www.tn24.in/",
 			"logo": map[string]string{
 				"@type": "ImageObject",
-				"url":   fmt.Sprintf("%s://%s/assets/brand/tn24-profile.jpg", scheme, host),
+				"url":   "https://www.tn24.in/assets/brand/tn24-profile.jpg",
 			},
 		},
 	})
@@ -435,10 +488,10 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 			"publisher": map[string]interface{}{
 				"@type": "NewsMediaOrganization",
 				"name":  "TN24 — Tamil Nadu News",
-				"url":   fmt.Sprintf("%s://%s/", scheme, host),
+				"url":   "https://www.tn24.in/",
 				"logo": map[string]string{
 					"@type": "ImageObject",
-					"url":   fmt.Sprintf("%s://%s/assets/brand/tn24-profile.jpg", scheme, host),
+					"url":   "https://www.tn24.in/assets/brand/tn24-profile.jpg",
 				},
 			},
 		}
@@ -450,6 +503,17 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 		}
 	}
 
+	districtSlug := districtToSlug(district)
+	categorySlug := categoryToSlug(category)
+	districtURL := fmt.Sprintf("https://www.tn24.in/district/%s", districtSlug)
+	if districtSlug == "" {
+		districtURL = "https://www.tn24.in/"
+	}
+	categoryURL := fmt.Sprintf("https://www.tn24.in/category/%s", categorySlug)
+	if categorySlug == "" {
+		categoryURL = "https://www.tn24.in/"
+	}
+
 	breadcrumbSchemaJSON, _ := json.Marshal(map[string]interface{}{
 		"@context": "https://schema.org",
 		"@type":    "BreadcrumbList",
@@ -457,20 +521,20 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 			{
 				"@type":    "ListItem",
 				"position": 1,
-				"name":     "TN24 News",
-				"item":     fmt.Sprintf("%s://%s/", scheme, host),
+				"name":     "TN24",
+				"item":     "https://www.tn24.in/",
 			},
 			{
 				"@type":    "ListItem",
 				"position": 2,
-				"name":     district,
-				"item":     fmt.Sprintf("%s://%s/?district=%s", scheme, host, url.QueryEscape(district)),
+				"name":     fmt.Sprintf("%s News", district),
+				"item":     districtURL,
 			},
 			{
 				"@type":    "ListItem",
 				"position": 3,
-				"name":     category,
-				"item":     fmt.Sprintf("%s://%s/?category=%s", scheme, host, url.QueryEscape(category)),
+				"name":     fmt.Sprintf("%s News", category),
+				"item":     categoryURL,
 			},
 			{
 				"@type":    "ListItem",
@@ -481,7 +545,12 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 		},
 	})
 
-	injectedHead := fmt.Sprintf(`<script type="application/ld+json">%s</script>%s<script type="application/ld+json">%s</script><script>window.INITIAL_POST_ID = %q;</script></head>`, string(articleSchemaJSON), videoSchemaTag, string(breadcrumbSchemaJSON), postID)
+	var imgPreloadTag string
+	if strings.TrimSpace(thumb) != "" {
+		imgPreloadTag = fmt.Sprintf(`<link rel="preload" as="image" href="%s" fetchpriority="high">`, html.EscapeString(thumb))
+	}
+
+	injectedHead := fmt.Sprintf(`%s<script type="application/ld+json">%s</script>%s<script type="application/ld+json">%s</script><script>window.INITIAL_POST_ID = %q;</script></head>`, imgPreloadTag, string(articleSchemaJSON), videoSchemaTag, string(breadcrumbSchemaJSON), postID)
 	baseHTML = strings.Replace(baseHTML, "</head>", injectedHead, 1)
 
 	// 9. Semantic crawlable SSR article block inside <body> for instant bot indexing & Discover
@@ -543,11 +612,11 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 <article id="article-crawler-ssr" itemscope itemtype="https://schema.org/NewsArticle" style="background:#0d1b2a;border-top:3px solid #e53e3e;padding:18px 20px 24px;margin:0;font-family:'Segoe UI',Arial,sans-serif;color:#e0e0e0;">
   <div style="max-width:900px;margin:0 auto;">
     <nav aria-label="breadcrumb" style="font-size:0.78rem;color:#888;margin-bottom:10px;">
-      <a href="/" style="color:#e53e3e;text-decoration:none;">TN24</a>
+      <a href="/" style="color:#ef4444;text-decoration:none;font-weight:600;">TN24</a>
       <span style="margin:0 6px;">›</span>
-      <a href="/?district=%s" style="color:#aaa;text-decoration:none;">%s</a>
+      <a href="%s" style="color:#aaa;text-decoration:none;">%s News Today</a>
       <span style="margin:0 6px;">›</span>
-      <a href="/?category=%s" style="color:#aaa;text-decoration:none;">%s</a>
+      <a href="%s" style="color:#aaa;text-decoration:none;">%s News</a>
     </nav>
     <h1 itemprop="headline" style="font-size:1.35rem;font-weight:800;color:#fff;line-height:1.4;margin:0 0 10px;">%s</h1>
     <div style="font-size:0.82rem;color:#aaa;display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;">
@@ -567,8 +636,8 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
     %s
   </div>
 </article>`,
-		url.QueryEscape(district), html.EscapeString(district),
-		url.QueryEscape(category), html.EscapeString(category),
+		districtURL, html.EscapeString(district),
+		categoryURL, html.EscapeString(category),
 		cleanTitleEscaped,
 		pubAt.Format(time.RFC3339),
 		pubAt.Format("02 Jan 2006, 3:04 PM"),
@@ -577,7 +646,7 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 		videoPlayerMarkup,
 		func() string {
 			if strings.TrimSpace(thumb) != "" {
-				return fmt.Sprintf(`<img itemprop="image" src="%s" alt="%s" style="width:100%%;max-height:420px;object-fit:cover;border-radius:6px;margin:10px 0;display:block;">`, html.EscapeString(thumb), cleanTitleEscaped)
+				return fmt.Sprintf(`<img itemprop="image" src="%s" alt="%s" width="900" height="506" loading="eager" fetchpriority="high" style="aspect-ratio:16/9;object-fit:cover;width:100%%;max-height:480px;border-radius:6px;margin:10px 0;display:block;">`, html.EscapeString(thumb), cleanTitleEscaped)
 			}
 			return ""
 		}(),
@@ -585,6 +654,7 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 		fullPostURL,
 		relatedArticlesHTML.String(),
 	)
+	baseHTML = removeHomepageH1(baseHTML)
 	baseHTML = strings.Replace(baseHTML, "<body>", "<body>"+ssrArticleBlock, 1)
 
 	return baseHTML
@@ -607,6 +677,7 @@ var districtTamilMap = map[string]string{
 	"Tiruppur":        "திருப்பூர்",
 	"Virudhunagar":    "விருதுநகர்",
 	"Sivagangai":      "சிவகங்கை",
+	"Sivaganga":       "சிவகங்கை",
 	"Ramanathapuram":  "ராமநாதபுரம்",
 	"Thoothukudi":     "தூத்துக்குடி",
 	"Theni":           "தேனி",
@@ -615,6 +686,7 @@ var districtTamilMap = map[string]string{
 	"Nilgiris":        "நீலகிரி",
 	"Cuddalore":       "கடலூர்",
 	"Villupuram":      "விழுப்புரம்",
+	"Viluppuram":      "விழுப்புரம்",
 	"Kallakurichi":    "கள்ளக்குறிச்சி",
 	"Chengalpattu":    "செங்கல்பட்டு",
 	"Kanchipuram":     "காஞ்சிபுரம்",
@@ -641,8 +713,570 @@ var categoryTamilMap = map[string]string{
 	"cinema":        "சினிமா",
 	"technical":     "தொழில்நுட்பம் & ஏஐ",
 	"tech":          "தொழில்நுட்பம்",
+	"technology":    "தொழில்நுட்பம்",
 	"crime":         "குற்ற நிகழ்வுகள் & சட்டம்",
 	"civic":         "பொதுமக்கள் & நலம்",
+}
+
+func districtToSlug(name string) string {
+	clean := strings.ToLower(strings.TrimSpace(name))
+	clean = strings.ReplaceAll(clean, " ", "-")
+	switch clean {
+	case "trichy":
+		return "tiruchirappalli"
+	case "sivaganga":
+		return "sivagangai"
+	case "viluppuram":
+		return "villupuram"
+	}
+	for d := range districtTamilMap {
+		if strings.EqualFold(d, name) {
+			return strings.ToLower(strings.ReplaceAll(d, " ", "-"))
+		}
+	}
+	return clean
+}
+
+func resolveDistrictSlug(slug string) (districtName string, taName string, ok bool) {
+	cleanSlug := strings.ToLower(strings.TrimSpace(slug))
+	switch cleanSlug {
+	case "trichy":
+		cleanSlug = "tiruchirappalli"
+	case "sivaganga":
+		cleanSlug = "sivagangai"
+	case "viluppuram":
+		cleanSlug = "villupuram"
+	}
+	for d, ta := range districtTamilMap {
+		dSlug := strings.ToLower(strings.ReplaceAll(d, " ", "-"))
+		if dSlug == cleanSlug || strings.ToLower(d) == cleanSlug {
+			return d, ta, true
+		}
+	}
+	return "", "", false
+}
+
+func categoryToSlug(name string) string {
+	clean := strings.ToLower(strings.TrimSpace(name))
+	clean = strings.ReplaceAll(clean, " ", "-")
+	switch clean {
+	case "cinema":
+		return "entertainment"
+	case "tech", "technology":
+		return "technical"
+	}
+	return clean
+}
+
+func resolveCategorySlug(slug string) (categoryName string, taName string, ok bool) {
+	clean := strings.ToLower(strings.TrimSpace(slug))
+	switch clean {
+	case "news":
+		return "News", "செய்திகள்", true
+	case "politics":
+		return "Politics", "அரசியல்", true
+	case "sports":
+		return "Sports", "விளையாட்டு", true
+	case "business":
+		return "Business", "வணிகம்", true
+	case "entertainment", "cinema":
+		return "Entertainment", "சினிமா", true
+	case "technical", "tech", "technology":
+		return "Technical", "தொழில்நுட்பம்", true
+	case "crime":
+		return "Crime", "குற்ற நிகழ்வுகள்", true
+	case "civic":
+		return "Civic", "பொதுமக்கள் & நலம்", true
+	}
+	return "", "", false
+}
+
+func removeHomepageH1(baseHTML string) string {
+	re := regexp.MustCompile(`(?s)<header class="homepage-seo-header".*?</header>`)
+	return re.ReplaceAllString(baseHTML, "")
+}
+
+func (h *PortalHandler) HandleDistrictPage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	rawSlug := strings.TrimPrefix(r.URL.Path, "/district/")
+	rawSlug = strings.Trim(rawSlug, "/")
+	if rawSlug == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	districtName, taName, ok := resolveDistrictSlug(rawSlug)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+	w.Header().Set("Cache-Control", "public, max-age=60, s-maxage=120, stale-while-revalidate=300")
+
+	pageHTML := RenderPortalPage()
+	pageHTML = h.injectDistrictPageContent(r.Context(), pageHTML, districtName, taName, rawSlug, r)
+
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(pageHTML))
+}
+
+func (h *PortalHandler) injectDistrictPageContent(ctx context.Context, baseHTML string, district string, taName string, slug string, r *http.Request) string {
+	canonicalURL := fmt.Sprintf("https://www.tn24.in/district/%s", slug)
+	title := fmt.Sprintf("%s News Today – Latest %s Tamil News | TN24", html.EscapeString(district), html.EscapeString(district))
+	desc := fmt.Sprintf("Latest %s news in Tamil including breaking news, politics, crime, education, traffic and important local updates from TN24.", district)
+
+	// Replace head metadata
+	reCanonical := regexp.MustCompile(`(?i)<link rel="canonical" href=".*?">`)
+	baseHTML = reCanonical.ReplaceAllString(baseHTML, fmt.Sprintf(`<link rel="canonical" href="%s">`, canonicalURL))
+
+	reTitle := regexp.MustCompile(`(?i)<title>.*?</title>`)
+	baseHTML = reTitle.ReplaceAllString(baseHTML, "<title>"+title+"</title>")
+
+	reDesc := regexp.MustCompile(`(?i)<meta name="description" content=".*?">`)
+	baseHTML = reDesc.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="description" content="%s">`, html.EscapeString(desc)))
+
+	reOgTitle := regexp.MustCompile(`(?i)<meta property="og:title" content=".*?">`)
+	baseHTML = reOgTitle.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta property="og:title" content="%s">`, title))
+
+	reOgDesc := regexp.MustCompile(`(?i)<meta property="og:description" content=".*?">`)
+	baseHTML = reOgDesc.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta property="og:description" content="%s">`, html.EscapeString(desc)))
+
+	reOgURL := regexp.MustCompile(`(?i)<meta property="og:url" content=".*?">`)
+	baseHTML = reOgURL.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta property="og:url" content="%s">`, canonicalURL))
+
+	reTwTitle := regexp.MustCompile(`(?i)<meta name="twitter:title" content=".*?">`)
+	baseHTML = reTwTitle.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="twitter:title" content="%s">`, title))
+
+	reTwDesc := regexp.MustCompile(`(?i)<meta name="twitter:description" content=".*?">`)
+	baseHTML = reTwDesc.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="twitter:description" content="%s">`, html.EscapeString(desc)))
+
+	// BreadcrumbList JSON-LD
+	breadcrumbJSON, _ := json.Marshal(map[string]interface{}{
+		"@context": "https://schema.org",
+		"@type":    "BreadcrumbList",
+		"itemListElement": []map[string]interface{}{
+			{
+				"@type":    "ListItem",
+				"position": 1,
+				"name":     "TN24",
+				"item":     "https://www.tn24.in/",
+			},
+			{
+				"@type":    "ListItem",
+				"position": 2,
+				"name":     "Tamil Nadu News",
+				"item":     "https://www.tn24.in/",
+			},
+			{
+				"@type":    "ListItem",
+				"position": 3,
+				"name":     fmt.Sprintf("%s News Today", district),
+				"item":     canonicalURL,
+			},
+		},
+	})
+
+	injectedHead := fmt.Sprintf(`<script type="application/ld+json">%s</script><script>window.INITIAL_DISTRICT = %q;</script></head>`, string(breadcrumbJSON), district)
+	baseHTML = strings.Replace(baseHTML, "</head>", injectedHead, 1)
+
+	// Fetch real published articles for this district
+	type districtArticle struct {
+		id, title, desc, thumb, cat string
+		pubAt                       time.Time
+	}
+	var localArticles []districtArticle
+	if h.conn != nil {
+		rows, err := h.conn.Query(ctx, `
+			SELECT c.id::text, c.title, COALESCE(c.description, ''),
+			       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
+			       COALESCE(cat.name, 'News'),
+			       COALESCE(c.published_at, c.created_at)
+			FROM content c
+			JOIN districts d ON c.district_id = d.id
+			LEFT JOIN categories cat ON c.category_id = cat.id
+			LEFT JOIN video_links vl ON c.id = vl.content_id
+			LEFT JOIN stories s ON c.id = s.content_id
+			LEFT JOIN photos p ON c.id = p.content_id
+			WHERE c.status = 'PUBLISHED' AND LOWER(d.name) = LOWER($1)
+			ORDER BY COALESCE(c.published_at, c.created_at) DESC
+			LIMIT 12
+		`, district)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var it districtArticle
+				if err := rows.Scan(&it.id, &it.title, &it.desc, &it.thumb, &it.cat, &it.pubAt); err == nil {
+					localArticles = append(localArticles, it)
+				}
+			}
+		}
+	}
+
+	var districtContentHTML strings.Builder
+	if len(localArticles) > 0 {
+		districtContentHTML.WriteString(fmt.Sprintf(`
+    <h2 style="font-size:1.3rem;font-weight:800;color:#f8fafc;margin:0 0 16px;">Latest %s News – சமீபத்திய %s செய்திகள்</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:16px;">`, html.EscapeString(district), html.EscapeString(taName)))
+
+		for _, a := range localArticles {
+			cleanATitle := html.EscapeString(scraper.CleanHTML(a.title))
+			cleanADesc := scraper.CleanHTML(a.desc)
+			cleanADesc = sanitizeEditorialDescription(cleanADesc, cleanATitle, district)
+			runes := []rune(cleanADesc)
+			if len(runes) > 130 {
+				cleanADesc = string(runes[:130]) + "..."
+			}
+			cleanADescEscaped := html.EscapeString(cleanADesc)
+
+			districtContentHTML.WriteString(fmt.Sprintf(`
+        <article itemprop="hasPart" itemscope itemtype="https://schema.org/NewsArticle" style="background:#111e30;border:1px solid #1e2d42;border-radius:8px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;">
+          <div>
+            <div style="font-size:0.75rem;color:#38bdf8;font-weight:700;margin-bottom:6px;">🏷️ %s &bull; %s</div>
+            <h3 itemprop="headline" style="font-size:1.05rem;font-weight:700;line-height:1.4;margin:0 0 8px;">
+              <a href="/?post=%s" itemprop="url" style="color:#f8fafc;text-decoration:none;">%s</a>
+            </h3>
+            <p itemprop="description" style="font-size:0.85rem;color:#94a3b8;line-height:1.6;margin:0;">%s</p>
+          </div>
+          <div style="font-size:0.78rem;color:#64748b;display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #1e293b;">
+            <span>📅 <time itemprop="datePublished" datetime="%s">%s</time></span>
+            <a href="/?post=%s" style="color:#ef4444;font-weight:600;text-decoration:none;">முழு செய்தி வாசிக்க →</a>
+          </div>
+        </article>`,
+				html.EscapeString(a.cat), html.EscapeString(district),
+				url.QueryEscape(a.id), cleanATitle,
+				cleanADescEscaped,
+				a.pubAt.Format(time.RFC3339), a.pubAt.Format("02 Jan 2006"),
+				url.QueryEscape(a.id),
+			))
+		}
+		districtContentHTML.WriteString(`
+    </div>`)
+	} else {
+		// When local articles do NOT exist:
+		// 1. Show "## <District> News" with short factual message:
+		//    "TN24 will publish the latest <District> news and local updates here as they are reported."
+		// 2. Then show "## Latest Tamil Nadu News" as a clearly separated secondary section.
+		//    Statewide articles are NEVER presented as district articles.
+		districtContentHTML.WriteString(fmt.Sprintf(`
+    <h2 style="font-size:1.3rem;font-weight:800;color:#f8fafc;margin:0 0 14px;">%s News – %s செய்திகள்</h2>
+    <div style="padding:22px 24px;background:#0d1829;border:1px solid #1e293b;border-radius:8px;margin-bottom:28px;">
+      <p style="font-size:1.02rem;color:#f1f5f9;margin:0 0 8px;font-weight:600;">TN24 will publish the latest %s news and local updates here as they are reported.</p>
+      <p style="font-size:0.9rem;color:#94a3b8;margin:0;line-height:1.6;">%s மாவட்டத்திற்கான சமீபத்திய செய்திகள் மற்றும் புதிய தகவல்கள் உடனுக்குடன் இங்கு தொடர்ந்து பதிவேற்றப்படும்.</p>
+    </div>`,
+			html.EscapeString(district), html.EscapeString(taName),
+			html.EscapeString(district),
+			html.EscapeString(taName),
+		))
+
+		// Fetch statewide Tamil Nadu news as clearly separated secondary section
+		var statewideHTML strings.Builder
+		if h.conn != nil {
+			swRows, err := h.conn.Query(ctx, `
+				SELECT c.id::text, c.title, COALESCE(c.description, ''),
+				       COALESCE(cat.name, 'News'),
+				       COALESCE(c.published_at, c.created_at)
+				FROM content c
+				LEFT JOIN categories cat ON c.category_id = cat.id
+				WHERE c.status = 'PUBLISHED'
+				ORDER BY COALESCE(c.published_at, c.created_at) DESC
+				LIMIT 6
+			`)
+			if err == nil {
+				defer swRows.Close()
+				for swRows.Next() {
+					var sid, sTitle, sDesc, sCat string
+					var sPubAt time.Time
+					if err := swRows.Scan(&sid, &sTitle, &sDesc, &sCat, &sPubAt); err == nil {
+						cleanSTitle := html.EscapeString(scraper.CleanHTML(sTitle))
+						cleanSDesc := scraper.CleanHTML(sDesc)
+						cleanSDesc = sanitizeEditorialDescription(cleanSDesc, cleanSTitle, "Tamil Nadu")
+						runes := []rune(cleanSDesc)
+						if len(runes) > 130 {
+							cleanSDesc = string(runes[:130]) + "..."
+						}
+						cleanSDescEscaped := html.EscapeString(cleanSDesc)
+						statewideHTML.WriteString(fmt.Sprintf(`
+        <article itemprop="hasPart" itemscope itemtype="https://schema.org/NewsArticle" style="background:#111e30;border:1px solid #1e2d42;border-radius:8px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;">
+          <div>
+            <div style="font-size:0.75rem;color:#38bdf8;font-weight:700;margin-bottom:6px;">🏷️ தமிழ்நாடு &bull; %s (மாநிலச் செய்தி)</div>
+            <h3 itemprop="headline" style="font-size:1.05rem;font-weight:700;line-height:1.4;margin:0 0 8px;">
+              <a href="/?post=%s" itemprop="url" style="color:#f8fafc;text-decoration:none;">%s</a>
+            </h3>
+            <p itemprop="description" style="font-size:0.85rem;color:#94a3b8;line-height:1.6;margin:0;">%s</p>
+          </div>
+          <div style="font-size:0.78rem;color:#64748b;display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #1e293b;">
+            <span>📅 <time itemprop="datePublished" datetime="%s">%s</time></span>
+            <a href="/?post=%s" style="color:#ef4444;font-weight:600;text-decoration:none;">முழு செய்தி வாசிக்க →</a>
+          </div>
+        </article>`,
+							html.EscapeString(sCat),
+							url.QueryEscape(sid), cleanSTitle,
+							cleanSDescEscaped,
+							sPubAt.Format(time.RFC3339), sPubAt.Format("02 Jan 2006"),
+							url.QueryEscape(sid),
+						))
+					}
+				}
+			}
+		}
+
+		if statewideHTML.Len() > 0 {
+			districtContentHTML.WriteString(fmt.Sprintf(`
+    <div style="margin-top:28px;padding-top:20px;border-top:1px solid #1a2540;">
+      <h2 style="font-size:1.2rem;font-weight:700;color:#38bdf8;margin:0 0 8px;display:flex;align-items:center;gap:8px;">
+        <span>🌐</span> <span>Latest Tamil Nadu News – தமிழ்நாடு முக்கிய செய்திகள்</span>
+      </h2>
+      <p style="font-size:0.85rem;color:#64748b;margin:0 0 16px;">மாநில அளவிலான முதன்மைச் செய்திகள் (Statewide Tamil Nadu News)</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:16px;">
+        %s
+      </div>
+    </div>`, statewideHTML.String()))
+		}
+	}
+
+	ssrDistrictBlock := fmt.Sprintf(`
+<section id="district-crawler-ssr" itemscope itemtype="https://schema.org/CollectionPage" style="background:#080f1c;border-top:3px solid #ef4444;padding:20px 20px 28px;font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#d4d4d4;">
+  <div style="max-width:1100px;margin:0 auto;">
+    <nav aria-label="breadcrumb" style="font-size:0.8rem;color:#888;margin-bottom:12px;">
+      <a href="/" style="color:#ef4444;text-decoration:none;font-weight:600;">TN24</a>
+      <span style="margin:0 6px;">›</span>
+      <a href="/" style="color:#aaa;text-decoration:none;">Tamil Nadu News</a>
+      <span style="margin:0 6px;">›</span>
+      <span style="color:#e2e8f0;font-weight:600;">%s News Today</span>
+    </nav>
+    <h1 itemprop="headline" style="font-size:1.6rem;font-weight:800;color:#fff;line-height:1.3;margin:0 0 8px;">%s News – %s செய்திகள்</h1>
+    <p style="font-size:0.92rem;color:#94a3b8;line-height:1.6;margin:0 0 20px;">%s</p>
+
+    <div style="margin-bottom:20px;padding:12px 16px;background:#0d1421;border:1px solid #1a2540;border-radius:6px;display:flex;flex-wrap:wrap;gap:12px;font-size:0.82rem;">
+      <span style="font-weight:700;color:#ef4444;">📍 தொடர்புடைய மாவட்டங்கள்:</span>
+      <a href="/district/chennai" style="color:#38bdf8;text-decoration:none;">Latest Chennai News</a>
+      <a href="/district/coimbatore" style="color:#38bdf8;text-decoration:none;">Coimbatore News Today</a>
+      <a href="/district/madurai" style="color:#38bdf8;text-decoration:none;">Madurai News Today</a>
+      <a href="/district/tiruchirappalli" style="color:#38bdf8;text-decoration:none;">Trichy News Today</a>
+      <a href="/district/salem" style="color:#38bdf8;text-decoration:none;">Salem News Today</a>
+    </div>
+
+    %s
+
+    <div style="margin-top:24px;padding-top:16px;border-top:1px solid #1a2540;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:0.85rem;">
+      <span style="color:#64748b;">TN24 %s மாவட்ட செய்திகள் உடனுக்குடன் 24x7</span>
+      <a href="/category/politics" style="color:#ef4444;font-weight:600;text-decoration:none;">Latest Tamil Nadu Politics News →</a>
+    </div>
+  </div>
+</section>`,
+		html.EscapeString(district),
+		html.EscapeString(district), html.EscapeString(taName),
+		html.EscapeString(desc),
+		districtContentHTML.String(),
+		html.EscapeString(district),
+	)
+
+	baseHTML = removeHomepageH1(baseHTML)
+	baseHTML = strings.Replace(baseHTML, "<body>", "<body>"+ssrDistrictBlock, 1)
+	return baseHTML
+}
+
+func (h *PortalHandler) HandleCategoryPage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	rawSlug := strings.TrimPrefix(r.URL.Path, "/category/")
+	rawSlug = strings.Trim(rawSlug, "/")
+	if rawSlug == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	categoryName, taName, ok := resolveCategorySlug(rawSlug)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+	w.Header().Set("Cache-Control", "public, max-age=60, s-maxage=120, stale-while-revalidate=300")
+
+	pageHTML := RenderPortalPage()
+	pageHTML = h.injectCategoryPageContent(r.Context(), pageHTML, categoryName, taName, rawSlug, r)
+
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(pageHTML))
+}
+
+func (h *PortalHandler) injectCategoryPageContent(ctx context.Context, baseHTML string, category string, taName string, slug string, r *http.Request) string {
+	canonicalURL := fmt.Sprintf("https://www.tn24.in/category/%s", slug)
+	title := fmt.Sprintf("Tamil Nadu %s News – Latest %s News | TN24", html.EscapeString(category), html.EscapeString(category))
+	desc := fmt.Sprintf("Latest Tamil Nadu %s news in Tamil. Breaking updates, news coverage and analysis from across Tamil Nadu on TN24.", strings.ToLower(category))
+
+	// Replace head metadata
+	reCanonical := regexp.MustCompile(`(?i)<link rel="canonical" href=".*?">`)
+	baseHTML = reCanonical.ReplaceAllString(baseHTML, fmt.Sprintf(`<link rel="canonical" href="%s">`, canonicalURL))
+
+	reTitle := regexp.MustCompile(`(?i)<title>.*?</title>`)
+	baseHTML = reTitle.ReplaceAllString(baseHTML, "<title>"+title+"</title>")
+
+	reDesc := regexp.MustCompile(`(?i)<meta name="description" content=".*?">`)
+	baseHTML = reDesc.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="description" content="%s">`, html.EscapeString(desc)))
+
+	reOgTitle := regexp.MustCompile(`(?i)<meta property="og:title" content=".*?">`)
+	baseHTML = reOgTitle.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta property="og:title" content="%s">`, title))
+
+	reOgDesc := regexp.MustCompile(`(?i)<meta property="og:description" content=".*?">`)
+	baseHTML = reOgDesc.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta property="og:description" content="%s">`, html.EscapeString(desc)))
+
+	reOgURL := regexp.MustCompile(`(?i)<meta property="og:url" content=".*?">`)
+	baseHTML = reOgURL.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta property="og:url" content="%s">`, canonicalURL))
+
+	reTwTitle := regexp.MustCompile(`(?i)<meta name="twitter:title" content=".*?">`)
+	baseHTML = reTwTitle.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="twitter:title" content="%s">`, title))
+
+	reTwDesc := regexp.MustCompile(`(?i)<meta name="twitter:description" content=".*?">`)
+	baseHTML = reTwDesc.ReplaceAllString(baseHTML, fmt.Sprintf(`<meta name="twitter:description" content="%s">`, html.EscapeString(desc)))
+
+	// BreadcrumbList JSON-LD
+	breadcrumbJSON, _ := json.Marshal(map[string]interface{}{
+		"@context": "https://schema.org",
+		"@type":    "BreadcrumbList",
+		"itemListElement": []map[string]interface{}{
+			{
+				"@type":    "ListItem",
+				"position": 1,
+				"name":     "TN24",
+				"item":     "https://www.tn24.in/",
+			},
+			{
+				"@type":    "ListItem",
+				"position": 2,
+				"name":     "Tamil Nadu News",
+				"item":     "https://www.tn24.in/",
+			},
+			{
+				"@type":    "ListItem",
+				"position": 3,
+				"name":     fmt.Sprintf("%s News", category),
+				"item":     canonicalURL,
+			},
+		},
+	})
+
+	injectedHead := fmt.Sprintf(`<script type="application/ld+json">%s</script><script>window.INITIAL_CATEGORY = %q;</script></head>`, string(breadcrumbJSON), category)
+	baseHTML = strings.Replace(baseHTML, "</head>", injectedHead, 1)
+
+	// Fetch real published articles for this category
+	var articlesHTML strings.Builder
+	if h.conn != nil {
+		rows, err := h.conn.Query(ctx, `
+			SELECT c.id::text, c.title, COALESCE(c.description, ''),
+			       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
+			       COALESCE(d.name, 'Tamil Nadu'),
+			       COALESCE(c.published_at, c.created_at)
+			FROM content c
+			JOIN categories cat ON c.category_id = cat.id
+			LEFT JOIN districts d ON c.district_id = d.id
+			LEFT JOIN video_links vl ON c.id = vl.content_id
+			LEFT JOIN stories s ON c.id = s.content_id
+			LEFT JOIN photos p ON c.id = p.content_id
+			WHERE c.status = 'PUBLISHED' AND LOWER(cat.name) = LOWER($1)
+			ORDER BY COALESCE(c.published_at, c.created_at) DESC
+			LIMIT 12
+		`, category)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var id, aTitle, aDesc, aThumb, aDist string
+				var aPubAt time.Time
+				if err := rows.Scan(&id, &aTitle, &aDesc, &aThumb, &aDist, &aPubAt); err == nil {
+					cleanATitle := html.EscapeString(scraper.CleanHTML(aTitle))
+					cleanADesc := scraper.CleanHTML(aDesc)
+					cleanADesc = sanitizeEditorialDescription(cleanADesc, cleanATitle, aDist)
+					runes := []rune(cleanADesc)
+					if len(runes) > 130 {
+						cleanADesc = string(runes[:130]) + "..."
+					}
+					cleanADescEscaped := html.EscapeString(cleanADesc)
+
+					articlesHTML.WriteString(fmt.Sprintf(`
+        <article itemprop="hasPart" itemscope itemtype="https://schema.org/NewsArticle" style="background:#111e30;border:1px solid #1e2d42;border-radius:8px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;gap:10px;">
+          <div>
+            <div style="font-size:0.75rem;color:#38bdf8;font-weight:700;margin-bottom:6px;">📍 %s &bull; %s</div>
+            <h3 itemprop="headline" style="font-size:1.05rem;font-weight:700;line-height:1.4;margin:0 0 8px;">
+              <a href="/?post=%s" itemprop="url" style="color:#f8fafc;text-decoration:none;">%s</a>
+            </h3>
+            <p itemprop="description" style="font-size:0.85rem;color:#94a3b8;line-height:1.6;margin:0;">%s</p>
+          </div>
+          <div style="font-size:0.78rem;color:#64748b;display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #1e293b;">
+            <span>📅 <time itemprop="datePublished" datetime="%s">%s</time></span>
+            <a href="/?post=%s" style="color:#ef4444;font-weight:600;text-decoration:none;">முழு செய்தி வாசிக்க →</a>
+          </div>
+        </article>`,
+						html.EscapeString(aDist), html.EscapeString(category),
+						url.QueryEscape(id), cleanATitle,
+						cleanADescEscaped,
+						aPubAt.Format(time.RFC3339), aPubAt.Format("02 Jan 2006"),
+						url.QueryEscape(id),
+					))
+				}
+			}
+		}
+	}
+
+	articlesGridContent := articlesHTML.String()
+	if articlesGridContent == "" {
+		articlesGridContent = fmt.Sprintf(`<div style="grid-column:1/-1;padding:24px;background:#111e30;border-radius:8px;text-align:center;color:#94a3b8;">
+			<p style="font-size:1rem;margin:0 0 10px;">%s பிரிவிற்கான சமீபத்திய நேரலை செய்திகள் விரைவில் புதுப்பிக்கப்படும்.</p>
+			<a href="/" style="color:#38bdf8;font-weight:600;text-decoration:none;">தமிழ்நாடு முக்கிய செய்திகள் பார்க்க →</a>
+		</div>`, html.EscapeString(category))
+	}
+
+	ssrCategoryBlock := fmt.Sprintf(`
+<section id="category-crawler-ssr" itemscope itemtype="https://schema.org/CollectionPage" style="background:#080f1c;border-top:3px solid #ef4444;padding:20px 20px 28px;font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#d4d4d4;">
+  <div style="max-width:1100px;margin:0 auto;">
+    <nav aria-label="breadcrumb" style="font-size:0.8rem;color:#888;margin-bottom:12px;">
+      <a href="/" style="color:#ef4444;text-decoration:none;font-weight:600;">TN24</a>
+      <span style="margin:0 6px;">›</span>
+      <a href="/" style="color:#aaa;text-decoration:none;">Tamil Nadu News</a>
+      <span style="margin:0 6px;">›</span>
+      <span style="color:#e2e8f0;font-weight:600;">%s News</span>
+    </nav>
+    <h1 itemprop="headline" style="font-size:1.6rem;font-weight:800;color:#fff;line-height:1.3;margin:0 0 8px;">Tamil Nadu %s News – தமிழ்நாடு %s செய்திகள்</h1>
+    <p style="font-size:0.92rem;color:#94a3b8;line-height:1.6;margin:0 0 20px;">%s</p>
+
+    <div style="margin-bottom:20px;padding:12px 16px;background:#0d1421;border:1px solid #1a2540;border-radius:6px;display:flex;flex-wrap:wrap;gap:12px;font-size:0.82rem;">
+      <span style="font-weight:700;color:#ef4444;">🏛️ பிற பிரிவுகள்:</span>
+      <a href="/category/politics" style="color:#38bdf8;text-decoration:none;">Tamil Nadu Politics News</a>
+      <a href="/category/sports" style="color:#38bdf8;text-decoration:none;">Tamil Sports News</a>
+      <a href="/category/entertainment" style="color:#38bdf8;text-decoration:none;">Tamil Cinema News</a>
+      <a href="/category/business" style="color:#38bdf8;text-decoration:none;">Tamil Business News</a>
+      <a href="/category/technical" style="color:#38bdf8;text-decoration:none;">Tamil Tech News</a>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:16px;">
+      %s
+    </div>
+
+    <div style="margin-top:24px;padding-top:16px;border-top:1px solid #1a2540;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:0.85rem;">
+      <span style="color:#64748b;">TN24 %s செய்திகள் உடனுக்குடன் 24x7</span>
+      <a href="/district/chennai" style="color:#ef4444;font-weight:600;text-decoration:none;">Latest Chennai News →</a>
+    </div>
+  </div>
+</section>`,
+		html.EscapeString(category),
+		html.EscapeString(category), html.EscapeString(taName),
+		html.EscapeString(desc),
+		articlesGridContent,
+		html.EscapeString(category),
+	)
+
+	baseHTML = removeHomepageH1(baseHTML)
+	baseHTML = strings.Replace(baseHTML, "<body>", "<body>"+ssrCategoryBlock, 1)
+	return baseHTML
 }
 
 func (h *PortalHandler) injectDistrictMetadata(baseHTML string, district string, r *http.Request) string {
@@ -655,10 +1289,11 @@ func (h *PortalHandler) injectDistrictMetadata(baseHTML string, district string,
 	if !ok {
 		taName = district
 	}
-	pageURL := fmt.Sprintf("%s://%s/?district=%s", scheme, host, url.QueryEscape(district))
+	slug := districtToSlug(district)
+	pageURL := fmt.Sprintf("%s://%s/district/%s", scheme, host, slug)
 
-	title := fmt.Sprintf("%s News | %s செய்திகள் &amp; முக்கிய நிகழ்வுகள் 24x7 Live | TN24", html.EscapeString(district), html.EscapeString(taName))
-	desc := fmt.Sprintf("%s latest news in Tamil. %s மாவட்ட முக்கியச் செய்திகள், அரசியல், சட்டம் ஒழுங்கு, அரசு அறிவிப்புகள் உடனுக்குடன் நேரலை — TN24", html.EscapeString(district), html.EscapeString(taName))
+	title := fmt.Sprintf("%s News Today – Latest %s Tamil News (%s) | TN24", html.EscapeString(district), html.EscapeString(district), html.EscapeString(taName))
+	desc := fmt.Sprintf("Latest %s news in Tamil (%s) including breaking news, politics, crime, education, traffic and important local updates from TN24.", html.EscapeString(district), html.EscapeString(taName))
 
 	reTitle := regexp.MustCompile(`(?i)<title>.*?</title>`)
 	baseHTML = reTitle.ReplaceAllString(baseHTML, "<title>"+title+"</title>")
@@ -687,14 +1322,17 @@ func (h *PortalHandler) injectCategoryMetadata(baseHTML string, category string,
 	if r != nil && r.Host != "" {
 		host = r.Host
 	}
-	taName, ok := categoryTamilMap[strings.ToLower(category)]
-	if !ok {
+	slug := categoryToSlug(category)
+	catName, taName, ok := resolveCategorySlug(slug)
+	if ok {
+		category = catName
+	} else {
 		taName = category
 	}
-	pageURL := fmt.Sprintf("%s://%s/?category=%s", scheme, host, url.QueryEscape(category))
+	pageURL := fmt.Sprintf("%s://%s/category/%s", scheme, host, slug)
 
-	title := fmt.Sprintf("%s News in Tamil | %s செய்திகள் &amp; நேரலை தகவல்கள் | TN24", html.EscapeString(category), html.EscapeString(taName))
-	desc := fmt.Sprintf("Latest %s news in Tamil. தமிழ்நாடு %s முக்கிய நிகழ்வுகள், உண்மைச் செய்திகள் மற்றும் பிரேக்கிங் தகவல்கள் உடனுக்குடன் — TN24", html.EscapeString(category), html.EscapeString(taName))
+	title := fmt.Sprintf("Tamil Nadu %s News – Latest %s News (%s) | TN24", html.EscapeString(category), html.EscapeString(category), html.EscapeString(taName))
+	desc := fmt.Sprintf("Latest Tamil Nadu %s news in Tamil (%s). Breaking updates, news coverage and analysis from across Tamil Nadu on TN24.", strings.ToLower(category), html.EscapeString(taName))
 
 	reTitle := regexp.MustCompile(`(?i)<title>.*?</title>`)
 	baseHTML = reTitle.ReplaceAllString(baseHTML, "<title>"+title+"</title>")
@@ -1401,7 +2039,11 @@ func (h *PortalHandler) HandleBrandAssets(w http.ResponseWriter, r *http.Request
 	name = strings.ToLower(strings.TrimSpace(name))
 
 	w.Header().Set("Content-Type", "image/svg+xml; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	if r.URL.Query().Get("v") != "" {
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	} else {
+		w.Header().Set("Cache-Control", "public, max-age=604800, stale-while-revalidate=86400")
+	}
 
 	switch name {
 	case "tn24-logo.svg":
@@ -1781,13 +2423,66 @@ func (h *PortalHandler) HandleSitemapXML(w http.ResponseWriter, r *http.Request)
 		host = "www.tn24.in"
 	}
 	base := fmt.Sprintf("%s://%s", scheme, host)
-	now := time.Now().Format("2006-01-02")
+	staticLastmod := "2026-09-08"
+
+	// Fetch genuine lastmod for homepage (newest published article date)
+	homeLastmod := staticLastmod
+	if h.conn != nil {
+		var maxPub time.Time
+		if err := h.conn.QueryRow(r.Context(), "SELECT MAX(COALESCE(published_at, created_at)) FROM content WHERE status = 'PUBLISHED'").Scan(&maxPub); err == nil && !maxPub.IsZero() {
+			homeLastmod = maxPub.Format("2006-01-02")
+		}
+	}
+
+	// Fetch genuine lastmod timestamps per category
+	catLastmods := make(map[string]string)
+	if h.conn != nil {
+		cRows, err := h.conn.Query(r.Context(), `
+			SELECT LOWER(cat.name), MAX(COALESCE(c.published_at, c.created_at))
+			FROM content c
+			JOIN categories cat ON c.category_id = cat.id
+			WHERE c.status = 'PUBLISHED'
+			GROUP BY LOWER(cat.name)
+		`)
+		if err == nil {
+			defer cRows.Close()
+			for cRows.Next() {
+				var cName string
+				var cMax time.Time
+				if err := cRows.Scan(&cName, &cMax); err == nil && !cMax.IsZero() {
+					catLastmods[cName] = cMax.Format("2006-01-02")
+				}
+			}
+		}
+	}
+
+	// Fetch genuine lastmod timestamps per district
+	distLastmods := make(map[string]string)
+	if h.conn != nil {
+		dRows, err := h.conn.Query(r.Context(), `
+			SELECT LOWER(d.name), MAX(COALESCE(c.published_at, c.created_at))
+			FROM content c
+			JOIN districts d ON c.district_id = d.id
+			WHERE c.status = 'PUBLISHED'
+			GROUP BY LOWER(d.name)
+		`)
+		if err == nil {
+			defer dRows.Close()
+			for dRows.Next() {
+				var dName string
+				var dMax time.Time
+				if err := dRows.Scan(&dName, &dMax); err == nil && !dMax.IsZero() {
+					distLastmods[dName] = dMax.Format("2006-01-02")
+				}
+			}
+		}
+	}
 
 	var sb strings.Builder
 	sb.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
 	sb.WriteString(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` + "\n")
 
-	// Core Static Pages
+	// Core Static Pages — use genuine fixed publication/launch dates, not today's date
 	sb.WriteString(fmt.Sprintf(`    <url>
         <loc>%s/</loc>
         <lastmod>%s</lastmod>
@@ -1824,39 +2519,47 @@ func (h *PortalHandler) HandleSitemapXML(w http.ResponseWriter, r *http.Request)
         <changefreq>monthly</changefreq>
         <priority>0.6</priority>
     </url>
-`, base, now, base, now, base, now, base, now, base, now, base, now))
+`, base, homeLastmod, base, staticLastmod, base, staticLastmod, base, staticLastmod, base, staticLastmod, base, staticLastmod))
 
-	// Categories & Key Districts
-	cats := []string{"News", "Politics", "Sports", "Business", "Entertainment", "Technical"}
+	// Categories — lastmod reflects actual latest content update for that category
+	cats := []string{"news", "politics", "sports", "business", "entertainment", "technical", "crime", "civic"}
 	for _, c := range cats {
+		cMod := staticLastmod
+		if lm, exists := catLastmods[strings.ToLower(c)]; exists {
+			cMod = lm
+		}
 		sb.WriteString(fmt.Sprintf(`    <url>
-        <loc>%s/?category=%s</loc>
+        <loc>%s/category/%s</loc>
         <lastmod>%s</lastmod>
         <changefreq>hourly</changefreq>
         <priority>0.8</priority>
     </url>
-`, base, c, now))
+`, base, c, cMod))
 	}
 
-	// All 38 Official Districts of Tamil Nadu for Local SEO Coverage
+	// All 38 Official Districts of Tamil Nadu — lastmod reflects actual latest content update for that district
 	allDistricts := []string{
-		"Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore",
-		"Dharmapuri", "Dindigul", "Erode", "Kallakurichi", "Kanchipuram",
-		"Kanyakumari", "Karur", "Krishnagiri", "Madurai", "Mayiladuthurai",
-		"Nagapattinam", "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai",
-		"Ramanathapuram", "Ranipet", "Salem", "Sivagangai", "Tenkasi",
-		"Thanjavur", "Theni", "Thoothukudi", "Tiruchirappalli", "Tirunelveli",
-		"Tirupathur", "Tiruppur", "Tiruvallur", "Tiruvannamalai", "Tiruvarur",
-		"Vellore", "Villupuram", "Virudhunagar",
+		"ariyalur", "chengalpattu", "chennai", "coimbatore", "cuddalore",
+		"dharmapuri", "dindigul", "erode", "kallakurichi", "kanchipuram",
+		"kanyakumari", "karur", "krishnagiri", "madurai", "mayiladuthurai",
+		"nagapattinam", "namakkal", "nilgiris", "perambalur", "pudukkottai",
+		"ramanathapuram", "ranipet", "salem", "sivagangai", "tenkasi",
+		"thanjavur", "theni", "thoothukudi", "tiruchirappalli", "tirunelveli",
+		"tirupathur", "tiruppur", "tiruvallur", "tiruvannamalai", "tiruvarur",
+		"vellore", "villupuram", "virudhunagar",
 	}
 	for _, d := range allDistricts {
+		dMod := staticLastmod
+		if lm, exists := distLastmods[strings.ToLower(d)]; exists {
+			dMod = lm
+		}
 		sb.WriteString(fmt.Sprintf(`    <url>
-        <loc>%s/?district=%s</loc>
+        <loc>%s/district/%s</loc>
         <lastmod>%s</lastmod>
         <changefreq>hourly</changefreq>
         <priority>0.8</priority>
     </url>
-`, base, url.QueryEscape(d), now))
+`, base, d, dMod))
 	}
 
 	// Dynamic Published Articles (Top 100 recent articles)
@@ -1986,7 +2689,7 @@ func (h *PortalHandler) HandleVideoSitemapXML(w http.ResponseWriter, r *http.Req
 			      OR c.content_type = 'VIDEO_LINK'
 			      OR c.source_url LIKE '%youtube%'
 			      OR c.source_url LIKE '%youtu.be%'
-			      OR c.source_url LIKE '%bbc.com%'
+			      OR (c.source_url LIKE '%bbc.com%' AND (c.source_url LIKE '%/av-embeds/%' OR c.source_url LIKE '%/video%'))
 			  )
 			ORDER BY COALESCE(c.published_at, c.created_at) DESC
 			LIMIT 250
@@ -2040,7 +2743,7 @@ func (h *PortalHandler) HandleVideoSitemapXML(w http.ResponseWriter, r *http.Req
 						if aVidID != "" && (aPlatform == "youtube" || (!strings.HasPrefix(aVidID, "vid_") && !strings.HasPrefix(aVidID, "bbc_"))) {
 							aThumb = fmt.Sprintf("https://img.youtube.com/vi/%s/hqdefault.jpg", aVidID)
 						} else {
-							aThumb = fmt.Sprintf("%s/assets/brand/tn24-profile.jpg", base)
+							continue // P2.13: Require genuine video thumbnail
 						}
 					}
 					if strings.HasPrefix(aThumb, "/") {
@@ -2459,7 +3162,7 @@ func renderStaticPageWithCanonical(title, heading, metaDesc, bodyHTML, canonical
 // HandleFavicon serves the high-resolution brand favicon for /favicon.ico and /favicon.svg
 func (h *PortalHandler) HandleFavicon(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/svg+xml")
-	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.Header().Set("Cache-Control", "public, max-age=604800, stale-while-revalidate=86400")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(GetBrandFaviconSVG()))
 }
