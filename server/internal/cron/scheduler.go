@@ -251,8 +251,8 @@ func (s *Scheduler) registerDefaultTasks() {
 
 	s.RegisterJob(&CronJob{
 		ID:               "content_retention_cleanup",
-		Name:             "24-Hour Content Retention Auto-Purge",
-		Description:      "Automatically purges content in any status (Pending, Published, Rejected) older than the configured retention policy (default: 24 hours).",
+		Name:             "Staging Queue Retention Cleanup (Pending/Rejected only)",
+		Description:      "Purges stale PENDING/REJECTED staging items older than the configured retention policy (default: 24 hours). PUBLISHED articles are a permanent archive and are NEVER auto-deleted.",
 		ScheduleInterval: "15m",
 		JobType:          "MAINTENANCE",
 		IsActive:         true,
@@ -967,7 +967,7 @@ func (s *Scheduler) runContentRetentionCleanup(ctx context.Context) (string, err
 		DELETE FROM content
 		WHERE created_at < NOW() - ($1 * INTERVAL '1 hour')
 		  AND source_type != 'MANUAL_ENTRY'
-		  AND status = 'PUBLISHED'
+		  AND status IN ('PENDING', 'REJECTED')
 	`, hours)
 	if err != nil {
 		return "", fmt.Errorf("failed to purge stale content: %w", err)

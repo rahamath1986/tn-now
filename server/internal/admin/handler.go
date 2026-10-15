@@ -2156,7 +2156,7 @@ func (h *Handler) HandleRetentionCleanupNow(w http.ResponseWriter, r *http.Reque
 		DELETE FROM content
 		WHERE created_at < NOW() - ($1 * INTERVAL '1 hour')
 		  AND source_type != 'MANUAL_ENTRY'
-		  AND status = 'PUBLISHED'
+		  AND status IN ('PENDING', 'REJECTED')
 	`, hours)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Cleanup error: %v", err), http.StatusInternalServerError)

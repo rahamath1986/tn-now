@@ -1030,7 +1030,7 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 		DELETE FROM content
 		WHERE created_at < NOW() - make_interval(hours => $1)
 		  AND source_type != 'MANUAL_ENTRY'
-		  AND status = 'PUBLISHED'
+		  AND status IN ('PENDING', 'REJECTED')
 	`, hours)
 
 	// Automatically run deduplication cleanup after staging to retain only the latest version
@@ -1477,7 +1477,7 @@ func MigrateDatesAndEnforceRetentionPolicy(ctx context.Context, conn *pgxpool.Po
 		DELETE FROM content
 		WHERE created_at < NOW() - make_interval(hours => $1)
 		  AND source_type != 'MANUAL_ENTRY'
-		  AND status = 'PUBLISHED'
+		  AND status IN ('PENDING', 'REJECTED')
 	`, hours)
 	if err == nil {
 		purged := tag.RowsAffected()

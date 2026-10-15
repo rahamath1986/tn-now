@@ -758,5 +758,120 @@ func TestP2SitemapLastmod(t *testing.T) {
 	}
 }
 
+// ═══════════════════════════════════════════════════════════════
+// PHASE A: CTR & DISCOVER OPTIMIZATION TESTS
+// ═══════════════════════════════════════════════════════════════
+
+func TestSitemapIndexXML(t *testing.T) {
+	h := NewPortalHandler(nil, nil)
+
+	req := httptest.NewRequest(http.MethodGet, "https://www.tn24.in/sitemap-index.xml", nil)
+	rec := httptest.NewRecorder()
+	h.HandleSitemapIndexXML(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK from /sitemap-index.xml, got %d", rec.Code)
+	}
+
+	contentType := rec.Header().Get("Content-Type")
+	if !strings.Contains(contentType, "application/xml") {
+		t.Errorf("expected application/xml content type, got %s", contentType)
+	}
+
+	body := rec.Body.String()
+	if !strings.Contains(body, `<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`) {
+		t.Errorf("expected <sitemapindex> element with sitemaps.org namespace, got: %s", body)
+	}
+	if !strings.Contains(body, `https://www.tn24.in/sitemap.xml`) {
+		t.Errorf("expected sitemap index to contain /sitemap.xml")
+	}
+	if !strings.Contains(body, `https://www.tn24.in/sitemap-news.xml`) {
+		t.Errorf("expected sitemap index to contain /sitemap-news.xml")
+	}
+	if !strings.Contains(body, `https://www.tn24.in/sitemap-video.xml`) {
+		t.Errorf("expected sitemap index to contain /sitemap-video.xml")
+	}
+
+	// Verify robots.txt declares sitemap-index.xml
+	reqRobots := httptest.NewRequest(http.MethodGet, "/robots.txt", nil)
+	recRobots := httptest.NewRecorder()
+	h.HandleRobotsTxt(recRobots, reqRobots)
+	robotsBody := recRobots.Body.String()
+	if !strings.Contains(robotsBody, "sitemap-index.xml") {
+		t.Errorf("expected robots.txt to declare sitemap-index.xml")
+	}
+}
+
+func TestArticleOGFreshnessAndTitle(t *testing.T) {
+	h := NewPortalHandler(nil, nil)
+	baseHTML := "<html><head><title>TN24</title><meta property=\"og:type\" content=\"website\"><link rel=\"canonical\" href=\"https://www.tn24.in/\"></head><body><h1>Content</h1></body></html>"
+	pubAt := time.Date(2026, 9, 20, 14, 30, 0, 0, time.UTC)
+	modAt := time.Date(2026, 9, 20, 16, 0, 0, 0, time.UTC)
+
+	articleHTML := h.InjectPostMetadataValues(
+		nil, baseHTML, "post-uuid-123", "பட்ஜெட் அறிவிப்புகள் வெளியீடு",
+		"தமிழக பட்ஜெட் தொடர்பான முக்கிய தகவல்கள் வெளியாகி உள்ளது",
+		"https://www.tn24.in/thumb.jpg", "Madurai", "Politics", "ta",
+		pubAt, modAt, "", "", "", 0, nil,
+	)
+
+	// A1: Check article:published_time and article:modified_time
+	if !strings.Contains(articleHTML, `<meta property="article:published_time" content="2026-09-20T14:30:00Z">`) {
+		t.Errorf("missing article:published_time meta tag")
+	}
+	if !strings.Contains(articleHTML, `<meta property="article:modified_time" content="2026-09-20T16:00:00Z">`) {
+		t.Errorf("missing article:modified_time meta tag")
+	}
+
+	// A2: Check article:section and article:tag
+	if !strings.Contains(articleHTML, `<meta property="article:section" content="Politics">`) {
+		t.Errorf("missing article:section meta tag")
+	}
+	if !strings.Contains(articleHTML, `<meta property="article:tag" content="Madurai">`) {
+		t.Errorf("missing article:tag Madurai meta tag")
+	}
+	if !strings.Contains(articleHTML, `<meta property="og:type" content="article">`) {
+		t.Errorf("expected og:type to be 'article'")
+	}
+
+	// A3: Check keyword-optimized title tag with district appended
+	if !strings.Contains(articleHTML, "<title>பட்ஜெட் அறிவிப்புகள் வெளியீடு – Madurai News | TN24</title>") {
+		t.Errorf("expected district-enriched title tag, got HTML: %s", articleHTML)
+	}
+
+	// C2: Check isAccessibleForFree in NewsArticle schema
+	if !strings.Contains(articleHTML, `"isAccessibleForFree":true`) && !strings.Contains(articleHTML, `"isAccessibleForFree": true`) {
+		t.Errorf("expected isAccessibleForFree in NewsArticle schema")
+	}
+}
+
+func TestDistrictAndCategoryFAQSchema(t *testing.T) {
+	h := NewPortalHandler(nil, nil)
+
+	// District page FAQ schema check
+	reqDist := httptest.NewRequest(http.MethodGet, "/district/madurai", nil)
+	recDist := httptest.NewRecorder()
+	h.HandleDistrictPage(recDist, reqDist)
+	distHTML := recDist.Body.String()
+	if !strings.Contains(distHTML, `"@type":"FAQPage"`) && !strings.Contains(distHTML, `"@type": "FAQPage"`) {
+		t.Errorf("expected FAQPage schema in district page HTML")
+	}
+	if !strings.Contains(distHTML, "Madurai") {
+		t.Errorf("expected Madurai in district FAQ schema")
+	}
+
+	// Category page FAQ schema check
+	reqCat := httptest.NewRequest(http.MethodGet, "/category/politics", nil)
+	recCat := httptest.NewRecorder()
+	h.HandleCategoryPage(recCat, reqCat)
+	catHTML := recCat.Body.String()
+	if !strings.Contains(catHTML, `"@type":"FAQPage"`) && !strings.Contains(catHTML, `"@type": "FAQPage"`) {
+		t.Errorf("expected FAQPage schema in category page HTML")
+	}
+	if !strings.Contains(catHTML, "politics") && !strings.Contains(catHTML, "Politics") {
+		t.Errorf("expected Politics in category FAQ schema")
+	}
+}
+
 
 
