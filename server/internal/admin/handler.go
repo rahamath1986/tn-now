@@ -27,9 +27,14 @@ type Handler struct {
 	scheduler *cron.Scheduler
 	copilot   *CopilotEngine
 	cfg       *config.Config
+	rewriter  *ArticleRewriter
 }
 
 func NewHandler(q *db.Queries, conn *pgxpool.Pool, rdb *redis.Client, scheduler *cron.Scheduler, cfg *config.Config) *Handler {
+	apiKey := ""
+	if cfg != nil {
+		apiKey = cfg.GeminiAPIKey
+	}
 	h := &Handler{
 		q:         q,
 		conn:      conn,
@@ -37,6 +42,7 @@ func NewHandler(q *db.Queries, conn *pgxpool.Pool, rdb *redis.Client, scheduler 
 		scheduler: scheduler,
 		copilot:   NewCopilotEngine(q, conn, rdb, scheduler, cfg),
 		cfg:       cfg,
+		rewriter:  NewArticleRewriter(apiKey),
 	}
 	return h
 }
@@ -194,6 +200,8 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/admin/api/scraper/deduplicate", h.RequireAuth(h.HandleDeduplicateContent))
 	mux.HandleFunc("/admin/api/content/create", h.RequireAuth(h.HandleCreateContentManual))
 	mux.HandleFunc("/admin/api/content/update", h.RequireAuth(h.HandleUpdateContent))
+	mux.HandleFunc("/admin/api/content/ai-rewrite", h.RequireAuth(h.HandleAIRewriteSingle))
+	mux.HandleFunc("/admin/api/content/ai-rewrite-batch", h.RequireAuth(h.HandleAIRewriteBatch))
 	mux.HandleFunc("/admin/api/content/reclassify-all", h.RequireAuth(h.HandleReclassifyAllContent))
 	mux.HandleFunc("/admin/api/content/refetch-text", h.RequireAuth(h.HandleRefetchAllContentText))
 	mux.HandleFunc("/admin/api/maps/svg", h.HandleServeMapSVG) // Public for map thumbnails
@@ -2512,4 +2520,196 @@ func (h *Handler) HandleLanguageSettings(w http.ResponseWriter, r *http.Request)
 
 	writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
 }
+
+func (h *Handler) HandleAIRewriteSingle(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	var req struct {
+		ID          string `json:"id"`
+		Title       string `json:"title,omitempty"`
+		Description string `json:"description,omitempty"`
+		District    string `json:"district,omitempty"`
+		Category    string `json:"category,omitempty"`
+		Language    string `json:"language,omitempty"`
+		Save        *bool  `json:"save,omitempty"` // default true if ID provided
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 35*time.Second)
+	defer cancel()
+
+	title := strings.TrimSpace(req.Title)
+	desc := strings.TrimSpace(req.Description)
+	district := strings.TrimSpace(req.District)
+	category := strings.TrimSpace(req.Category)
+	lang := strings.TrimSpace(req.Language)
+
+	// If title or description are not provided, fetch from DB using ID
+	if req.ID != "" && (title == "" || desc == "") && h.conn != nil {
+		var dbTitle, dbDesc, dbDistrict, dbCategory, dbLang string
+		err := h.conn.QueryRow(ctx, `
+			SELECT c.title, c.description, COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'), COALESCE(c.language, 'ta')
+			FROM content c
+			LEFT JOIN districts d ON c.district_id = d.id
+			LEFT JOIN categories cat ON c.category_id = cat.id
+			WHERE c.id = $1
+		`, req.ID).Scan(&dbTitle, &dbDesc, &dbDistrict, &dbCategory, &dbLang)
+		if err == nil {
+			if title == "" {
+				title = dbTitle
+			}
+			if desc == "" {
+				desc = dbDesc
+			}
+			if district == "" {
+				district = dbDistrict
+			}
+			if category == "" {
+				category = dbCategory
+			}
+			if lang == "" {
+				lang = dbLang
+			}
+		}
+	}
+
+	if title == "" && desc == "" {
+		writeError(w, http.StatusBadRequest, "Content ID or title/description is required")
+		return
+	}
+
+	// Update rewriter API key dynamically if changed in config
+	if h.cfg != nil && h.cfg.GeminiAPIKey != "" {
+		h.rewriter.SetAPIKey(h.cfg.GeminiAPIKey)
+	}
+
+	rewriteReq := ArticleRewriteRequest{
+		ID:          req.ID,
+		Title:       title,
+		Description: desc,
+		District:    district,
+		Category:    category,
+		Language:    lang,
+	}
+
+	rewritten, err := h.rewriter.RewriteArticle(ctx, rewriteReq)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to rewrite article: %v", err))
+		return
+	}
+
+	// Save changes to database if ID is provided and save is not explicitly false
+	shouldSave := (req.Save == nil || *req.Save) && req.ID != "" && h.conn != nil
+	if shouldSave {
+		scraper.DBMu.Lock()
+		_, _ = h.conn.Exec(ctx, `
+			UPDATE content
+			SET title = $1, description = $2, slug = $3, language = $4, updated_at = NOW()
+			WHERE id = $5
+		`, rewritten.Title, rewritten.Description, rewritten.Slug, rewritten.Language, req.ID)
+
+		_, _ = h.conn.Exec(ctx, `
+			UPDATE stories
+			SET headline = $1, body = $2
+			WHERE content_id = $3
+		`, rewritten.Title, rewritten.Description, req.ID)
+		scraper.DBMu.Unlock()
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"data":    rewritten,
+	})
+}
+
+func (h *Handler) HandleAIRewriteBatch(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	var req struct {
+		IDs []string `json:"ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || len(req.IDs) == 0 {
+		writeError(w, http.StatusBadRequest, "Missing or empty IDs array")
+		return
+	}
+
+	if h.conn == nil {
+		writeError(w, http.StatusInternalServerError, "Database connection not available")
+		return
+	}
+
+	if h.cfg != nil && h.cfg.GeminiAPIKey != "" {
+		h.rewriter.SetAPIKey(h.cfg.GeminiAPIKey)
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 180*time.Second)
+	defer cancel()
+
+	processedCount := 0
+	for _, id := range req.IDs {
+		id = strings.TrimSpace(id)
+		if id == "" {
+			continue
+		}
+
+		var title, desc, district, category, lang string
+		err := h.conn.QueryRow(ctx, `
+			SELECT c.title, c.description, COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'), COALESCE(c.language, 'ta')
+			FROM content c
+			LEFT JOIN districts d ON c.district_id = d.id
+			LEFT JOIN categories cat ON c.category_id = cat.id
+			WHERE c.id = $1
+		`, id).Scan(&title, &desc, &district, &category, &lang)
+		if err != nil {
+			continue
+		}
+
+		rewritten, err := h.rewriter.RewriteArticle(ctx, ArticleRewriteRequest{
+			ID:          id,
+			Title:       title,
+			Description: desc,
+			District:    district,
+			Category:    category,
+			Language:    lang,
+		})
+		if err != nil || rewritten == nil {
+			continue
+		}
+
+		scraper.DBMu.Lock()
+		_, _ = h.conn.Exec(ctx, `
+			UPDATE content
+			SET title = $1, description = $2, slug = $3, language = $4, updated_at = NOW()
+			WHERE id = $5
+		`, rewritten.Title, rewritten.Description, rewritten.Slug, rewritten.Language, id)
+
+		_, _ = h.conn.Exec(ctx, `
+			UPDATE stories
+			SET headline = $1, body = $2
+			WHERE content_id = $3
+		`, rewritten.Title, rewritten.Description, id)
+		scraper.DBMu.Unlock()
+
+		processedCount++
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":   true,
+		"processed": processedCount,
+		"total":     len(req.IDs),
+		"message":   fmt.Sprintf("Successfully AI-rewritten %d of %d articles with clean journalistic quality", processedCount, len(req.IDs)),
+	})
+}
+
 

@@ -1272,6 +1272,7 @@ func RenderAdminDashboard() string {
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <button class="btn-approve" style="font-size: 12px; padding: 6px 14px;" onclick="approveSelectedContent()">✓ Approve Selected</button>
+                    <button class="action-btn" id="bulk-ai-rewrite-btn" style="color: #10b981; border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.15); font-weight: 700; font-size: 12px; padding: 5px 12px; cursor: pointer;" onclick="aiRewriteSelectedContent()" title="AI Rewrite all selected articles with zero language errors">✨ AI Rewrite Selected</button>
                     <button class="action-btn" style="color: #f59e0b; border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.1); font-weight: 600; font-size: 12px; padding: 5px 12px;" onclick="rejectSelectedContent()">🚫 Reject Selected</button>
                     <button class="action-btn" style="color: #f43f5e; border-color: rgba(244,63,94,0.4); background: rgba(244,63,94,0.1); font-weight: 600; font-size: 12px; padding: 5px 12px;" onclick="deleteSelectedContent()">🗑️ Delete Selected</button>
                 </div>
@@ -1550,6 +1551,7 @@ func RenderAdminDashboard() string {
                         </select>
                     </div>
                     <button id="modal-viral-toggle-btn" class="action-btn" onclick="toggleCurrentItemViral()" style="font-size: 11px; padding: 4px 10px; cursor: pointer;">⚡ Mark Viral</button>
+                    <button id="modal-ai-rewrite-view-btn" class="action-btn" style="color: #10b981; border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.1); font-size: 11px; padding: 4px 10px; cursor: pointer;" onclick="triggerAIRewriteFromViewModal()" title="AI Clean & Journalistic Rewrite (Zero Language Issue)">✨ AI Rewrite</button>
                     <button class="action-btn" style="color: #a855f7; border-color: rgba(168,85,247,0.4); font-size: 11px; padding: 4px 10px; cursor: pointer;" onclick="openEditContentModal(activeViewItemId)" title="Edit title, text, image, or banner placement">✏️ Edit</button>
                     <button id="modal-banner-toggle-btn" class="action-btn" style="color: #eab308; border-color: rgba(234,179,8,0.4); font-size: 11px; padding: 4px 10px; cursor: pointer;" onclick="toggleCurrentItemMainBanner()">⭐ Set Hero</button>
                     <button id="view-modal-approve-btn" class="btn-approve" style="padding: 6px 14px; font-size: 12px;">✓ Approve</button>
@@ -1648,7 +1650,10 @@ func RenderAdminDashboard() string {
 
                 <!-- Title -->
                 <div>
-                    <label style="display: block; font-size: 12px; font-weight: 700; color: #cbd5e1; margin-bottom: 6px;">Article Headline / Title *</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label style="font-size: 12px; font-weight: 700; color: #cbd5e1; margin: 0;">Article Headline / Title *</label>
+                        <button type="button" id="modal-ai-rewrite-btn" class="action-btn" onclick="aiRewriteModalContent()" style="background: rgba(16,185,129,0.2); color: #10b981; border: 1px solid rgba(16,185,129,0.5); font-weight: 700; font-size: 11px; padding: 3px 10px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 5px;" title="Use Gemini AI to polish and rewrite headline & body with 100% language fidelity">✨ AI Polish / Rewrite</button>
+                    </div>
                     <input id="edit-post-title" type="text" style="width: 100%; box-sizing: border-box; background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 10px 12px; color: #f8fafc; font-size: 14px; font-weight: 600;" placeholder="Enter headline..." />
                 </div>
 
@@ -3435,6 +3440,7 @@ func RenderAdminDashboard() string {
 
             let rowActions = '<button class="action-btn" style="color: #38bdf8; border-color: rgba(56,189,248,0.4); margin-right: 4px;" onclick="openContentViewModal(\'' + item.id + '\')" title="Preview post">👁️ View</button>' +
                 '<button class="action-btn" style="color: #a855f7; border-color: rgba(168,85,247,0.4); margin-right: 4px;" onclick="openEditContentModal(\'' + item.id + '\')" title="Edit post content and broadcast placement">✏️ Edit</button>' +
+                '<button class="action-btn" id="ai-rw-btn-' + item.id + '" style="color: #10b981; border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.1); font-weight:600; margin-right: 4px;" onclick="triggerAIRewrite(\'' + item.id + '\')" title="AI Clean & Journalistic Rewrite (Zero Language Issue)">✨ AI Rewrite</button>' +
                 starBtn;
             if (item.status === 'PENDING') {
                 rowActions += '<button class="btn-approve" onclick="approveContent(\'' + item.id + '\')" style="margin-right: 4px;" title="Approve & publish live">✓ Approve</button>' +
@@ -3883,6 +3889,187 @@ func RenderAdminDashboard() string {
                 }
             })
             .catch(() => showToast('✗ Failed to delete selected items'));
+        }
+
+        async function aiRewriteSelectedContent() {
+            const ids = getSelectedContentIds();
+            if (ids.length === 0) {
+                showToast('No items selected');
+                return;
+            }
+            const confirmed = await showCustomConfirm({
+                title: '✨ AI Rewrite (' + ids.length + ') Articles',
+                message: 'Rewrite ' + ids.length + ' selected articles using Gemini AI? Articles will be polished into formal, high-journalistic Tamil/English with 100% language fidelity and zero Tanglish.',
+                type: 'approve',
+                confirmText: '✨ AI Rewrite (' + ids.length + ')'
+            });
+            if (!confirmed) return;
+            const btn = document.getElementById('bulk-ai-rewrite-btn');
+            const origText = btn ? btn.innerText : '';
+            if (btn) { btn.innerText = '⏳ AI Rewriting...'; btn.disabled = true; }
+            showToast('✨ AI is rewriting ' + ids.length + ' articles...');
+
+            fetch('/admin/api/content/ai-rewrite-batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: ids })
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (btn) { btn.innerText = origText; btn.disabled = false; }
+                if (res.success) {
+                    showToast('✓ ' + (res.message || 'AI rewriting completed successfully!'));
+                    clearSelection();
+                    fetchPendingContent();
+                } else {
+                    showToast('✗ ' + (res.message || 'Batch AI rewrite failed'));
+                }
+            })
+            .catch(() => {
+                if (btn) { btn.innerText = origText; btn.disabled = false; }
+                showToast('✗ Failed to execute batch AI rewrite');
+            });
+        }
+
+        function triggerAIRewrite(id) {
+            const btn = document.getElementById('ai-rw-btn-' + id);
+            const origText = btn ? btn.innerText : '✨ AI Rewrite';
+            if (btn) {
+                btn.innerText = '⏳ Rewriting...';
+                btn.disabled = true;
+            }
+            showToast('✨ AI is polishing and rewriting article with zero language mixing...');
+
+            fetch('/admin/api/content/ai-rewrite', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id, save: true })
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (btn) {
+                    btn.innerText = origText;
+                    btn.disabled = false;
+                }
+                if (res.success && res.data) {
+                    showToast('✨ Article rewritten with 100% language fidelity!');
+                    if (cachedContentMap[id]) {
+                        cachedContentMap[id].title = res.data.title;
+                        cachedContentMap[id].description = res.data.description;
+                        cachedContentMap[id].slug = res.data.slug;
+                        if (res.data.language) cachedContentMap[id].language = res.data.language;
+                    }
+                    fetchPendingContent();
+                } else {
+                    showToast('✗ ' + (res.message || 'AI rewrite failed'));
+                }
+            })
+            .catch(() => {
+                if (btn) {
+                    btn.innerText = origText;
+                    btn.disabled = false;
+                }
+                showToast('✗ Error rewriting article');
+            });
+        }
+
+        function triggerAIRewriteFromViewModal() {
+            if (!activeViewItemId) return;
+            const btn = document.getElementById('modal-ai-rewrite-view-btn');
+            if (btn) { btn.innerText = '⏳ Rewriting...'; btn.disabled = true; }
+            showToast('✨ AI is rewriting this article with zero language mixing...');
+
+            fetch('/admin/api/content/ai-rewrite', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: activeViewItemId, save: true })
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (btn) { btn.innerText = '✨ AI Rewrite'; btn.disabled = false; }
+                if (res.success && res.data) {
+                    showToast('✨ Article rewritten successfully!');
+                    const titleEl = document.getElementById('consumer-title');
+                    const bodyEl = document.getElementById('consumer-body');
+                    if (titleEl) titleEl.innerText = res.data.title;
+                    if (bodyEl) bodyEl.innerText = res.data.description;
+                    if (cachedContentMap[activeViewItemId]) {
+                        cachedContentMap[activeViewItemId].title = res.data.title;
+                        cachedContentMap[activeViewItemId].description = res.data.description;
+                        cachedContentMap[activeViewItemId].slug = res.data.slug;
+                    }
+                    fetchPendingContent();
+                } else {
+                    showToast('✗ ' + (res.message || 'AI rewrite failed'));
+                }
+            })
+            .catch(() => {
+                if (btn) { btn.innerText = '✨ AI Rewrite'; btn.disabled = false; }
+                showToast('✗ Error rewriting article');
+            });
+        }
+
+        function aiRewriteModalContent() {
+            const id = document.getElementById('edit-post-id') ? document.getElementById('edit-post-id').value : '';
+            const title = document.getElementById('edit-post-title') ? document.getElementById('edit-post-title').value.trim() : '';
+            const desc = document.getElementById('edit-post-description') ? document.getElementById('edit-post-description').value.trim() : '';
+            const dist = document.getElementById('edit-post-district') ? document.getElementById('edit-post-district').value : '';
+            const cat = document.getElementById('edit-post-category') ? document.getElementById('edit-post-category').value : '';
+            const lang = document.getElementById('edit-post-language') ? document.getElementById('edit-post-language').value : 'ta';
+
+            if (!title && !desc) {
+                showToast('Please enter a headline or content to rewrite');
+                return;
+            }
+
+            const btn = document.getElementById('modal-ai-rewrite-btn');
+            if (btn) {
+                btn.innerText = '⏳ AI Polishing...';
+                btn.disabled = true;
+            }
+            showToast('✨ AI is rewriting headline and content in pure journalistic ' + (lang === 'ta' ? 'Tamil' : 'English') + '...');
+
+            fetch('/admin/api/content/ai-rewrite', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: id,
+                    title: title,
+                    description: desc,
+                    district: dist,
+                    category: cat,
+                    language: lang,
+                    save: false
+                })
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (btn) {
+                    btn.innerText = '✨ AI Polish / Rewrite';
+                    btn.disabled = false;
+                }
+                if (res.success && res.data) {
+                    if (document.getElementById('edit-post-title')) {
+                        document.getElementById('edit-post-title').value = res.data.title;
+                    }
+                    if (document.getElementById('edit-post-description')) {
+                        document.getElementById('edit-post-description').value = res.data.description;
+                    }
+                    if (res.data.language && document.getElementById('edit-post-language')) {
+                        document.getElementById('edit-post-language').value = res.data.language;
+                    }
+                    showToast('✨ Cleanly rewritten by AI! Review and click Save.');
+                } else {
+                    showToast('✗ ' + (res.message || 'AI rewrite failed'));
+                }
+            })
+            .catch(() => {
+                if (btn) {
+                    btn.innerText = '✨ AI Polish / Rewrite';
+                    btn.disabled = false;
+                }
+                showToast('✗ Error performing AI rewrite');
+            });
         }
 
         function setViewDeviceMode(mode) {
