@@ -1005,6 +1005,8 @@ func (c *CopilotEngine) HandleAgentExecute(w http.ResponseWriter, r *http.Reques
 				writeError(w, http.StatusInternalServerError, "Failed to create content in database: "+err.Error())
 				return
 			}
+			slug := scraper.GenerateArticleSlug(contentData.Title, contentID)
+			_, _ = c.conn.Exec(ctx, "UPDATE content SET slug = $1 WHERE id = $2", slug, contentID)
 			resultMessage = fmt.Sprintf("Created & published new content item '%s' for %s (ID: %s)", contentData.Title, contentData.District, contentID)
 		} else {
 			resultMessage = "Database connection offline"

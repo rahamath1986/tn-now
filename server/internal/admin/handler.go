@@ -1181,6 +1181,9 @@ func (h *Handler) HandleCreateContentManual(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	slug := scraper.GenerateArticleSlug(req.Title, newID)
+	_, _ = h.conn.Exec(ctx, "UPDATE content SET slug = $1 WHERE id = $2", slug, newID)
+
 	// If video provided, extract video metadata and insert into video_links
 	if req.VideoURL != "" {
 		platform := "youtube"
@@ -1741,8 +1744,10 @@ func (h *Handler) HandleUpdateContent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if strings.TrimSpace(req.Title) != "" {
-		_, _ = h.conn.Exec(ctx, "UPDATE content SET title = $1, updated_at = NOW() WHERE id = $2", strings.TrimSpace(req.Title), req.ID)
-		_, _ = h.conn.Exec(ctx, "UPDATE stories SET headline = $1 WHERE content_id = $2", strings.TrimSpace(req.Title), req.ID)
+		newTitle := strings.TrimSpace(req.Title)
+		newSlug := scraper.GenerateArticleSlug(newTitle, req.ID)
+		_, _ = h.conn.Exec(ctx, "UPDATE content SET title = $1, slug = $2, updated_at = NOW() WHERE id = $3", newTitle, newSlug, req.ID)
+		_, _ = h.conn.Exec(ctx, "UPDATE stories SET headline = $1 WHERE content_id = $2", newTitle, req.ID)
 	}
 
 	if strings.TrimSpace(req.Description) != "" {

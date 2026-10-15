@@ -29,6 +29,7 @@ func NewPortalHandler(q *db.Queries, conn *pgxpool.Pool) *PortalHandler {
 
 type ArticleItem struct {
 	ID          string    `json:"id"`
+	Slug        string    `json:"slug"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	ContentType string    `json:"contentType"`
@@ -44,6 +45,36 @@ type ArticleItem struct {
 	CreatedAt   time.Time `json:"createdAt"`
 	IsViral     bool      `json:"isViral"`
 	Author      string    `json:"author"`
+}
+
+// articleURL returns the full canonical URL for an article, preferring clean SEO /news/<slug> URLs.
+func articleURL(base, slug, id string) string {
+	if slug != "" {
+		return fmt.Sprintf("%s/news/%s", base, slug)
+	}
+	if id != "" {
+		shortID := id
+		if len(shortID) > 8 {
+			shortID = shortID[:8]
+		}
+		return fmt.Sprintf("%s/news/news-%s", base, shortID)
+	}
+	return fmt.Sprintf("%s/", base)
+}
+
+// articlePath returns the path component for an article (/news/<slug> or fallback /news/news-<short-id>).
+func articlePath(slug, id string) string {
+	if slug != "" {
+		return fmt.Sprintf("/news/%s", slug)
+	}
+	if id != "" {
+		shortID := id
+		if len(shortID) > 8 {
+			shortID = shortID[:8]
+		}
+		return fmt.Sprintf("/news/news-%s", shortID)
+	}
+	return "/"
 }
 
 type AdBannerSlot struct {
@@ -94,6 +125,14 @@ func (h *PortalHandler) RegisterRoutes(mux *http.ServeMux) {
 		}
 
 		if postID != "" {
+			if h.conn != nil {
+				var targetSlug string
+				err := h.conn.QueryRow(r.Context(), "SELECT COALESCE(slug, '') FROM content WHERE id::text = $1 LIMIT 1", postID).Scan(&targetSlug)
+				if err == nil && targetSlug != "" {
+					http.Redirect(w, r, "/news/"+targetSlug, http.StatusMovedPermanently)
+					return
+				}
+			}
 			http.Redirect(w, r, "/?post="+url.QueryEscape(postID), http.StatusMovedPermanently)
 			return
 		}
@@ -118,7 +157,8 @@ func (h *PortalHandler) RegisterRoutes(mux *http.ServeMux) {
 		http.Redirect(w, r, target, http.StatusMovedPermanently)
 	})
 
-	// SEO Clean Landing Pages
+	// SEO Clean Landing & Article Pages
+	mux.HandleFunc("/news/", h.HandleNewsArticlePage)
 	mux.HandleFunc("/district/", h.HandleDistrictPage)
 	mux.HandleFunc("/category/", h.HandleCategoryPage)
 
@@ -178,6 +218,22 @@ func (h *PortalHandler) HandlePortalPage(w http.ResponseWriter, r *http.Request)
 	searchQuery := strings.TrimSpace(r.URL.Query().Get("q"))
 	isViral := strings.TrimSpace(r.URL.Query().Get("viral")) == "true"
 
+	// 301 Permanent Redirect for post query parameter -> clean canonical /news/<slug> URL
+	if postID != "" && h.conn != nil {
+		var targetSlug, title string
+		err := h.conn.QueryRow(r.Context(), "SELECT COALESCE(slug, ''), title FROM content WHERE id::text = $1 LIMIT 1", postID).Scan(&targetSlug, &title)
+		if err == nil {
+			if targetSlug == "" && title != "" {
+				targetSlug = scraper.GenerateArticleSlug(title, postID)
+				_, _ = h.conn.Exec(r.Context(), "UPDATE content SET slug = $1 WHERE id::text = $2", targetSlug, postID)
+			}
+			if targetSlug != "" {
+				http.Redirect(w, r, "/news/"+targetSlug, http.StatusMovedPermanently)
+				return
+			}
+		}
+	}
+
 	// 301 Permanent Redirect for district query parameter -> clean canonical URL
 	if postID == "" && district != "" && district != "All Districts" && district != "ALL" && district != "TN-ALL / REGIONAL" {
 		if slug := districtToSlug(district); slug != "" {
@@ -216,6 +272,82 @@ func (h *PortalHandler) HandlePortalPage(w http.ResponseWriter, r *http.Request)
 	_, _ = w.Write([]byte(pageHTML))
 }
 
+// HandleNewsArticlePage handles clean article URLs (/news/<slug>).
+// Resolves the article by slug or ID fallback, serves deterministic metadata & SSR content,
+// and enforces canonical 301 redirects if an alternate or outdated slug was requested.
+func (h *PortalHandler) HandleNewsArticlePage(w http.ResponseWriter, r *http.Request) {
+	slug := strings.TrimPrefix(r.URL.Path, "/news/")
+	slug = strings.Trim(slug, "/")
+	if slug == "" {
+		http.Redirect(w, r, "/", http.StatusMovedPermanently)
+		return
+	}
+
+	pageHTML := RenderPortalPage()
+	if h.conn == nil {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(pageHTML))
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	var postID, title, desc, thumb, district, category, lang string
+	var vidPlatform, vidID, vidURL string
+	var vidDuration int
+	var sourceURL, actualSlug string
+	var pubAt, createdAt time.Time
+
+	shortID := scraper.ExtractShortID(slug)
+
+	err := h.conn.QueryRow(ctx, `
+		SELECT c.id::text, c.title, COALESCE(c.description, ''),
+		       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
+		       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'),
+		       COALESCE(c.language, 'ta'),
+		       COALESCE(c.published_at, c.created_at), c.created_at,
+		       COALESCE(vl.platform, ''), COALESCE(vl.external_video_id, ''),
+		       COALESCE(vl.canonical_url, ''), COALESCE(vl.duration_seconds, 0),
+		       COALESCE(c.source_url, ''), COALESCE(c.slug, '')
+		FROM content c
+		LEFT JOIN video_links vl ON c.id = vl.content_id
+		LEFT JOIN stories s ON c.id = s.content_id
+		LEFT JOIN photos p ON c.id = p.content_id
+		LEFT JOIN districts d ON c.district_id = d.id
+		LEFT JOIN categories cat ON c.category_id = cat.id
+		WHERE c.slug = $1 OR c.id::text = $1 OR ($2 != '' AND c.id::text LIKE $2 || '%')
+		LIMIT 1
+	`, slug, shortID).Scan(&postID, &title, &desc, &thumb, &district, &category, &lang, &pubAt, &createdAt, &vidPlatform, &vidID, &vidURL, &vidDuration, &sourceURL, &actualSlug)
+
+	if err != nil || strings.TrimSpace(title) == "" {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusNotFound)
+		notFoundHTML := fmt.Sprintf(`<!DOCTYPE html><html lang="ta"><head><title>Article Not Found | TN24</title><meta name="robots" content="noindex, follow"><link rel="stylesheet" href="/assets/brand/tn24-logo.svg"></head><body style="background:#080f1c;color:#f8fafc;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;padding:20px;"><h1 style="font-size:2rem;color:#ef4444;margin-bottom:8px;">404 — செய்தி கிடைக்கவில்லை</h1><p style="color:#94a3b8;margin-bottom:20px;">நீங்கள் தேடிய செய்தி மாற்றப்பட்டிருக்கலாம் அல்லது நீக்கப்பட்டிருக்கலாம்.</p><a href="/" style="display:inline-block;padding:10px 20px;background:#1557bf;color:#fff;text-decoration:none;border-radius:6px;font-weight:700;">முகப்புப் பக்கம் செல்க →</a></div></body></html>`)
+		_, _ = w.Write([]byte(notFoundHTML))
+		return
+	}
+
+	// 301 Permanent Redirect to canonical slug if accessed via short ID or alternate slug
+	if actualSlug != "" && slug != actualSlug {
+		http.Redirect(w, r, "/news/"+actualSlug, http.StatusMovedPermanently)
+		return
+	}
+
+	canonicalSlug := actualSlug
+	if canonicalSlug == "" {
+		canonicalSlug = slug
+	}
+
+	pageHTML = h.InjectPostMetadataValues(ctx, pageHTML, postID, title, desc, thumb, district, category, lang, pubAt, createdAt, vidPlatform, vidID, vidURL, vidDuration, r, sourceURL, canonicalSlug)
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=60, s-maxage=120")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(pageHTML))
+}
+
 func (h *PortalHandler) HandleGetSinglePost(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.Header().Set("Content-Type", "application/json")
@@ -225,10 +357,11 @@ func (h *PortalHandler) HandleGetSinglePost(w http.ResponseWriter, r *http.Reque
 	}
 
 	postID := strings.TrimSpace(r.URL.Query().Get("id"))
-	if postID == "" {
+	slug := strings.TrimSpace(r.URL.Query().Get("slug"))
+	if postID == "" && slug == "" {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Missing article id"})
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{"success": false, "message": "Missing article id or slug"})
 		return
 	}
 
@@ -249,17 +382,18 @@ func (h *PortalHandler) HandleGetSinglePost(w http.ResponseWriter, r *http.Reque
 		       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'), c.status,
 		       COALESCE(vl.external_video_id, ''), COALESCE(vl.canonical_url, ''), COALESCE(vl.platform, ''),
 		       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
-		       COALESCE(c.published_at, c.created_at), COALESCE(c.is_viral, false)
+		       COALESCE(c.published_at, c.created_at), COALESCE(c.is_viral, false),
+		       COALESCE(c.slug, '')
 		FROM content c
 		LEFT JOIN districts d ON c.district_id = d.id
 		LEFT JOIN categories cat ON c.category_id = cat.id
 		LEFT JOIN video_links vl ON c.id = vl.content_id
 		LEFT JOIN stories s ON c.id = s.content_id
 		LEFT JOIN photos p ON c.id = p.content_id
-		WHERE c.id::text = $1
+		WHERE ($1 != '' AND c.id::text = $1) OR ($2 != '' AND c.slug = $2)
 		LIMIT 1
-	`, postID).Scan(&cid, &it.Title, &it.Description, &it.ContentType, &it.SourceURL,
-		&it.District, &it.Category, &it.Status, &it.VideoID, &it.VideoURL, &it.VideoType, &it.Thumbnail, &it.CreatedAt, &it.IsViral)
+	`, postID, slug).Scan(&cid, &it.Title, &it.Description, &it.ContentType, &it.SourceURL,
+		&it.District, &it.Category, &it.Status, &it.VideoID, &it.VideoURL, &it.VideoType, &it.Thumbnail, &it.CreatedAt, &it.IsViral, &it.Slug)
 
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -269,6 +403,9 @@ func (h *PortalHandler) HandleGetSinglePost(w http.ResponseWriter, r *http.Reque
 	}
 
 	it.ID = fmtUUID(cid)
+	if it.Slug == "" {
+		it.Slug = scraper.GenerateArticleSlug(it.Title, it.ID)
+	}
 	it.Title = scraper.CleanHTML(it.Title)
 	it.Description = sanitizeEditorialDescription(scraper.CleanHTML(it.Description), it.Title, it.District)
 	it.Language = scraper.DetectLanguage(it.Title + " " + it.Description)
@@ -292,7 +429,7 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 	var title, desc, thumb, district, category, lang string
 	var vidPlatform, vidID, vidURL string
 	var vidDuration int
-	var sourceURL string
+	var sourceURL, slug string
 	var pubAt, createdAt time.Time
 	err := h.conn.QueryRow(ctx, `
 		SELECT c.title, COALESCE(c.description, ''),
@@ -302,7 +439,7 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 		       COALESCE(c.published_at, c.created_at), c.created_at,
 		       COALESCE(vl.platform, ''), COALESCE(vl.external_video_id, ''),
 		       COALESCE(vl.canonical_url, ''), COALESCE(vl.duration_seconds, 0),
-		       COALESCE(c.source_url, '')
+		       COALESCE(c.source_url, ''), COALESCE(c.slug, '')
 		FROM content c
 		LEFT JOIN video_links vl ON c.id = vl.content_id
 		LEFT JOIN stories s ON c.id = s.content_id
@@ -311,13 +448,13 @@ func (h *PortalHandler) injectPostMetadata(ctx context.Context, baseHTML string,
 		LEFT JOIN categories cat ON c.category_id = cat.id
 		WHERE c.id::text = $1
 		LIMIT 1
-	`, postID).Scan(&title, &desc, &thumb, &district, &category, &lang, &pubAt, &createdAt, &vidPlatform, &vidID, &vidURL, &vidDuration, &sourceURL)
+	`, postID).Scan(&title, &desc, &thumb, &district, &category, &lang, &pubAt, &createdAt, &vidPlatform, &vidID, &vidURL, &vidDuration, &sourceURL, &slug)
 
 	if err != nil || strings.TrimSpace(title) == "" {
 		return baseHTML
 	}
 
-	return h.InjectPostMetadataValues(ctx, baseHTML, postID, title, desc, thumb, district, category, lang, pubAt, createdAt, vidPlatform, vidID, vidURL, vidDuration, r, sourceURL)
+	return h.InjectPostMetadataValues(ctx, baseHTML, postID, title, desc, thumb, district, category, lang, pubAt, createdAt, vidPlatform, vidID, vidURL, vidDuration, r, sourceURL, slug)
 }
 
 // InjectPostMetadataValues handles deterministic metadata injection for an article.
@@ -337,7 +474,15 @@ func (h *PortalHandler) InjectPostMetadataValues(ctx context.Context, baseHTML s
 	}
 	metaDescEscaped := html.EscapeString(metaDesc)
 
-	fullPostURL := fmt.Sprintf("https://www.tn24.in/?post=%s", url.QueryEscape(postID))
+	var slug string
+	if len(sourceURL) > 1 && sourceURL[1] != "" {
+		slug = sourceURL[1]
+	}
+	if slug == "" {
+		slug = scraper.GenerateArticleSlug(cleanTitle, postID)
+	}
+
+	fullPostURL := fmt.Sprintf("https://www.tn24.in/news/%s", slug)
 
 	hasVideo := vidID != "" || vidURL != ""
 	var embedURL, contentURL string
@@ -617,7 +762,7 @@ func (h *PortalHandler) InjectPostMetadataValues(ctx context.Context, baseHTML s
 	var relatedArticlesHTML strings.Builder
 	if h.conn != nil {
 		relRows, err := h.conn.Query(ctx, `
-			SELECT c.id::text, c.title, COALESCE(d.name, 'Tamil Nadu')
+			SELECT c.id::text, c.title, COALESCE(d.name, 'Tamil Nadu'), COALESCE(c.slug, '')
 			FROM content c
 			LEFT JOIN districts d ON c.district_id = d.id
 			WHERE c.status = 'PUBLISHED' AND c.id::text != $1
@@ -630,13 +775,13 @@ func (h *PortalHandler) InjectPostMetadataValues(ctx context.Context, baseHTML s
       <h2 style="font-size:1.05rem;font-weight:700;color:#38bdf8;margin:0 0 12px;">தமிழ்நாடு முக்கிய செய்திகள் | Latest News</h2>
       <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;">`)
 			for relRows.Next() {
-				var rID, rTitle, rDist string
-				if err := relRows.Scan(&rID, &rTitle, &rDist); err == nil {
+				var rID, rTitle, rDist, rSlug string
+				if err := relRows.Scan(&rID, &rTitle, &rDist, &rSlug); err == nil {
 					cleanRTitle := html.EscapeString(scraper.CleanHTML(rTitle))
 					cleanRDist := html.EscapeString(rDist)
 					relatedArticlesHTML.WriteString(fmt.Sprintf(
-						`<li><a href="/?post=%s" style="color:#e2e8f0;text-decoration:none;font-size:0.92rem;line-height:1.4;display:flex;align-items:center;gap:8px;"><span>📍 %s:</span> <strong>%s</strong></a></li>`,
-						url.QueryEscape(rID), cleanRDist, cleanRTitle,
+						`<li><a href="%s" style="color:#e2e8f0;text-decoration:none;font-size:0.92rem;line-height:1.4;display:flex;align-items:center;gap:8px;"><span>📍 %s:</span> <strong>%s</strong></a></li>`,
+						articlePath(rSlug, rID), cleanRDist, cleanRTitle,
 					))
 				}
 			}
@@ -977,8 +1122,8 @@ func (h *PortalHandler) injectDistrictPageContent(ctx context.Context, baseHTML 
 
 	// Fetch real published articles for this district
 	type districtArticle struct {
-		id, title, desc, thumb, cat string
-		pubAt                       time.Time
+		id, slug, title, desc, thumb, cat string
+		pubAt                             time.Time
 	}
 	var localArticles []districtArticle
 	if h.conn != nil {
@@ -986,7 +1131,8 @@ func (h *PortalHandler) injectDistrictPageContent(ctx context.Context, baseHTML 
 			SELECT c.id::text, c.title, COALESCE(c.description, ''),
 			       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
 			       COALESCE(cat.name, 'News'),
-			       COALESCE(c.published_at, c.created_at)
+			       COALESCE(c.published_at, c.created_at),
+			       COALESCE(c.slug, '')
 			FROM content c
 			JOIN districts d ON c.district_id = d.id
 			LEFT JOIN categories cat ON c.category_id = cat.id
@@ -1001,7 +1147,7 @@ func (h *PortalHandler) injectDistrictPageContent(ctx context.Context, baseHTML 
 			defer rows.Close()
 			for rows.Next() {
 				var it districtArticle
-				if err := rows.Scan(&it.id, &it.title, &it.desc, &it.thumb, &it.cat, &it.pubAt); err == nil {
+				if err := rows.Scan(&it.id, &it.title, &it.desc, &it.thumb, &it.cat, &it.pubAt, &it.slug); err == nil {
 					localArticles = append(localArticles, it)
 				}
 			}
@@ -1029,20 +1175,20 @@ func (h *PortalHandler) injectDistrictPageContent(ctx context.Context, baseHTML 
           <div>
             <div style="font-size:0.75rem;color:#38bdf8;font-weight:700;margin-bottom:6px;">🏷️ %s &bull; %s</div>
             <h3 itemprop="headline" style="font-size:1.05rem;font-weight:700;line-height:1.4;margin:0 0 8px;">
-              <a href="/?post=%s" itemprop="url" style="color:#f8fafc;text-decoration:none;">%s</a>
+              <a href="%s" itemprop="url" style="color:#f8fafc;text-decoration:none;">%s</a>
             </h3>
             <p itemprop="description" style="font-size:0.85rem;color:#94a3b8;line-height:1.6;margin:0;">%s</p>
           </div>
           <div style="font-size:0.78rem;color:#64748b;display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #1e293b;">
             <span>📅 <time itemprop="datePublished" datetime="%s">%s</time></span>
-            <a href="/?post=%s" style="color:#ef4444;font-weight:600;text-decoration:none;">முழு செய்தி வாசிக்க →</a>
+            <a href="%s" style="color:#ef4444;font-weight:600;text-decoration:none;">முழு செய்தி வாசிக்க →</a>
           </div>
         </article>`,
 				html.EscapeString(a.cat), html.EscapeString(district),
-				url.QueryEscape(a.id), cleanATitle,
+				articlePath(a.slug, a.id), cleanATitle,
 				cleanADescEscaped,
 				a.pubAt.Format(time.RFC3339), a.pubAt.Format("02 Jan 2006"),
-				url.QueryEscape(a.id),
+				articlePath(a.slug, a.id),
 			))
 		}
 		districtContentHTML.WriteString(`
@@ -1070,7 +1216,8 @@ func (h *PortalHandler) injectDistrictPageContent(ctx context.Context, baseHTML 
 			swRows, err := h.conn.Query(ctx, `
 				SELECT c.id::text, c.title, COALESCE(c.description, ''),
 				       COALESCE(cat.name, 'News'),
-				       COALESCE(c.published_at, c.created_at)
+				       COALESCE(c.published_at, c.created_at),
+				       COALESCE(c.slug, '')
 				FROM content c
 				LEFT JOIN categories cat ON c.category_id = cat.id
 				WHERE c.status = 'PUBLISHED'
@@ -1080,9 +1227,9 @@ func (h *PortalHandler) injectDistrictPageContent(ctx context.Context, baseHTML 
 			if err == nil {
 				defer swRows.Close()
 				for swRows.Next() {
-					var sid, sTitle, sDesc, sCat string
+					var sid, sTitle, sDesc, sCat, sSlug string
 					var sPubAt time.Time
-					if err := swRows.Scan(&sid, &sTitle, &sDesc, &sCat, &sPubAt); err == nil {
+					if err := swRows.Scan(&sid, &sTitle, &sDesc, &sCat, &sPubAt, &sSlug); err == nil {
 						cleanSTitle := html.EscapeString(scraper.CleanHTML(sTitle))
 						cleanSDesc := scraper.CleanHTML(sDesc)
 						cleanSDesc = sanitizeEditorialDescription(cleanSDesc, cleanSTitle, "Tamil Nadu")
@@ -1096,20 +1243,20 @@ func (h *PortalHandler) injectDistrictPageContent(ctx context.Context, baseHTML 
           <div>
             <div style="font-size:0.75rem;color:#38bdf8;font-weight:700;margin-bottom:6px;">🏷️ தமிழ்நாடு &bull; %s (மாநிலச் செய்தி)</div>
             <h3 itemprop="headline" style="font-size:1.05rem;font-weight:700;line-height:1.4;margin:0 0 8px;">
-              <a href="/?post=%s" itemprop="url" style="color:#f8fafc;text-decoration:none;">%s</a>
+              <a href="%s" itemprop="url" style="color:#f8fafc;text-decoration:none;">%s</a>
             </h3>
             <p itemprop="description" style="font-size:0.85rem;color:#94a3b8;line-height:1.6;margin:0;">%s</p>
           </div>
           <div style="font-size:0.78rem;color:#64748b;display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #1e293b;">
             <span>📅 <time itemprop="datePublished" datetime="%s">%s</time></span>
-            <a href="/?post=%s" style="color:#ef4444;font-weight:600;text-decoration:none;">முழு செய்தி வாசிக்க →</a>
+            <a href="%s" style="color:#ef4444;font-weight:600;text-decoration:none;">முழு செய்தி வாசிக்க →</a>
           </div>
         </article>`,
 							html.EscapeString(sCat),
-							url.QueryEscape(sid), cleanSTitle,
+							articlePath(sSlug, sid), cleanSTitle,
 							cleanSDescEscaped,
 							sPubAt.Format(time.RFC3339), sPubAt.Format("02 Jan 2006"),
-							url.QueryEscape(sid),
+							articlePath(sSlug, sid),
 						))
 					}
 				}
@@ -1299,7 +1446,8 @@ func (h *PortalHandler) injectCategoryPageContent(ctx context.Context, baseHTML 
 			SELECT c.id::text, c.title, COALESCE(c.description, ''),
 			       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
 			       COALESCE(d.name, 'Tamil Nadu'),
-			       COALESCE(c.published_at, c.created_at)
+			       COALESCE(c.published_at, c.created_at),
+			       COALESCE(c.slug, '')
 			FROM content c
 			JOIN categories cat ON c.category_id = cat.id
 			LEFT JOIN districts d ON c.district_id = d.id
@@ -1313,9 +1461,9 @@ func (h *PortalHandler) injectCategoryPageContent(ctx context.Context, baseHTML 
 		if err == nil {
 			defer rows.Close()
 			for rows.Next() {
-				var id, aTitle, aDesc, aThumb, aDist string
+				var id, aTitle, aDesc, aThumb, aDist, aSlug string
 				var aPubAt time.Time
-				if err := rows.Scan(&id, &aTitle, &aDesc, &aThumb, &aDist, &aPubAt); err == nil {
+				if err := rows.Scan(&id, &aTitle, &aDesc, &aThumb, &aDist, &aPubAt, &aSlug); err == nil {
 					cleanATitle := html.EscapeString(scraper.CleanHTML(aTitle))
 					cleanADesc := scraper.CleanHTML(aDesc)
 					cleanADesc = sanitizeEditorialDescription(cleanADesc, cleanATitle, aDist)
@@ -1330,20 +1478,20 @@ func (h *PortalHandler) injectCategoryPageContent(ctx context.Context, baseHTML 
           <div>
             <div style="font-size:0.75rem;color:#38bdf8;font-weight:700;margin-bottom:6px;">📍 %s &bull; %s</div>
             <h3 itemprop="headline" style="font-size:1.05rem;font-weight:700;line-height:1.4;margin:0 0 8px;">
-              <a href="/?post=%s" itemprop="url" style="color:#f8fafc;text-decoration:none;">%s</a>
+              <a href="%s" itemprop="url" style="color:#f8fafc;text-decoration:none;">%s</a>
             </h3>
             <p itemprop="description" style="font-size:0.85rem;color:#94a3b8;line-height:1.6;margin:0;">%s</p>
           </div>
           <div style="font-size:0.78rem;color:#64748b;display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #1e293b;">
             <span>📅 <time itemprop="datePublished" datetime="%s">%s</time></span>
-            <a href="/?post=%s" style="color:#ef4444;font-weight:600;text-decoration:none;">முழு செய்தி வாசிக்க →</a>
+            <a href="%s" style="color:#ef4444;font-weight:600;text-decoration:none;">முழு செய்தி வாசிக்க →</a>
           </div>
         </article>`,
 						html.EscapeString(aDist), html.EscapeString(category),
-						url.QueryEscape(id), cleanATitle,
+						articlePath(aSlug, id), cleanATitle,
 						cleanADescEscaped,
 						aPubAt.Format(time.RFC3339), aPubAt.Format("02 Jan 2006"),
-						url.QueryEscape(id),
+						articlePath(aSlug, id),
 					))
 				}
 			}
@@ -1537,7 +1685,8 @@ func (h *PortalHandler) injectHomepageArchiveContent(ctx context.Context, baseHT
 	rows, err := h.conn.Query(qctx, `
 		SELECT c.id::text, c.title, COALESCE(c.description, ''),
 		       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'),
-		       COALESCE(c.published_at, c.created_at), COALESCE(c.source_url, '')
+		       COALESCE(c.published_at, c.created_at), COALESCE(c.source_url, ''),
+		       COALESCE(c.slug, '')
 		FROM content c
 		LEFT JOIN districts d ON c.district_id = d.id
 		LEFT JOIN categories cat ON c.category_id = cat.id
@@ -1553,13 +1702,13 @@ func (h *PortalHandler) injectHomepageArchiveContent(ctx context.Context, baseHT
 	defer rows.Close()
 
 	type hpArticle struct {
-		id, title, desc, district, cat, source string
-		pubAt                                 time.Time
+		id, slug, title, desc, district, cat, source string
+		pubAt                                       time.Time
 	}
 	var articles []hpArticle
 	for rows.Next() {
 		var a hpArticle
-		if err := rows.Scan(&a.id, &a.title, &a.desc, &a.district, &a.cat, &a.pubAt, &a.source); err == nil {
+		if err := rows.Scan(&a.id, &a.title, &a.desc, &a.district, &a.cat, &a.pubAt, &a.source, &a.slug); err == nil {
 			articles = append(articles, a)
 		}
 	}
@@ -1590,16 +1739,16 @@ func (h *PortalHandler) injectHomepageArchiveContent(ctx context.Context, baseHT
         <article itemprop="hasPart" itemscope itemtype="https://schema.org/NewsArticle" style="background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:10px;">
           <div style="font-size:0.75rem;color:#1557bf;font-weight:700;">%s &bull; %s</div>
           <h3 itemprop="headline" style="font-size:1.02rem;font-weight:800;line-height:1.4;margin:0;">
-            <a href="/?post=%s" itemprop="url" style="color:#0f172a;text-decoration:none;">%s</a>
+            <a href="%s" itemprop="url" style="color:#0f172a;text-decoration:none;">%s</a>
           </h3>
           <p itemprop="description" style="font-size:0.88rem;color:#475569;line-height:1.6;margin:0;">%s</p>
           <div style="font-size:0.78rem;color:#64748b;display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid #edf2f7;">
             <span>📅 <time itemprop="datePublished" datetime="%s">%s</time>%s</span>
-            <a href="/?post=%s" style="color:#ef3e36;font-weight:700;text-decoration:none;">முழு செய்தி →</a>
+            <a href="%s" style="color:#ef3e36;font-weight:700;text-decoration:none;">முழு செய்தி →</a>
           </div>
         </article>`,
 			html.EscapeString(a.cat), html.EscapeString(a.district),
-			url.QueryEscape(a.id), cleanTitle,
+			articlePath(a.slug, a.id), cleanTitle,
 			cleanDescEscaped,
 			a.pubAt.Format(time.RFC3339), a.pubAt.Format("02 Jan 2006"),
 			func() string {
@@ -1608,7 +1757,7 @@ func (h *PortalHandler) injectHomepageArchiveContent(ctx context.Context, baseHT
 				}
 				return ""
 			}(),
-			url.QueryEscape(a.id),
+			articlePath(a.slug, a.id),
 		))
 	}
 	sb.WriteString(`</div>`)
@@ -1664,7 +1813,8 @@ func (h *PortalHandler) HandleRSSFeed(w http.ResponseWriter, r *http.Request) {
 			SELECT c.id::text, c.title, COALESCE(c.description, ''),
 			       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
 			       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'),
-			       COALESCE(c.published_at, c.created_at)
+			       COALESCE(c.published_at, c.created_at),
+			       COALESCE(c.slug, '')
 			FROM content c
 			LEFT JOIN video_links vl ON c.id = vl.content_id
 			LEFT JOIN stories s ON c.id = s.content_id
@@ -1678,12 +1828,12 @@ func (h *PortalHandler) HandleRSSFeed(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			defer rows.Close()
 			for rows.Next() {
-				var id, title, desc, thumb, district, cat string
+				var id, title, desc, thumb, district, cat, slug string
 				var pubAt time.Time
-				if err := rows.Scan(&id, &title, &desc, &thumb, &district, &cat, &pubAt); err == nil {
+				if err := rows.Scan(&id, &title, &desc, &thumb, &district, &cat, &pubAt, &slug); err == nil {
 					cleanTitle := html.EscapeString(strings.TrimSpace(scraper.CleanHTML(title)))
 					cleanDesc := html.EscapeString(strings.TrimSpace(scraper.CleanHTML(desc)))
-					postURL := fmt.Sprintf("%s/?post=%s", base, url.QueryEscape(id))
+					postURL := articleURL(base, slug, id)
 					if strings.TrimSpace(thumb) == "" {
 						thumb = scraper.GetFallbackImageWithPerson(cleanTitle, district, cat)
 					}
@@ -1819,7 +1969,8 @@ func (h *PortalHandler) HandlePortalFeed(w http.ResponseWriter, r *http.Request)
 		       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'), c.status,
 		       COALESCE(vl.external_video_id, ''), COALESCE(vl.canonical_url, ''), COALESCE(vl.platform, ''),
 		       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
-		       COALESCE(c.published_at, c.created_at), COALESCE(c.is_viral, false)
+		       COALESCE(c.published_at, c.created_at), COALESCE(c.is_viral, false),
+		       COALESCE(c.slug, '')
 		FROM content c
 		LEFT JOIN districts d ON c.district_id = d.id
 		LEFT JOIN categories cat ON c.category_id = cat.id
@@ -1852,9 +2003,12 @@ func (h *PortalHandler) HandlePortalFeed(w http.ResponseWriter, r *http.Request)
 		var it ArticleItem
 		var cid pgtype.UUID
 		err := rows.Scan(&cid, &it.Title, &it.Description, &it.ContentType, &it.SourceURL,
-			&it.District, &it.Category, &it.Status, &it.VideoID, &it.VideoURL, &it.VideoType, &it.Thumbnail, &it.CreatedAt, &it.IsViral)
+			&it.District, &it.Category, &it.Status, &it.VideoID, &it.VideoURL, &it.VideoType, &it.Thumbnail, &it.CreatedAt, &it.IsViral, &it.Slug)
 		if err == nil {
 			it.ID = fmtUUID(cid)
+			if it.Slug == "" {
+				it.Slug = scraper.GenerateArticleSlug(it.Title, it.ID)
+			}
 			it.Title = scraper.CleanHTML(it.Title)
 			it.Description = sanitizeEditorialDescription(scraper.CleanHTML(it.Description), it.Title, it.District)
 			it.Language = scraper.DetectLanguage(it.Title + " " + it.Description)
@@ -2840,7 +2994,7 @@ func (h *PortalHandler) HandleSitemapXML(w http.ResponseWriter, r *http.Request)
 	// Dynamic Published Articles (Top 100 recent articles)
 	if h.conn != nil {
 		rows, err := h.conn.Query(r.Context(), `
-			SELECT c.id::text, COALESCE(c.published_at, c.created_at)
+			SELECT c.id::text, COALESCE(c.slug, ''), COALESCE(c.published_at, c.created_at)
 			FROM content c
 			WHERE c.status = 'PUBLISHED'
 			ORDER BY COALESCE(c.published_at, c.created_at) DESC
@@ -2849,16 +3003,16 @@ func (h *PortalHandler) HandleSitemapXML(w http.ResponseWriter, r *http.Request)
 		if err == nil {
 			defer rows.Close()
 			for rows.Next() {
-				var aID string
+				var aID, aSlug string
 				var aMod time.Time
-				if err := rows.Scan(&aID, &aMod); err == nil {
+				if err := rows.Scan(&aID, &aSlug, &aMod); err == nil {
 					sb.WriteString(fmt.Sprintf(`    <url>
-        <loc>%s/?post=%s</loc>
+        <loc>%s</loc>
         <lastmod>%s</lastmod>
         <changefreq>daily</changefreq>
         <priority>0.75</priority>
     </url>
-`, base, url.QueryEscape(aID), aMod.Format("2006-01-02")))
+`, articleURL(base, aSlug, aID), aMod.Format("2006-01-02")))
 				}
 			}
 		}
@@ -2888,7 +3042,7 @@ func (h *PortalHandler) HandleNewsSitemapXML(w http.ResponseWriter, r *http.Requ
 
 	if h.conn != nil {
 		rows, err := h.conn.Query(r.Context(), `
-			SELECT c.id::text, c.title, COALESCE(c.language, 'ta'), COALESCE(c.published_at, c.created_at)
+			SELECT c.id::text, c.title, COALESCE(c.language, 'ta'), COALESCE(c.published_at, c.created_at), COALESCE(c.slug, '')
 			FROM content c
 			WHERE c.status = 'PUBLISHED'
 			  AND COALESCE(c.published_at, c.created_at) >= NOW() - INTERVAL '48 hours'
@@ -2898,9 +3052,9 @@ func (h *PortalHandler) HandleNewsSitemapXML(w http.ResponseWriter, r *http.Requ
 		if err == nil {
 			defer rows.Close()
 			for rows.Next() {
-				var aID, aTitle, aLang string
+				var aID, aTitle, aLang, aSlug string
 				var aPub time.Time
-				if err := rows.Scan(&aID, &aTitle, &aLang, &aPub); err == nil {
+				if err := rows.Scan(&aID, &aTitle, &aLang, &aPub, &aSlug); err == nil {
 					cleanTitle := scraper.CleanHTML(aTitle)
 					cleanTitle = strings.TrimSpace(cleanTitle)
 					cleanTitle = html.EscapeString(cleanTitle)
@@ -2908,7 +3062,7 @@ func (h *PortalHandler) HandleNewsSitemapXML(w http.ResponseWriter, r *http.Requ
 						aLang = "ta"
 					}
 					sb.WriteString(fmt.Sprintf(`    <url>
-        <loc>%s/?post=%s</loc>
+        <loc>%s</loc>
         <news:news>
             <news:publication>
                 <news:name>TN24 — Tamil Nadu News</news:name>
@@ -2918,7 +3072,7 @@ func (h *PortalHandler) HandleNewsSitemapXML(w http.ResponseWriter, r *http.Requ
             <news:title>%s</news:title>
         </news:news>
     </url>
-`, base, url.QueryEscape(aID), aLang, aPub.Format(time.RFC3339), cleanTitle))
+`, articleURL(base, aSlug, aID), aLang, aPub.Format(time.RFC3339), cleanTitle))
 				}
 			}
 		}
@@ -2952,7 +3106,8 @@ func (h *PortalHandler) HandleVideoSitemapXML(w http.ResponseWriter, r *http.Req
 			       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
 			       COALESCE(vl.platform, ''), COALESCE(vl.external_video_id, ''),
 			       COALESCE(vl.canonical_url, c.source_url, ''), COALESCE(vl.duration_seconds, 0),
-			       COALESCE(c.published_at, c.created_at)
+			       COALESCE(c.published_at, c.created_at),
+			       COALESCE(c.slug, '')
 			FROM content c
 			LEFT JOIN video_links vl ON c.id = vl.content_id
 			LEFT JOIN stories s ON c.id = s.content_id
@@ -2972,10 +3127,10 @@ func (h *PortalHandler) HandleVideoSitemapXML(w http.ResponseWriter, r *http.Req
 		if err == nil {
 			defer rows.Close()
 			for rows.Next() {
-				var aID, aTitle, aDesc, aThumb, aPlatform, aVidID, aVidURL string
+				var aID, aTitle, aDesc, aThumb, aPlatform, aVidID, aVidURL, aSlug string
 				var aDuration int
 				var aPub time.Time
-				if err := rows.Scan(&aID, &aTitle, &aDesc, &aThumb, &aPlatform, &aVidID, &aVidURL, &aDuration, &aPub); err == nil {
+				if err := rows.Scan(&aID, &aTitle, &aDesc, &aThumb, &aPlatform, &aVidID, &aVidURL, &aDuration, &aPub, &aSlug); err == nil {
 					if aVidID == "" && aVidURL != "" {
 						aVidID = scraper.ExtractYouTubeID(aVidURL)
 					}
@@ -3027,7 +3182,7 @@ func (h *PortalHandler) HandleVideoSitemapXML(w http.ResponseWriter, r *http.Req
 					aThumb = html.EscapeString(aThumb)
 
 					sb.WriteString(fmt.Sprintf(`    <url>
-        <loc>%s/?post=%s</loc>
+        <loc>%s</loc>
         <video:video>
             <video:thumbnail_loc>%s</video:thumbnail_loc>
             <video:title>%s</video:title>
@@ -3035,7 +3190,7 @@ func (h *PortalHandler) HandleVideoSitemapXML(w http.ResponseWriter, r *http.Req
             <video:player_loc allow_embed="yes">%s</video:player_loc>
             <video:publication_date>%s</video:publication_date>
             <video:family_friendly>yes</video:family_friendly>
-`, base, url.QueryEscape(aID), aThumb, cleanTitle, cleanDesc, html.EscapeString(playerLoc), aPub.Format(time.RFC3339)))
+`, articleURL(base, aSlug, aID), aThumb, cleanTitle, cleanDesc, html.EscapeString(playerLoc), aPub.Format(time.RFC3339)))
 					if aDuration > 0 {
 						sb.WriteString(fmt.Sprintf(`            <video:duration>%d</video:duration>
 `, aDuration))

@@ -2774,6 +2774,20 @@ func RenderPortalPage() string {
             return '';
         }
 
+        function getArticleHref(item) {
+            if (!item) return '#';
+            if (item.slug) return '/news/' + encodeURIComponent(item.slug);
+            if (item.id) return '/news/news-' + encodeURIComponent(item.id.substring(0, 8));
+            return '#';
+        }
+
+        function getArticleShareUrl(item) {
+            if (!item) return window.location.origin;
+            if (item.slug) return window.location.origin + '/news/' + encodeURIComponent(item.slug);
+            if (item.id) return window.location.origin + '/news/news-' + encodeURIComponent(item.id.substring(0, 8));
+            return window.location.origin;
+        }
+
         function renderPortalUI(data) {
             if (!data) return;
 
@@ -2909,7 +2923,7 @@ func RenderPortalPage() string {
                 if (data.heroTeasers && data.heroTeasers.length > 0) {
                     teasersContainer.innerHTML = data.heroTeasers.map(function(item) {
                         const src = getSourceDomain(item.sourceUrl);
-                        return '<a href="/?post=' + encodeURIComponent(item.id) + '" class="hero-teaser-item" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:block;">' +
+                        return '<a href="' + getArticleHref(item) + '" class="hero-teaser-item" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:block;">' +
                             '<div class="teaser-badge-meta">' +
                                 '<span class="teaser-badge">' + escapeHtml(item.category || 'செய்திகள்') + '</span>' +
                                 '<span class="teaser-date">🕒 ' + formatDate(item.createdAt) + (src ? ' &bull; ' + escapeHtml(src) : '') + '</span>' +
@@ -2930,7 +2944,7 @@ func RenderPortalPage() string {
                         const fallback = '/admin/api/maps/svg?district=' + encodeURIComponent(item.district || 'Tamil Nadu');
                         const thumb = item.thumbnail || fallback;
                         const src = getSourceDomain(item.sourceUrl);
-                        return '<a href="/?post=' + encodeURIComponent(item.id) + '" class="mini-card" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:flex;">' +
+                        return '<a href="' + getArticleHref(item) + '" class="mini-card" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:flex;">' +
                             '<div class="mini-thumb-wrap">' +
                                 '<img src="' + thumb + '" onerror="this.onerror=null; this.src=\'' + fallback + '\'" alt="' + escapeHtml(item.title) + '" loading="lazy" style="aspect-ratio:16/9; object-fit:cover;">' +
                                 '<span class="badge-pill">' + escapeHtml(item.category || 'செய்திகள்') + '</span>' +
@@ -2952,7 +2966,7 @@ func RenderPortalPage() string {
                 if (data.pressReleases && data.pressReleases.length > 0) {
                     pressContainer.innerHTML = data.pressReleases.map(function(item) {
                         const src = getSourceDomain(item.sourceUrl);
-                        return '<a href="/?post=' + encodeURIComponent(item.id) + '" class="press-item" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:block;">' +
+                        return '<a href="' + getArticleHref(item) + '" class="press-item" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:block;">' +
                             '<div class="press-title">' + escapeHtml(item.title) + '</div>' +
                             '<div class="press-meta">🕒 ' + formatDate(item.createdAt) + (src ? ' &bull; ' + escapeHtml(src) : '') + ' &bull; ' + escapeHtml(item.district || 'அரசு செய்தி') + '</div>' +
                         '</a>';
@@ -3012,7 +3026,7 @@ func RenderPortalPage() string {
                                 const src = getSourceDomain(item.sourceUrl);
                                 const sourceDist = src ? (escapeHtml(src) + ' &bull; ' + escapeHtml(item.district || 'தமிழ்நாடு')) : escapeHtml(item.district || 'தமிழ்நாடு');
                                 html += '<div class="article-card">' +
-                                    '<a href="/?post=' + encodeURIComponent(item.id) + '" class="article-card-link" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:flex; flex-direction:column; height:100%;">' +
+                                    '<a href="' + getArticleHref(item) + '" class="article-card-link" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:flex; flex-direction:column; height:100%;">' +
                                         '<div class="article-card-thumb">' +
                                             '<img src="' + thumb + '" onerror="this.onerror=null; this.src=\'' + fallback + '\'" alt="' + escapeHtml(item.title) + '" loading="lazy" style="aspect-ratio:16/9; object-fit:cover;">' +
                                             '<div style="position:absolute; top:8px; left:8px; display:flex; gap:4px;">' +
@@ -3045,7 +3059,7 @@ func RenderPortalPage() string {
                             const src = getSourceDomain(item.sourceUrl);
                             const sourceDist = src ? (escapeHtml(src) + ' &bull; ' + escapeHtml(item.district || 'தமிழ்நாடு')) : escapeHtml(item.district || 'தமிழ்நாடு');
                             html += '<div class="article-card">' +
-                                '<a href="/?post=' + encodeURIComponent(item.id) + '" class="article-card-link" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:flex; flex-direction:column; height:100%;">' +
+                                '<a href="' + getArticleHref(item) + '" class="article-card-link" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:flex; flex-direction:column; height:100%;">' +
                                     '<div class="article-card-thumb">' +
                                         '<img src="' + thumb + '" onerror="this.onerror=null; this.src=\'' + fallback + '\'" alt="' + escapeHtml(item.title) + '" loading="lazy" style="aspect-ratio:16/9; object-fit:cover;">' +
                                         '<div style="position:absolute; top:8px; left:8px; display:flex; gap:4px;">' +
@@ -3080,7 +3094,7 @@ func RenderPortalPage() string {
             if (mostReadContainer) {
                 if (data.mostRead && data.mostRead.length > 0) {
                     mostReadContainer.innerHTML = data.mostRead.map(function(item, idx) {
-                        return '<a href="/?post=' + encodeURIComponent(item.id) + '" class="most-read-item" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:flex;">' +
+                        return '<a href="' + getArticleHref(item) + '" class="most-read-item" onclick="openArticleByID(\'' + item.id + '\', event)" style="text-decoration:none; color:inherit; display:flex;">' +
                             '<div class="num-box">' + (idx + 1) + '</div>' +
                             '<div class="most-read-title">' + escapeHtml(item.title) + '</div>' +
                         '</a>';
@@ -3143,7 +3157,7 @@ func RenderPortalPage() string {
         function showArticleModal(item) {
             currentModalArticle = item;
             if (window.history && window.history.replaceState) {
-                window.history.replaceState(null, '', '/?post=' + encodeURIComponent(item.id));
+                window.history.replaceState(null, '', getArticleHref(item));
             }
             document.getElementById('modalTitle').textContent = decodeHtml(item.title);
             document.getElementById('modalCategoryBadge').textContent = (item.category || 'செய்திகள்').toUpperCase();
@@ -3187,11 +3201,15 @@ func RenderPortalPage() string {
             document.getElementById('modalMediaContainer').innerHTML = '';
             document.body.style.overflow = '';
             if (window.history && window.history.replaceState) {
-                const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.has('post')) {
-                    urlParams.delete('post');
-                    const newQuery = urlParams.toString();
-                    window.history.replaceState(null, '', newQuery ? ('/?' + newQuery) : '/');
+                if (window.location.pathname.startsWith('/news/')) {
+                    window.history.replaceState(null, '', '/');
+                } else {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.has('post')) {
+                        urlParams.delete('post');
+                        const newQuery = urlParams.toString();
+                        window.history.replaceState(null, '', newQuery ? ('/?' + newQuery) : '/');
+                    }
                 }
             }
         }
@@ -3221,14 +3239,14 @@ func RenderPortalPage() string {
         function shareToWhatsApp() {
             if (!currentModalArticle) return;
             const title = currentModalArticle.title || '';
-            const url = window.location.origin + '/?post=' + encodeURIComponent(currentModalArticle.id);
+            const url = getArticleShareUrl(currentModalArticle);
             const text = encodeURIComponent('🔥 *' + title + '*\n\nமுழு செய்தி விவரம் படிக்க:\n' + url + '\n\n— TN24 News');
             window.open('https://api.whatsapp.com/send?text=' + text, '_blank');
         }
 
         function shareNative() {
             if (!currentModalArticle) return;
-            const url = window.location.origin + '/?post=' + encodeURIComponent(currentModalArticle.id);
+            const url = getArticleShareUrl(currentModalArticle);
             if (navigator.share) {
                 navigator.share({
                     title: currentModalArticle.title,
@@ -3242,7 +3260,7 @@ func RenderPortalPage() string {
 
         function copyShareLink() {
             if (currentModalArticle) {
-                const shareUrl = window.location.origin + '/?post=' + encodeURIComponent(currentModalArticle.id);
+                const shareUrl = getArticleShareUrl(currentModalArticle);
                 navigator.clipboard.writeText(shareUrl).then(() => {
                     showToast('செய்தி இணைப்பு நகலெடுக்கப்பட்டது!');
                 }).catch(() => {
@@ -3255,8 +3273,15 @@ func RenderPortalPage() string {
         function checkUrlPost() {
             if (urlPostChecked) return;
             const urlParams = new URLSearchParams(window.location.search);
-            const postId = urlParams.get('post') || (typeof window.INITIAL_POST_ID !== 'undefined' ? window.INITIAL_POST_ID : '');
-            if (!postId) return;
+            let postId = urlParams.get('post') || (typeof window.INITIAL_POST_ID !== 'undefined' ? window.INITIAL_POST_ID : '');
+            let postSlug = '';
+
+            const path = window.location.pathname;
+            if (path.startsWith('/news/')) {
+                postSlug = decodeURIComponent(path.substring(6).replace(/\/$/, ''));
+            }
+
+            if (!postId && !postSlug) return;
 
             urlPostChecked = true;
 
@@ -3270,15 +3295,16 @@ func RenderPortalPage() string {
                     ...(portalData.centerArticles || []),
                     ...(portalData.mostRead || [])
                 ];
-                const found = all.find(item => item.id === postId);
+                const found = all.find(item => (postId && item.id === postId) || (postSlug && (item.slug === postSlug || (item.slug && item.slug.endsWith(postSlug)) || (postSlug.endsWith(item.id.substring(0, 8))))));
                 if (found) {
                     showArticleModal(found);
                     return;
                 }
             }
 
-            // Fetch from single post API
-            fetch('/api/portal/post?id=' + encodeURIComponent(postId))
+            // Fetch from single post API (supports ?slug= and ?id=)
+            const query = postSlug ? ('slug=' + encodeURIComponent(postSlug)) : ('id=' + encodeURIComponent(postId));
+            fetch('/api/portal/post?' + query)
                 .then(r => r.json())
                 .then(res => {
                     if (res.success && res.data) {

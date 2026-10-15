@@ -976,6 +976,8 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 		}
 
 		item.ID = newContentID
+		slug := GenerateArticleSlug(item.Title, newContentID)
+		_, _ = conn.Exec(dbCtx, "UPDATE content SET slug = $1 WHERE id = $2", slug, newContentID)
 		result.StagedCount++
 
 		// If video detected, stage child row in video_links

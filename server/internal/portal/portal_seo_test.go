@@ -873,5 +873,122 @@ func TestDistrictAndCategoryFAQSchema(t *testing.T) {
 	}
 }
 
+func TestPhaseB_ArticleURLAndPath(t *testing.T) {
+	baseURL := "https://www.tn24.in"
+
+	// 1. With clean slug
+	slug := "chennai-rain-alert-schools-closed-a1b2c3d4"
+	id := "a1b2c3d4-1111-2222-3333-444455556666"
+
+	expectedURL := "https://www.tn24.in/news/chennai-rain-alert-schools-closed-a1b2c3d4"
+	expectedPath := "/news/chennai-rain-alert-schools-closed-a1b2c3d4"
+
+	if got := articleURL(baseURL, slug, id); got != expectedURL {
+		t.Errorf("articleURL with slug: got %s, want %s", got, expectedURL)
+	}
+	if got := articlePath(slug, id); got != expectedPath {
+		t.Errorf("articlePath with slug: got %s, want %s", got, expectedPath)
+	}
+
+	// 2. Empty slug with valid ID fallback
+	expectedFallbackURL := "https://www.tn24.in/news/news-a1b2c3d4"
+	expectedFallbackPath := "/news/news-a1b2c3d4"
+	if got := articleURL(baseURL, "", id); got != expectedFallbackURL {
+		t.Errorf("articleURL fallback: got %s, want %s", got, expectedFallbackURL)
+	}
+	if got := articlePath("", id); got != expectedFallbackPath {
+		t.Errorf("articlePath fallback: got %s, want %s", got, expectedFallbackPath)
+	}
+
+	// 3. Empty slug and empty ID
+	if got := articleURL(baseURL, "", ""); got != "https://www.tn24.in/" {
+		t.Errorf("articleURL empty: got %s, want https://www.tn24.in/", got)
+	}
+	if got := articlePath("", ""); got != "/" {
+		t.Errorf("articlePath empty: got %s, want /", got)
+	}
+}
+
+func TestPhaseB_NewsArticleRoute(t *testing.T) {
+	h := NewPortalHandler(nil, nil)
+
+	// 1. Empty /news/ redirects to homepage with 301
+	reqEmpty := httptest.NewRequest(http.MethodGet, "/news/", nil)
+	recEmpty := httptest.NewRecorder()
+	h.HandleNewsArticlePage(recEmpty, reqEmpty)
+	if recEmpty.Code != http.StatusMovedPermanently {
+		t.Errorf("expected 301 redirect for empty /news/, got status %d", recEmpty.Code)
+	}
+	if loc := recEmpty.Header().Get("Location"); loc != "/" {
+		t.Errorf("expected Location / for empty /news/, got %s", loc)
+	}
+
+	// 2. /news/<slug> without DB returns base HTML (200 OK)
+	reqSlug := httptest.NewRequest(http.MethodGet, "/news/madurai-temple-festival-a1b2c3d4", nil)
+	recSlug := httptest.NewRecorder()
+	h.HandleNewsArticlePage(recSlug, reqSlug)
+	if recSlug.Code != http.StatusOK {
+		t.Errorf("expected 200 OK for /news/<slug>, got status %d", recSlug.Code)
+	}
+}
+
+func TestPhaseB_PostMetadataCanonicalAndOpenGraph(t *testing.T) {
+	h := NewPortalHandler(nil, nil)
+	baseHTML := RenderPortalPage()
+
+	slug := "cm-announces-new-welfare-scheme-778899aa"
+	postID := "778899aa-1234-5678-90ab-cdef12345678"
+	title := "தமிழக முதல்வர் புதிய நலத்திட்டம் அறிவிப்பு"
+	desc := "தமிழகம் முழுவதும் அனைத்து மக்களுக்கும் பயனளிக்கும் புதிய திட்டம் தொடங்கப்பட்டுள்ளது."
+	thumb := "https://example.com/banner.jpg"
+	district := "Chennai"
+	category := "Politics"
+	lang := "ta"
+	pubAt := time.Date(2026, 10, 15, 10, 0, 0, 0, time.UTC)
+	createdAt := pubAt
+
+	req := httptest.NewRequest(http.MethodGet, "/news/"+slug, nil)
+	injected := h.InjectPostMetadataValues(req.Context(), baseHTML, postID, title, desc, thumb, district, category, lang,
+		pubAt, createdAt, "", "", "", 0, req, "https://example.com/source", slug)
+
+	// 1. Canonical link must point to /news/<slug>
+	expectedCanonical := fmt.Sprintf(`<link rel="canonical" href="https://www.tn24.in/news/%s">`, slug)
+	if !strings.Contains(injected, expectedCanonical) {
+		t.Errorf("expected canonical %s not found in HTML", expectedCanonical)
+	}
+
+	// 2. og:url must point to /news/<slug>
+	expectedOgURL := fmt.Sprintf(`<meta property="og:url" content="https://www.tn24.in/news/%s">`, slug)
+	if !strings.Contains(injected, expectedOgURL) {
+		t.Errorf("expected og:url %s not found in HTML", expectedOgURL)
+	}
+
+	// 3. Schema.org mainEntityOfPage.@id must point to /news/<slug>
+	expectedSchemaID := fmt.Sprintf(`"https://www.tn24.in/news/%s"`, slug)
+	if !strings.Contains(injected, expectedSchemaID) {
+		t.Errorf("expected schema mainEntityOfPage @id %s not found", expectedSchemaID)
+	}
+
+	// 4. window.INITIAL_POST_ID must be set for client hydration
+	expectedInitPost := fmt.Sprintf(`window.INITIAL_POST_ID = %q;`, postID)
+	if !strings.Contains(injected, expectedInitPost) {
+		t.Errorf("expected %s not found in HTML", expectedInitPost)
+	}
+}
+
+func TestPhaseB_UIUsesGetArticleHref(t *testing.T) {
+	html := RenderPortalPage()
+
+	if !strings.Contains(html, "function getArticleHref(item)") {
+		t.Errorf("expected getArticleHref JS helper in RenderPortalPage()")
+	}
+	if !strings.Contains(html, "function getArticleShareUrl(item)") {
+		t.Errorf("expected getArticleShareUrl JS helper in RenderPortalPage()")
+	}
+	if strings.Contains(html, `href="/?post=`) {
+		t.Errorf("found deprecated href=\"/?post= in rendered portal page; all cards should use getArticleHref(item)")
+	}
+}
+
 
 
