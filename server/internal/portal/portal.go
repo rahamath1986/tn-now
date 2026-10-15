@@ -1764,7 +1764,7 @@ func (h *PortalHandler) injectHomepageArchiveContent(ctx context.Context, baseHT
 	sb.WriteString(`<p style="font-size:0.82rem;color:#64748b;margin:16px 0 0;">Explore by district: <a href="/district/chennai" style="color:#1557bf;">Chennai</a> • <a href="/district/madurai" style="color:#1557bf;">Madurai</a> • <a href="/district/coimbatore" style="color:#1557bf;">Coimbatore</a> • <a href="/district/tiruchirappalli" style="color:#1557bf;">Trichy</a> • <a href="/district/salem" style="color:#1557bf;">Salem</a> — or browse <a href="/category/politics" style="color:#1557bf;">Politics</a>, <a href="/category/sports" style="color:#1557bf;">Sports</a>, <a href="/category/entertainment" style="color:#1557bf;">Cinema</a>.</p>`)
 	sb.WriteString(`</div></section>`)
 
-	return strings.Replace(baseHTML, "<body>", "<body>"+sb.String(), 1)
+	return strings.Replace(baseHTML, "<footer", sb.String()+"<footer", 1)
 }
 
 // sourceDomainForDisplay extracts a short domain (e.g. "BBC Tamil") for attribution.

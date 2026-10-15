@@ -1916,7 +1916,7 @@ func RenderPortalPage() string {
         </style>
 
         <div class="tn24-marquee-wrap">
-          <div class="tn24-marquee-track" aria-label="Latest Tamil Nadu News ticker">
+          <div class="tn24-marquee-track" id="tn24MarqueeTrack" aria-label="Latest Tamil Nadu News ticker">
 
             <!-- SET 1 -->
             <article class="tn24-news-card" itemscope itemtype="https://schema.org/NewsArticle">
@@ -2021,61 +2021,6 @@ func RenderPortalPage() string {
 
       </div><!-- /marquee outer -->
     </div><!-- /news marquee bar -->
-
-
-
-    <!-- ═══════════════════════════════════════════════════════
-         TN24 EDITORIAL CONTENT — Server-Side Rendered.
-         Visible to all crawlers, AdSense reviewers, and users
-         before JavaScript hydration. Contains authentic editorial
-         articles demonstrating the depth and quality of TN24's
-         Tamil Nadu news coverage.
-    ═══════════════════════════════════════════════════════ -->
-    <section id="ssr-editorial" aria-label="TN24 Tamil Nadu News — Latest Articles" itemscope itemtype="https://schema.org/NewsMediaOrganization" style="background:#080f1c;font-family:'Segoe UI',system-ui,Arial,sans-serif;color:#d4d4d4;padding:0 0 32px;">
-
-
-
-      <!-- Category Nav -->
-      <div style="background:#0d1421;border-bottom:1px solid #1a2540;padding:10px 24px;overflow-x:auto;white-space:nowrap;">
-        <div style="max-width:1100px;margin:0 auto;display:flex;gap:8px;">
-          <a href="/category/politics" style="background:#1e0a0a;color:#e53e3e;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #3a1010;white-space:nowrap;">🏛️ அரசியல் / Politics</a>
-          <a href="/category/sports"   style="background:#0a1622;color:#38bdf8;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #0e2a3e;white-space:nowrap;">🏏 விளையாட்டு / Sports</a>
-          <a href="/category/entertainment" style="background:#1a1200;color:#f59e0b;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #3a2800;white-space:nowrap;">🎬 சினிமா / Cinema</a>
-          <a href="/category/business" style="background:#001a0f;color:#34d399;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #003820;white-space:nowrap;">📈 வணிகம் / Business</a>
-          <a href="/category/technical" style="background:#100a22;color:#a78bfa;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #221544;white-space:nowrap;">💻 தொழில்நுட்பம்</a>
-          <a href="/category/civic"    style="background:#0a1600;color:#86efac;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #1a2e00;white-space:nowrap;">🏙️ பொது நலன்</a>
-          <a href="/?viral=true"         style="background:#1a000a;color:#f43f5e;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:0.8rem;border:1px solid #3a0015;white-space:nowrap;">🔥 வைரல்</a>
-        </div>
-      </div>
-        <!-- District Quick Links -->
-        <div style="margin-top:28px;padding:16px 20px;background:#0d1421;border:1px solid #1a2540;border-radius:8px;">
-          <h3 style="font-size:0.85rem;font-weight:700;color:#e53e3e;margin:0 0 12px;text-transform:uppercase;letter-spacing:0.5px;">📍 Browse by District — மாவட்ட செய்திகள்</h3>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:0.8rem;">
-            <a href="/district/chennai" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Chennai</a>
-            <a href="/district/madurai" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Madurai</a>
-            <a href="/district/coimbatore" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Coimbatore</a>
-            <a href="/district/tiruchirappalli" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Trichy</a>
-            <a href="/district/salem" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Salem</a>
-            <a href="/district/tirunelveli" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Tirunelveli</a>
-            <a href="/district/erode" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Erode</a>
-            <a href="/district/vellore" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Vellore</a>
-            <a href="/district/thanjavur" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Thanjavur</a>
-            <a href="/district/kanyakumari" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Kanyakumari</a>
-            <a href="/district/tiruppur" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Tiruppur</a>
-            <a href="/district/dindigul" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Dindigul</a>
-            <a href="/district/dharmapuri" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Dharmapuri</a>
-            <a href="/district/nilgiris" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Nilgiris (Ooty)</a>
-            <a href="/district/thoothukudi" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Thoothukudi</a>
-            <a href="/district/ramanathapuram" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Ramanathapuram</a>
-            <a href="/district/virudhunagar" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Virudhunagar</a>
-            <a href="/district/sivagangai" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Sivagangai</a>
-            <a href="/district/cuddalore" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Cuddalore</a>
-            <a href="/district/villupuram" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Villupuram</a>
-            <a href="/district/nagapattinam" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Nagapattinam</a>
-            <a href="/district/ariyalur" style="color:#aaa;text-decoration:none;background:#111827;padding:4px 10px;border-radius:4px;border:1px solid #1e2d42;">Ariyalur</a>
-          </div>
-        </div>
-    </section>
 
     <!-- MAIN 3-COLUMN EDITORIAL CONTAINER -->
     <main class="main-container">
@@ -2801,6 +2746,40 @@ func RenderPortalPage() string {
             sortByNewest(data.pressReleases);
             sortByNewest(data.centerArticles);
             sortByNewest(data.mostRead);
+
+            // Dynamically populate 📰 Latest News marquee track with freshest articles
+            const marqueeTrack = document.getElementById('tn24MarqueeTrack');
+            const allLatest = [
+                ...(data.hero ? [data.hero] : []),
+                ...(data.heroTeasers || []),
+                ...(data.centerArticles || []),
+                ...(data.leftFeed || [])
+            ];
+            if (marqueeTrack && allLatest.length > 0) {
+                const seenIds = new Set();
+                const uniqueLatest = [];
+                for (const it of allLatest) {
+                    if (it && it.id && !seenIds.has(it.id)) {
+                        seenIds.add(it.id);
+                        uniqueLatest.push(it);
+                        if (uniqueLatest.length >= 10) break;
+                    }
+                }
+                const renderMarqueeCard = function(item, isDup) {
+                    const cat = escapeHtml(item.category || 'செய்திகள்');
+                    const dist = escapeHtml(item.district || 'தமிழ்நாடு');
+                    const title = escapeHtml(item.title);
+                    const href = getArticleHref(item);
+                    return '<article class="tn24-news-card" ' + (isDup ? 'aria-hidden="true"' : 'itemscope itemtype="https://schema.org/NewsArticle"') + '>' +
+                        '<span style="background:#1e0a0a;color:#e53e3e;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:700;align-self:flex-start;">' + cat + ' &bull; ' + dist + '</span>' +
+                        '<h3 ' + (isDup ? '' : 'itemprop="headline"') + '><a href="' + href + '" onclick="openArticleByID(\'' + item.id + '\', event)" style="color:inherit;text-decoration:none;">' + title + '</a></h3>' +
+                        '<a href="' + href + '" class="tn24-read-more" onclick="openArticleByID(\'' + item.id + '\', event)" style="color:#e53e3e;background:#1e0a0a;border-color:#3a1010;">மேலும் படிக்க →</a>' +
+                    '</article>';
+                };
+                const set1 = uniqueLatest.map(it => renderMarqueeCard(it, false)).join('');
+                const set2 = uniqueLatest.map(it => renderMarqueeCard(it, true)).join('');
+                marqueeTrack.innerHTML = set1 + set2;
+            }
 
             // Render Dynamic Banners
             const b = data.banners || {};
