@@ -1125,10 +1125,13 @@ func RenderAdminDashboard() string {
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <button class="action-btn" id="rewrite-all-pending-btn" onclick="aiRewriteAllPending()" style="font-size: 12px; padding: 6px 14px; color: #10b981; border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.12); font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;" title="Automatically AI rewrite all pending unrewritten articles with 100% language fidelity">
+                        ✨ AI Rewrite All Pending
+                    </button>
                     <button class="action-btn" onclick="triggerReclassifyAll()" style="font-size: 12px; padding: 6px 12px; color: #a855f7; border-color: rgba(168,85,247,0.4);" title="Re-scan and accurately classify all content geographically">
                         🔄 Auto-Reclassify All
                     </button>
-                    <button class="action-btn" onclick="triggerRefetchAllText()" style="font-size: 12px; padding: 6px 12px; color: #10b981; border-color: rgba(16,185,129,0.4);" title="Visit original news source webpages to extract full unabridged text paragraphs and photos">
+                    <button class="action-btn" onclick="triggerRefetchAllText()" style="font-size: 12px; padding: 6px 12px; color: #38bdf8; border-color: rgba(56,189,248,0.4);" title="Visit original news source webpages to extract full unabridged text paragraphs and photos">
                         📖 Refetch Long Text
                     </button>
                     <button class="btn-primary" onclick="openManualContentModal()" style="font-size: 12px; padding: 6px 14px; background: linear-gradient(135deg, #38bdf8, #0284c7); display: inline-flex; align-items: center; gap: 6px;">
@@ -3436,11 +3439,15 @@ func RenderAdminDashboard() string {
                 ? '<span class="badge-pill" style="background: rgba(234,179,8,0.2); color: #eab308; border: 1px solid rgba(234,179,8,0.6); font-weight: 800; font-size: 10px; padding: 2px 6px; letter-spacing: 0.5px; margin-right: 4px;">🌟 MAIN BANNER</span> ' 
                 : '';
 
+            const aiRewrittenBadge = item.isAiRewritten 
+                ? '<span class="badge-pill" style="background: rgba(16,185,129,0.2); color: #10b981; border: 1px solid rgba(16,185,129,0.6); font-weight: 800; font-size: 10px; padding: 2px 6px; letter-spacing: 0.5px; margin-right: 4px;">✨ AI REWRITTEN</span> ' 
+                : '';
+
             const starBtn = '<button class="action-btn" style="color: ' + (item.isMainBanner ? '#eab308; border-color: #eab308; background: rgba(234,179,8,0.15);' : '#cbd5e1; border-color: #334155;') + ' margin-right: 4px;" onclick="quickToggleMainBanner(\'' + item.id + '\', ' + (!item.isMainBanner) + ')" title="' + (item.isMainBanner ? 'Current Portal Hero Banner (Click to unset)' : 'Set as Portal Main Hero Banner') + '">' + (item.isMainBanner ? '⭐ Hero: ON' : '☆ Set Hero') + '</button>';
 
             let rowActions = '<button class="action-btn" style="color: #38bdf8; border-color: rgba(56,189,248,0.4); margin-right: 4px;" onclick="openContentViewModal(\'' + item.id + '\')" title="Preview post">👁️ View</button>' +
                 '<button class="action-btn" style="color: #a855f7; border-color: rgba(168,85,247,0.4); margin-right: 4px;" onclick="openEditContentModal(\'' + item.id + '\')" title="Edit post content and broadcast placement">✏️ Edit</button>' +
-                '<button class="action-btn" id="ai-rw-btn-' + item.id + '" style="color: #10b981; border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.1); font-weight:600; margin-right: 4px;" onclick="triggerAIRewrite(\'' + item.id + '\')" title="AI Clean & Journalistic Rewrite (Zero Language Issue)">✨ AI Rewrite</button>' +
+                '<button class="action-btn" id="ai-rw-btn-' + item.id + '" style="color: #10b981; border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.1); font-weight:600; margin-right: 4px;" onclick="triggerAIRewrite(\'' + item.id + '\')" title="AI Clean & Journalistic Rewrite (Zero Language Issue)">' + (item.isAiRewritten ? '✨ Re-Rewrite' : '✨ AI Rewrite') + '</button>' +
                 starBtn;
             if (item.status === 'PENDING') {
                 rowActions += '<button class="btn-approve" onclick="approveContent(\'' + item.id + '\')" style="margin-right: 4px;" title="Approve & publish live">✓ Approve</button>' +
@@ -3459,7 +3466,7 @@ func RenderAdminDashboard() string {
                 '<td style="text-align: center;"><input type="checkbox" class="content-row-checkbox" value="' + item.id + '" onchange="updateSelectionState()" style="cursor: pointer; width: 16px; height: 16px;" /></td>' +
                 '<td>' + mediaHtml + '</td>' +
                 '<td>' +
-                    mainBannerBadge +
+                    mainBannerBadge + aiRewrittenBadge +
                     '<strong style="font-size: 14px; color: #f8fafc; cursor:pointer;" onclick="openContentViewModal(\'' + item.id + '\')">' + cleanTitle + '</strong><br>' +
                     '<span style="font-size: 12px; color: var(--text-muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">' + cleanDesc + '</span>' +
                 '</td>' +
@@ -4069,6 +4076,40 @@ func RenderAdminDashboard() string {
                     btn.disabled = false;
                 }
                 showToast('✗ Error performing AI rewrite');
+            });
+        }
+
+        async function aiRewriteAllPending() {
+            const confirmed = await showCustomConfirm({
+                title: '✨ AI Rewrite All Pending Posts',
+                message: 'Automatically rewrite all un-rewritten pending news articles using Gemini AI? Articles will be cleanly rewritten into pure journalistic Tamil/English with zero Tanglish and no language mixing.',
+                type: 'approve',
+                confirmText: '✨ AI Rewrite All Pending'
+            });
+            if (!confirmed) return;
+            const btn = document.getElementById('rewrite-all-pending-btn');
+            const origText = btn ? btn.innerText : '';
+            if (btn) { btn.innerText = '⏳ AI Rewriting Queue...'; btn.disabled = true; }
+            showToast('✨ AI is processing and rewriting pending articles in queue...');
+
+            fetch('/admin/api/content/ai-rewrite-all-pending', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(res => res.json())
+            .then(res => {
+                if (btn) { btn.innerText = origText; btn.disabled = false; }
+                if (res.success) {
+                    showToast('✓ ' + (res.message || 'All pending articles rewritten successfully!'));
+                    fetchPendingContent();
+                    fetchStats();
+                } else {
+                    showToast('✗ ' + (res.message || 'Batch rewrite failed'));
+                }
+            })
+            .catch(() => {
+                if (btn) { btn.innerText = origText; btn.disabled = false; }
+                showToast('✗ Failed to rewrite pending articles');
             });
         }
 

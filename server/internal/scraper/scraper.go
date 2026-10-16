@@ -953,6 +953,33 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 			_ = conn.QueryRow(dbCtx, "SELECT id FROM categories ORDER BY name LIMIT 1").Scan(&categoryID)
 		}
 
+		// Automatically clean & rewrite scraped articles with zero language mixing
+		// before staging into PENDING review queue
+		lang := DetectLanguage(item.Title + " " + item.Description)
+		isAiRewritten := false
+		rewriter := GetDefaultRewriter()
+		if rewriter != nil {
+			rwCtx, rwCancel := context.WithTimeout(dbCtx, 15*time.Second)
+			rwRes, rwErr := rewriter.RewriteArticle(rwCtx, ArticleRewriteRequest{
+				Title:       item.Title,
+				Description: item.Description,
+				District:    item.District,
+				Category:    item.Category,
+				Language:    lang,
+			})
+			rwCancel()
+			if rwErr == nil && rwRes != nil && rwRes.Title != "" {
+				item.Title = rwRes.Title
+				if rwRes.Description != "" {
+					item.Description = rwRes.Description
+				}
+				if rwRes.Language != "" {
+					lang = rwRes.Language
+				}
+				isAiRewritten = true
+			}
+		}
+
 		createdAt := time.Now()
 		if !item.PublishedAt.IsZero() {
 			createdAt = item.PublishedAt
@@ -964,11 +991,11 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 			INSERT INTO content (
 				author_user_id, district_id, category_id, title, description,
 				content_type, source_type, source_url, status, moderation_status,
-				verification_status, is_viral, created_at, updated_at
+				verification_status, is_viral, is_ai_rewritten, language, created_at, updated_at
 			)
-			VALUES ($1, $2, $3, $4, $5, $6, 'USER', $7, 'PENDING', 'UNMODERATED', 'SOURCE_IDENTIFIED', $8, $9, $9)
+			VALUES ($1, $2, $3, $4, $5, $6, 'USER', $7, 'PENDING', 'UNMODERATED', 'SOURCE_IDENTIFIED', $8, $9, $10, $11, $11)
 			RETURNING id
-		`, authorID, districtID, categoryID, item.Title, item.Description, item.ContentType, item.SourceURL, isViral, createdAt).Scan(&newContentID)
+		`, authorID, districtID, categoryID, item.Title, item.Description, item.ContentType, item.SourceURL, isViral, isAiRewritten, lang, createdAt).Scan(&newContentID)
 
 		if err != nil {
 			slog.Error("Failed to insert scraped item into PostgreSQL", slog.String("err", err.Error()), slog.String("title", item.Title))

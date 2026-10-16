@@ -71,6 +71,7 @@ func (h *Handler) cleanExistingDatabaseEntities() {
 	_, _ = h.conn.Exec(ctx, `
 		ALTER TABLE content ADD COLUMN IF NOT EXISTS is_viral BOOLEAN DEFAULT FALSE;
 		ALTER TABLE content ADD COLUMN IF NOT EXISTS language VARCHAR(20) DEFAULT 'ta';
+		ALTER TABLE content ADD COLUMN IF NOT EXISTS is_ai_rewritten BOOLEAN DEFAULT FALSE;
 		CREATE INDEX IF NOT EXISTS idx_content_status_created ON content (status, created_at DESC);
 		CREATE INDEX IF NOT EXISTS idx_content_created_at ON content (created_at DESC);
 		CREATE INDEX IF NOT EXISTS idx_content_source_url ON content (source_url);
@@ -202,6 +203,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/admin/api/content/update", h.RequireAuth(h.HandleUpdateContent))
 	mux.HandleFunc("/admin/api/content/ai-rewrite", h.RequireAuth(h.HandleAIRewriteSingle))
 	mux.HandleFunc("/admin/api/content/ai-rewrite-batch", h.RequireAuth(h.HandleAIRewriteBatch))
+	mux.HandleFunc("/admin/api/content/ai-rewrite-all-pending", h.RequireAuth(h.HandleAIRewriteAllPending))
 	mux.HandleFunc("/admin/api/content/reclassify-all", h.RequireAuth(h.HandleReclassifyAllContent))
 	mux.HandleFunc("/admin/api/content/refetch-text", h.RequireAuth(h.HandleRefetchAllContentText))
 	mux.HandleFunc("/admin/api/maps/svg", h.HandleServeMapSVG) // Public for map thumbnails
@@ -994,7 +996,7 @@ func (h *Handler) HandleGetPendingContent(w http.ResponseWriter, r *http.Request
 		       COALESCE(vl.external_video_id, ''), COALESCE(vl.canonical_url, ''), COALESCE(vl.platform, ''),
 		       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
 		       c.created_at, COALESCE(c.is_viral, false), COALESCE(c.updated_at, c.created_at),
-		       COALESCE(c.language, '')
+		       COALESCE(c.language, ''), COALESCE(c.is_ai_rewritten, false)
 		FROM content c
 		LEFT JOIN districts d ON c.district_id = d.id
 		LEFT JOIN categories cat ON c.category_id = cat.id
@@ -1014,23 +1016,24 @@ func (h *Handler) HandleGetPendingContent(w http.ResponseWriter, r *http.Request
 	defer rows.Close()
 
 	type PendingItemDTO struct {
-		ID           string    `json:"id"`
-		Title        string    `json:"title"`
-		Description  string    `json:"description"`
-		ContentType  string    `json:"contentType"`
-		SourceURL    string    `json:"sourceUrl"`
-		District     string    `json:"district"`
-		Category     string    `json:"category"`
-		Language     string    `json:"language"`
-		Status       string    `json:"status"`
-		VideoID      string    `json:"videoId"`
-		VideoURL     string    `json:"videoUrl"`
-		VideoType    string    `json:"videoType"`
-		Thumbnail    string    `json:"thumbnail"`
-		CreatedAt    time.Time `json:"createdAt"`
-		UpdatedAt    time.Time `json:"updatedAt"`
-		IsViral      bool      `json:"isViral"`
-		IsMainBanner bool      `json:"isMainBanner"`
+		ID            string    `json:"id"`
+		Title         string    `json:"title"`
+		Description   string    `json:"description"`
+		ContentType   string    `json:"contentType"`
+		SourceURL     string    `json:"sourceUrl"`
+		District      string    `json:"district"`
+		Category      string    `json:"category"`
+		Language      string    `json:"language"`
+		Status        string    `json:"status"`
+		VideoID       string    `json:"videoId"`
+		VideoURL      string    `json:"videoUrl"`
+		VideoType     string    `json:"videoType"`
+		Thumbnail     string    `json:"thumbnail"`
+		CreatedAt     time.Time `json:"createdAt"`
+		UpdatedAt     time.Time `json:"updatedAt"`
+		IsViral       bool      `json:"isViral"`
+		IsMainBanner  bool      `json:"isMainBanner"`
+		IsAiRewritten bool      `json:"isAiRewritten"`
 	}
 
 	var items []PendingItemDTO
@@ -1039,7 +1042,7 @@ func (h *Handler) HandleGetPendingContent(w http.ResponseWriter, r *http.Request
 		var cid pgtype.UUID
 		var langVal string
 		err := rows.Scan(&cid, &it.Title, &it.Description, &it.ContentType, &it.SourceURL,
-			&it.District, &it.Category, &it.Status, &it.VideoID, &it.VideoURL, &it.VideoType, &it.Thumbnail, &it.CreatedAt, &it.IsViral, &it.UpdatedAt, &langVal)
+			&it.District, &it.Category, &it.Status, &it.VideoID, &it.VideoURL, &it.VideoType, &it.Thumbnail, &it.CreatedAt, &it.IsViral, &it.UpdatedAt, &langVal, &it.IsAiRewritten)
 		if err == nil {
 			it.ID = fmtUUID(cid)
 			it.Title = scraper.CleanHTML(it.Title)
@@ -2610,7 +2613,7 @@ func (h *Handler) HandleAIRewriteSingle(w http.ResponseWriter, r *http.Request) 
 		scraper.DBMu.Lock()
 		_, _ = h.conn.Exec(ctx, `
 			UPDATE content
-			SET title = $1, description = $2, slug = $3, language = $4, updated_at = NOW()
+			SET title = $1, description = $2, slug = $3, language = $4, is_ai_rewritten = TRUE, updated_at = NOW()
 			WHERE id = $5
 		`, rewritten.Title, rewritten.Description, rewritten.Slug, rewritten.Language, req.ID)
 
@@ -2689,7 +2692,7 @@ func (h *Handler) HandleAIRewriteBatch(w http.ResponseWriter, r *http.Request) {
 		scraper.DBMu.Lock()
 		_, _ = h.conn.Exec(ctx, `
 			UPDATE content
-			SET title = $1, description = $2, slug = $3, language = $4, updated_at = NOW()
+			SET title = $1, description = $2, slug = $3, language = $4, is_ai_rewritten = TRUE, updated_at = NOW()
 			WHERE id = $5
 		`, rewritten.Title, rewritten.Description, rewritten.Slug, rewritten.Language, id)
 
@@ -2709,6 +2712,92 @@ func (h *Handler) HandleAIRewriteBatch(w http.ResponseWriter, r *http.Request) {
 		"processed": processedCount,
 		"total":     len(req.IDs),
 		"message":   fmt.Sprintf("Successfully AI-rewritten %d of %d articles with clean journalistic quality", processedCount, len(req.IDs)),
+	})
+}
+
+func (h *Handler) HandleAIRewriteAllPending(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+	if h.conn == nil {
+		writeError(w, http.StatusInternalServerError, "Database connection not available")
+		return
+	}
+
+	if h.cfg != nil && h.cfg.GeminiAPIKey != "" {
+		h.rewriter.SetAPIKey(h.cfg.GeminiAPIKey)
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 180*time.Second)
+	defer cancel()
+
+	rows, err := h.conn.Query(ctx, `
+		SELECT c.id, c.title, COALESCE(c.description, ''), COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'), COALESCE(c.language, 'ta')
+		FROM content c
+		LEFT JOIN districts d ON c.district_id = d.id
+		LEFT JOIN categories cat ON c.category_id = cat.id
+		WHERE c.status = 'PENDING' AND (c.is_ai_rewritten IS FALSE OR c.is_ai_rewritten IS NULL)
+		ORDER BY c.created_at DESC
+		LIMIT 50
+	`)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer rows.Close()
+
+	type PendingToRewrite struct {
+		ID, Title, Desc, District, Cat, Lang string
+	}
+	var toRewrite []PendingToRewrite
+	for rows.Next() {
+		var item PendingToRewrite
+		var cid pgtype.UUID
+		if err := rows.Scan(&cid, &item.Title, &item.Desc, &item.District, &item.Cat, &item.Lang); err == nil {
+			item.ID = fmtUUID(cid)
+			toRewrite = append(toRewrite, item)
+		}
+	}
+	rows.Close()
+
+	processedCount := 0
+	for _, item := range toRewrite {
+		rewritten, err := h.rewriter.RewriteArticle(ctx, ArticleRewriteRequest{
+			ID:          item.ID,
+			Title:       item.Title,
+			Description: item.Desc,
+			District:    item.District,
+			Category:    item.Cat,
+			Language:    item.Lang,
+		})
+		if err != nil || rewritten == nil {
+			continue
+		}
+
+		scraper.DBMu.Lock()
+		_, _ = h.conn.Exec(ctx, `
+			UPDATE content
+			SET title = $1, description = $2, slug = $3, language = $4, is_ai_rewritten = TRUE, updated_at = NOW()
+			WHERE id = $5
+		`, rewritten.Title, rewritten.Description, rewritten.Slug, rewritten.Language, item.ID)
+
+		_, _ = h.conn.Exec(ctx, `
+			UPDATE stories
+			SET headline = $1, body = $2
+			WHERE content_id = $3
+		`, rewritten.Title, rewritten.Description, item.ID)
+		scraper.DBMu.Unlock()
+
+		processedCount++
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":   true,
+		"processed": processedCount,
+		"total":     len(toRewrite),
+		"message":   fmt.Sprintf("Successfully AI-rewritten %d pending articles with clean journalistic quality", processedCount),
 	})
 }
 
