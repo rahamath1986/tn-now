@@ -1747,7 +1747,7 @@ func RenderPortalPage() string {
                 <div style="font-size:0.75rem;color:#94a3b8;margin:0;">தமிழ்நாட்டின் நம்பகமான செய்தி தொகுப்பு தளம் | அரசியல், விளையாட்டு, வணிகம், சினிமா மற்றும் மாவட்ட செய்திகள் — 24/7</div>
             </div>
         </div>
-        <div style="display:flex;align-items:center;gap:16px;">
+        <div style="display:flex;align-items:center;gap:12px;">
             <div class="hide-on-mobile" style="display:flex; flex-direction:column; align-items:flex-end; color:#94a3b8;font-size:13px;font-weight:600;white-space:nowrap;margin-right:4px;">
                 <div style="color:#ef4444;font-weight:700;font-size:11px;letter-spacing:1px;margin-bottom:2px;">● LIVE</div>
                 <span id="currentDateDisplay">செப்டம்பர் 8, 2026</span>
@@ -1757,6 +1757,14 @@ func RenderPortalPage() string {
                 <button class="nav-search-btn" onclick="executeSearch()" title="தேடுக">
                     <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
                 </button>
+            </div>
+            <a href="/submit" class="hide-on-mobile" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;box-shadow:0 2px 8px rgba(239,68,68,0.3);white-space:nowrap;">
+                ✍️ செய்தி எழுதுக
+            </a>
+            <div id="frontUserSessionContainer" style="display:inline-flex;align-items:center;">
+                <a href="/login" id="frontAuthLink" style="text-decoration:none;color:#94a3b8;font-size:12px;font-weight:700;padding:6px 10px;border:1px solid #1e293b;border-radius:6px;white-space:nowrap;background:rgba(255,255,255,0.03);">
+                    👤 உள்நுழைக
+                </a>
             </div>
         </div>
     </header>
@@ -1835,6 +1843,9 @@ func RenderPortalPage() string {
                 </li>
                 <li class="nav-item" id="nav-item-news">
                     <a href="/category/news" onclick="filterCategory('News', event)" class="nav-link">செய்திகள்</a>
+                </li>
+                <li class="nav-item" id="nav-item-usercorner">
+                    <a href="/user-corner" class="nav-link" style="color: #f59e0b; font-weight: 700;">✍️ வாசகர் அரங்கம்</a>
                 </li>
             </ul>
 
@@ -2575,6 +2586,21 @@ func RenderPortalPage() string {
                 setActiveNavTab('nav-item-viral');
             }
             loadPortalFeed(currentDistrict, currentCategory, currentQuery, currentIsViral);
+            checkFrontUserAuth();
+        }
+
+        async function checkFrontUserAuth() {
+            try {
+                const res = await fetch('/auth/me');
+                const data = await res.json();
+                if (data.success && data.data) {
+                    const container = document.getElementById('frontUserSessionContainer');
+                    if (container) {
+                        const name = data.data.fullName || data.data.username;
+                        container.innerHTML = '<a href="/user/my-posts" style="text-decoration:none;color:#38bdf8;font-size:12px;font-weight:700;padding:6px 10px;border:1px solid rgba(56,189,248,0.4);border-radius:6px;white-space:nowrap;background:rgba(56,189,248,0.1);" title="எனது கட்டுரைகள்">👤 ' + escapeHtml(name) + '</a>';
+                    }
+                }
+            } catch (e) {}
         }
 
         function updateDateString() {
@@ -3139,12 +3165,20 @@ func RenderPortalPage() string {
                 window.history.replaceState(null, '', getArticleHref(item));
             }
             document.getElementById('modalTitle').textContent = decodeHtml(item.title);
-            document.getElementById('modalCategoryBadge').textContent = (item.category || 'செய்திகள்').toUpperCase();
-            const src = getSourceDomain(item.sourceUrl);
-            document.getElementById('modalDistrict').textContent = item.district || 'தமிழ்நாடு';
-            document.getElementById('modalDate').textContent = '🕒 ' + formatDate(item.createdAt) + (src ? ' • ' + src : '');
-            document.getElementById('modalDescription').textContent = decodeHtml(item.description || 'விளக்க உரை கிடைக்கவில்லை.');
-            document.getElementById('modalAuthor').textContent = (src ? src + ' • ' : '') + 'நிருபர்: ' + (item.author || 'TN24 செய்திக் குழு');
+            if (item.sourceType === 'USER') {
+                document.getElementById('modalCategoryBadge').textContent = '✍️ வாசகர் அரங்கம்';
+                document.getElementById('modalCategoryBadge').style.background = '#f59e0b';
+                const authorHtml = item.authorUsername ? 
+                    '✍️ வாசகர் எழுத்தாளர்: <a href="/author/' + encodeURIComponent(item.authorUsername) + '" style="color:#f59e0b;text-decoration:underline;">' + escapeHtml(item.author) + '</a>' :
+                    '✍️ வாசகர் நிருபர்: ' + escapeHtml(item.author);
+                document.getElementById('modalAuthor').innerHTML = authorHtml;
+                document.getElementById('modalDescription').innerHTML = item.description || 'விளக்க உரை கிடைக்கவில்லை.';
+            } else {
+                document.getElementById('modalCategoryBadge').textContent = (item.category || 'செய்திகள்').toUpperCase();
+                document.getElementById('modalCategoryBadge').style.background = '';
+                document.getElementById('modalDescription').textContent = decodeHtml(item.description || 'விளக்க உரை கிடைக்கவில்லை.');
+                document.getElementById('modalAuthor').textContent = (src ? src + ' • ' : '') + 'நிருபர்: ' + (item.author || 'TN24 செய்திக் குழு');
+            }
 
             const mediaContainer = document.getElementById('modalMediaContainer');
             const vUrl = item.videoUrl || '';

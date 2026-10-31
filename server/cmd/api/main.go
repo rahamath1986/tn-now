@@ -124,7 +124,7 @@ func main() {
 		videoHandler.RegisterRoutes(mux)
 
 		// Submission handler registration
-		submissionHandler := content.NewSubmissionHandler(queries, pool)
+		submissionHandler := content.NewSubmissionHandler(queries, pool, cfg)
 		submissionHandler.RegisterRoutes(mux)
 
 		// Moderation handler registration
@@ -157,7 +157,7 @@ func main() {
 		adminHandler.RegisterRoutes(mux)
 
 		// Public news & editorial portal handler registration
-		portalHandler = portal.NewPortalHandler(queries, pool)
+		portalHandler = portal.NewPortalHandler(queries, pool, cfg)
 		portalHandler.RegisterRoutes(mux)
 	}
 

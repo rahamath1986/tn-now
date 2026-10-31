@@ -21,6 +21,15 @@ type Config struct {
 	GeminiAPIKey        string
 	AdminUsername       string
 	AdminPassword       string
+	SMTPHost            string
+	SMTPPort            string
+	SMTPUser            string
+	SMTPPass            string
+	SMTPFrom            string
+	ImageKitURLEndpoint string
+	ImageKitPublicKey   string
+	ImageKitPrivateKey  string
+	ImageKitFolder      string
 }
 
 func loadEnvFile(path string) {
@@ -71,6 +80,17 @@ func Load() *Config {
 	adminUsername := getEnv("ADMIN_USERNAME", "admin")
 	adminPassword := getEnv("ADMIN_PASSWORD", "tn24admin")
 
+	smtpHost := getEnv("SMTP_HOST", "")
+	smtpPort := getEnv("SMTP_PORT", "587")
+	smtpUser := getEnv("SMTP_USER", "")
+	smtpPass := getEnv("SMTP_PASS", "")
+	smtpFrom := getEnv("SMTP_FROM", "noreply@tn24.in")
+
+	ikEndpoint := getEnv("IMAGEKIT_URL_ENDPOINT", "")
+	ikPublic := getEnv("IMAGEKIT_PUBLIC_KEY", "")
+	ikPrivate := getEnv("IMAGEKIT_PRIVATE_KEY", "")
+	ikFolder := getEnv("IMAGEKIT_FOLDER", "/articles")
+
 	return &Config{
 		Port:                port,
 		AppEnv:              appEnv,
@@ -87,6 +107,15 @@ func Load() *Config {
 		GeminiAPIKey:        geminiAPIKey,
 		AdminUsername:       adminUsername,
 		AdminPassword:       adminPassword,
+		SMTPHost:            smtpHost,
+		SMTPPort:            smtpPort,
+		SMTPUser:            smtpUser,
+		SMTPPass:            smtpPass,
+		SMTPFrom:            smtpFrom,
+		ImageKitURLEndpoint: ikEndpoint,
+		ImageKitPublicKey:   ikPublic,
+		ImageKitPrivateKey:  ikPrivate,
+		ImageKitFolder:      ikFolder,
 	}
 }
 

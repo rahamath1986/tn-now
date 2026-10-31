@@ -13,9 +13,11 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
+	"tn-now/server/internal/auth"
 	"tn-now/server/internal/config"
 	"tn-now/server/internal/cron"
 	"tn-now/server/internal/db"
+	"tn-now/server/internal/media"
 	"tn-now/server/internal/scraper"
 	"tn-now/server/internal/video"
 )
@@ -212,6 +214,10 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/admin/api/banners/config", h.RequireAuth(h.HandleBannerConfig))
 	mux.HandleFunc("/admin/api/banners/set-main", h.RequireAuth(h.HandleSetMainBanner))
 	mux.HandleFunc("/admin/api/settings/language", h.RequireAuth(h.HandleLanguageSettings))
+	mux.HandleFunc("/admin/api/settings/smtp", h.RequireAuth(h.HandleSMTPSettings))
+	mux.HandleFunc("/admin/api/settings/smtp/test", h.RequireAuth(h.HandleTestSMTP))
+	mux.HandleFunc("/admin/api/settings/imagekit", h.RequireAuth(h.HandleImageKitSettings))
+	mux.HandleFunc("/admin/api/settings/imagekit/test", h.RequireAuth(h.HandleTestImageKit))
 }
 
 func (h *Handler) HandleDashboard(w http.ResponseWriter, r *http.Request) {
@@ -916,6 +922,13 @@ func (h *Handler) HandleGetPendingContent(w http.ResponseWriter, r *http.Request
 		whereClauses = append(whereClauses, "c.is_viral = TRUE")
 	}
 
+	sourceFilter := strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("source")))
+	if sourceFilter == "USER" {
+		whereClauses = append(whereClauses, "c.source_type = 'USER'")
+	} else if sourceFilter == "SCRAPER" {
+		whereClauses = append(whereClauses, "c.source_type != 'USER'")
+	}
+
 	var countArgs []interface{}
 	var queryArgs []interface{}
 	argIndex := 1
@@ -991,18 +1004,22 @@ func (h *Handler) HandleGetPendingContent(w http.ResponseWriter, r *http.Request
 
 	queryArgs = append(queryArgs, limit, offset)
 	query := fmt.Sprintf(`
-		SELECT c.id, c.title, COALESCE(c.description, ''), c.content_type, COALESCE(c.source_url, ''),
+		SELECT c.id, c.title, COALESCE(s.body, c.description, ''), c.content_type, COALESCE(c.source_url, ''),
 		       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'), c.status,
 		       COALESCE(vl.external_video_id, ''), COALESCE(vl.canonical_url, ''), COALESCE(vl.platform, ''),
 		       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
 		       c.created_at, COALESCE(c.is_viral, false), COALESCE(c.updated_at, c.created_at),
-		       COALESCE(c.language, ''), COALESCE(c.is_ai_rewritten, false)
+		       COALESCE(c.language, ''), COALESCE(c.is_ai_rewritten, false),
+		       COALESCE(c.source_type, 'SCRAPER'),
+		       COALESCE(up.full_name, u.username, '')
 		FROM content c
 		LEFT JOIN districts d ON c.district_id = d.id
 		LEFT JOIN categories cat ON c.category_id = cat.id
 		LEFT JOIN video_links vl ON c.id = vl.content_id
 		LEFT JOIN stories s ON c.id = s.content_id
 		LEFT JOIN photos p ON c.id = p.content_id
+		LEFT JOIN users u ON c.author_user_id = u.id
+		LEFT JOIN user_profiles up ON u.id = up.user_id
 		%s
 		ORDER BY %s
 		LIMIT $%d OFFSET $%d
@@ -1034,6 +1051,8 @@ func (h *Handler) HandleGetPendingContent(w http.ResponseWriter, r *http.Request
 		IsViral       bool      `json:"isViral"`
 		IsMainBanner  bool      `json:"isMainBanner"`
 		IsAiRewritten bool      `json:"isAiRewritten"`
+		SourceType    string    `json:"sourceType"`
+		AuthorName    string    `json:"authorName"`
 	}
 
 	var items []PendingItemDTO
@@ -1042,7 +1061,8 @@ func (h *Handler) HandleGetPendingContent(w http.ResponseWriter, r *http.Request
 		var cid pgtype.UUID
 		var langVal string
 		err := rows.Scan(&cid, &it.Title, &it.Description, &it.ContentType, &it.SourceURL,
-			&it.District, &it.Category, &it.Status, &it.VideoID, &it.VideoURL, &it.VideoType, &it.Thumbnail, &it.CreatedAt, &it.IsViral, &it.UpdatedAt, &langVal, &it.IsAiRewritten)
+			&it.District, &it.Category, &it.Status, &it.VideoID, &it.VideoURL, &it.VideoType, &it.Thumbnail, &it.CreatedAt, &it.IsViral, &it.UpdatedAt, &langVal, &it.IsAiRewritten,
+			&it.SourceType, &it.AuthorName)
 		if err == nil {
 			it.ID = fmtUUID(cid)
 			it.Title = scraper.CleanHTML(it.Title)
@@ -1306,21 +1326,44 @@ func (h *Handler) HandleApproveContent(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
-	_, err := h.conn.Exec(ctx, `
+	var authorUID pgtype.UUID
+	var postTitle, postSlug string
+	err := h.conn.QueryRow(ctx, `
 		UPDATE content 
 		SET status = 'PUBLISHED', moderation_status = 'SAFE', verification_status = 'VERIFIED', published_at = NOW(), updated_at = NOW()
 		WHERE id = $1
-	`, req.ContentID)
+		RETURNING author_user_id, title, COALESCE(slug, '')
+	`, req.ContentID).Scan(&authorUID, &postTitle, &postSlug)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	// Ensure clean SEO slug
+	if postSlug == "" {
+		postSlug = scraper.GenerateArticleSlug(postTitle, req.ContentID)
+		_, _ = h.conn.Exec(ctx, "UPDATE content SET slug = $1 WHERE id = $2", postSlug, req.ContentID)
+	}
+
+	// Increment contributor reputation points and approved count if user post
+	if authorUID.Valid {
+		_, _ = h.conn.Exec(ctx, `
+			INSERT INTO contributor_scores (user_id, points, approved_count, trust_score, updated_at)
+			VALUES ($1, 10, 1, 15, NOW())
+			ON CONFLICT (user_id) DO UPDATE SET
+				points = contributor_scores.points + 10,
+				approved_count = contributor_scores.approved_count + 1,
+				trust_score = LEAST(100, contributor_scores.trust_score + 5),
+				updated_at = NOW()
+		`, authorUID)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
-		"message": "Content approved and published live to app users",
+		"message": "Content approved and published live to app users & User Corner",
+		"slug":    postSlug,
 		"errors":  []interface{}{},
 	})
 }
@@ -2522,6 +2565,320 @@ func (h *Handler) HandleLanguageSettings(w http.ResponseWriter, r *http.Request)
 	}
 
 	writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+}
+
+func (h *Handler) HandleSMTPSettings(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	if r.Method == http.MethodGet {
+		var host, port, user, pass, from string
+		if h.conn != nil {
+			_ = h.conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'smtp_host'").Scan(&host)
+			_ = h.conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'smtp_port'").Scan(&port)
+			_ = h.conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'smtp_user'").Scan(&user)
+			_ = h.conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'smtp_pass'").Scan(&pass)
+			_ = h.conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'smtp_from'").Scan(&from)
+		}
+
+		// Fall back to config if DB setting is empty
+		if host == "" && h.cfg != nil {
+			host = h.cfg.SMTPHost
+		}
+		if port == "" && h.cfg != nil {
+			port = h.cfg.SMTPPort
+		}
+		if port == "" {
+			port = "587"
+		}
+		if user == "" && h.cfg != nil {
+			user = h.cfg.SMTPUser
+		}
+		if pass == "" && h.cfg != nil {
+			pass = h.cfg.SMTPPass
+		}
+		if from == "" && h.cfg != nil {
+			from = h.cfg.SMTPFrom
+		}
+		if from == "" {
+			from = "noreply@tn24.in"
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"host":         host,
+				"port":         port,
+				"user":         user,
+				"from":         from,
+				"hasPassword":  pass != "",
+				"isConfigured": host != "" && user != "",
+			},
+		})
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		var req struct {
+			Host string `json:"host"`
+			Port string `json:"port"`
+			User string `json:"user"`
+			Pass string `json:"pass"`
+			From string `json:"from"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "Invalid request payload")
+			return
+		}
+
+		req.Host = strings.TrimSpace(req.Host)
+		req.Port = strings.TrimSpace(req.Port)
+		if req.Port == "" {
+			req.Port = "587"
+		}
+		req.User = strings.TrimSpace(req.User)
+		req.From = strings.TrimSpace(req.From)
+		if req.From == "" {
+			req.From = "noreply@tn24.in"
+		}
+
+		if h.conn != nil {
+			_, _ = h.conn.Exec(ctx, `
+				INSERT INTO system_settings (key, value, updated_at)
+				VALUES ('smtp_host', $1, NOW())
+				ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+			`, req.Host)
+
+			_, _ = h.conn.Exec(ctx, `
+				INSERT INTO system_settings (key, value, updated_at)
+				VALUES ('smtp_port', $1, NOW())
+				ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+			`, req.Port)
+
+			_, _ = h.conn.Exec(ctx, `
+				INSERT INTO system_settings (key, value, updated_at)
+				VALUES ('smtp_user', $1, NOW())
+				ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+			`, req.User)
+
+			_, _ = h.conn.Exec(ctx, `
+				INSERT INTO system_settings (key, value, updated_at)
+				VALUES ('smtp_from', $1, NOW())
+				ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+			`, req.From)
+
+			// Only update password if a new non-empty password was typed
+			if strings.TrimSpace(req.Pass) != "" && req.Pass != "••••••••" {
+				_, _ = h.conn.Exec(ctx, `
+					INSERT INTO system_settings (key, value, updated_at)
+					VALUES ('smtp_pass', $1, NOW())
+					ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+				`, req.Pass)
+			}
+		}
+
+		if strings.TrimSpace(req.Pass) != "" && req.Pass != "••••••••" && h.cfg != nil {
+			h.cfg.SMTPPass = req.Pass
+		}
+
+		if h.cfg != nil {
+			h.cfg.SMTPHost = req.Host
+			h.cfg.SMTPPort = req.Port
+			h.cfg.SMTPUser = req.User
+			h.cfg.SMTPFrom = req.From
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "SMTP configuration saved successfully",
+		})
+		return
+	}
+
+	writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+}
+
+func (h *Handler) HandleTestSMTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	var req struct {
+		TestEmail string `json:"testEmail"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	req.TestEmail = strings.TrimSpace(req.TestEmail)
+	if req.TestEmail == "" || !strings.Contains(req.TestEmail, "@") {
+		writeError(w, http.StatusBadRequest, "A valid test recipient email is required")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	defer cancel()
+
+	effectiveCfg := auth.GetEffectiveSMTPConfig(ctx, h.conn, h.cfg)
+	if effectiveCfg.SMTPHost == "" || effectiveCfg.SMTPUser == "" {
+		writeError(w, http.StatusBadRequest, "SMTP Host and Username must be configured before testing")
+		return
+	}
+
+	testOTP, _ := auth.GenerateNumericOTP()
+	err := auth.SendOTPEmail(effectiveCfg, req.TestEmail, testOTP)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadGateway)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"message": "SMTP test dispatch failed: " + err.Error(),
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "Test email sent successfully to " + req.TestEmail,
+	})
+}
+
+func (h *Handler) HandleImageKitSettings(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	if r.Method == http.MethodGet {
+		effectiveCfg := media.GetEffectiveImageKitConfig(ctx, h.conn, h.cfg)
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"data": map[string]interface{}{
+				"urlEndpoint":   effectiveCfg.URLEndpoint,
+				"publicKey":     effectiveCfg.PublicKey,
+				"hasPrivateKey": effectiveCfg.PrivateKey != "",
+				"folder":        effectiveCfg.Folder,
+				"autoOptimize":  effectiveCfg.AutoOptimize,
+				"isConfigured":  effectiveCfg.URLEndpoint != "" && effectiveCfg.PrivateKey != "",
+			},
+		})
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		var req struct {
+			URLEndpoint  string `json:"urlEndpoint"`
+			PublicKey    string `json:"publicKey"`
+			PrivateKey   string `json:"privateKey"`
+			Folder       string `json:"folder"`
+			AutoOptimize *bool  `json:"autoOptimize"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "Invalid request payload")
+			return
+		}
+
+		req.URLEndpoint = strings.TrimSpace(req.URLEndpoint)
+		req.PublicKey = strings.TrimSpace(req.PublicKey)
+		req.Folder = strings.TrimSpace(req.Folder)
+		if req.Folder == "" {
+			req.Folder = "/articles"
+		}
+		autoOptStr := "true"
+		if req.AutoOptimize != nil && !*req.AutoOptimize {
+			autoOptStr = "false"
+		}
+
+		if h.conn != nil {
+			_, _ = h.conn.Exec(ctx, `
+				INSERT INTO system_settings (key, value, updated_at)
+				VALUES ('imagekit_url_endpoint', $1, NOW())
+				ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+			`, req.URLEndpoint)
+
+			_, _ = h.conn.Exec(ctx, `
+				INSERT INTO system_settings (key, value, updated_at)
+				VALUES ('imagekit_public_key', $1, NOW())
+				ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+			`, req.PublicKey)
+
+			_, _ = h.conn.Exec(ctx, `
+				INSERT INTO system_settings (key, value, updated_at)
+				VALUES ('imagekit_folder', $1, NOW())
+				ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+			`, req.Folder)
+
+			_, _ = h.conn.Exec(ctx, `
+				INSERT INTO system_settings (key, value, updated_at)
+				VALUES ('imagekit_auto_optimize', $1, NOW())
+				ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+			`, autoOptStr)
+
+			if strings.TrimSpace(req.PrivateKey) != "" && req.PrivateKey != "••••••••" {
+				_, _ = h.conn.Exec(ctx, `
+					INSERT INTO system_settings (key, value, updated_at)
+					VALUES ('imagekit_private_key', $1, NOW())
+					ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+				`, req.PrivateKey)
+			}
+		}
+
+		if h.cfg != nil {
+			h.cfg.ImageKitURLEndpoint = req.URLEndpoint
+			h.cfg.ImageKitPublicKey = req.PublicKey
+			h.cfg.ImageKitFolder = req.Folder
+			if strings.TrimSpace(req.PrivateKey) != "" && req.PrivateKey != "••••••••" {
+				h.cfg.ImageKitPrivateKey = req.PrivateKey
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": true,
+			"message": "ImageKit configuration saved successfully",
+		})
+		return
+	}
+
+	writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+}
+
+func (h *Handler) HandleTestImageKit(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+	defer cancel()
+
+	effectiveCfg := media.GetEffectiveImageKitConfig(ctx, h.conn, h.cfg)
+	if effectiveCfg.URLEndpoint == "" || effectiveCfg.PrivateKey == "" {
+		writeError(w, http.StatusBadRequest, "ImageKit URL Endpoint and Private Key must be configured first")
+		return
+	}
+
+	err := media.TestImageKitConnection(ctx, effectiveCfg)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadGateway)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"message": "ImageKit connection test failed: " + err.Error(),
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": "ImageKit CDN connection verified successfully! Zero-storage cloud hosting is active.",
+	})
 }
 
 func (h *Handler) HandleAIRewriteSingle(w http.ResponseWriter, r *http.Request) {

@@ -133,7 +133,7 @@ func TestRegistrationAndLoginFlow(t *testing.T) {
 	email := "auth_test@tnnow.in"
 	password := "securepassword123"
 
-	resp, err := authService.Register(context.Background(), username, email, password)
+	resp, err := authService.Register(context.Background(), username, email, password, "Auth Test User")
 	if err != nil {
 		t.Fatalf("Register failed: %v", err)
 	}
@@ -146,14 +146,34 @@ func TestRegistrationAndLoginFlow(t *testing.T) {
 		t.Errorf("Expected email %s, got %s", email, resp.Email)
 	}
 
-	// 2. Test Login
+	if !resp.RequiresOTP {
+		t.Error("Expected RequiresOTP to be true after traditional registration")
+	}
+
+	// Verify Email OTP (First-time login)
+	var otpCode string
+	err = pool.QueryRow(context.Background(), "SELECT otp_code FROM email_otps WHERE email = $1 ORDER BY created_at DESC LIMIT 1", email).Scan(&otpCode)
+	if err != nil {
+		t.Fatalf("Failed to retrieve generated OTP: %v", err)
+	}
+
+	verifyResp, err := authService.VerifyEmailOTP(context.Background(), email, otpCode, "mobile-test-device")
+	if err != nil {
+		t.Fatalf("VerifyEmailOTP failed: %v", err)
+	}
+
+	if verifyResp.UserID == "" {
+		t.Error("Expected non-empty UserID from VerifyEmailOTP")
+	}
+
+	// 2. Test Subsequent Login with Email + Password (no OTP needed)
 	loginResp, err := authService.Login(context.Background(), email, password, "mobile-test-device")
 	if err != nil {
 		t.Fatalf("Login failed: %v", err)
 	}
 
-	if loginResp.UserID != resp.UserID {
-		t.Errorf("Expected matching user IDs on login, got %s vs %s", resp.UserID, loginResp.UserID)
+	if loginResp.UserID != verifyResp.UserID {
+		t.Errorf("Expected matching user IDs on login, got %s vs %s", verifyResp.UserID, loginResp.UserID)
 	}
 
 	// 3. Test Token Rotation (Refresh)

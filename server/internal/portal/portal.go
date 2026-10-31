@@ -14,6 +14,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"tn-now/server/internal/config"
 	"tn-now/server/internal/db"
 	"tn-now/server/internal/scraper"
 )
@@ -21,30 +22,37 @@ import (
 type PortalHandler struct {
 	q    *db.Queries
 	conn *pgxpool.Pool
+	cfg  *config.Config
 }
 
-func NewPortalHandler(q *db.Queries, conn *pgxpool.Pool) *PortalHandler {
-	return &PortalHandler{q: q, conn: conn}
+func NewPortalHandler(q *db.Queries, conn *pgxpool.Pool, cfg ...*config.Config) *PortalHandler {
+	var c *config.Config
+	if len(cfg) > 0 {
+		c = cfg[0]
+	}
+	return &PortalHandler{q: q, conn: conn, cfg: c}
 }
 
 type ArticleItem struct {
-	ID          string    `json:"id"`
-	Slug        string    `json:"slug"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	ContentType string    `json:"contentType"`
-	SourceURL   string    `json:"sourceUrl"`
-	District    string    `json:"district"`
-	Category    string    `json:"category"`
-	Language    string    `json:"language"`
-	Status      string    `json:"status"`
-	VideoID     string    `json:"videoId"`
-	VideoURL    string    `json:"videoUrl"`
-	VideoType   string    `json:"videoType"`
-	Thumbnail   string    `json:"thumbnail"`
-	CreatedAt   time.Time `json:"createdAt"`
-	IsViral     bool      `json:"isViral"`
-	Author      string    `json:"author"`
+	ID             string    `json:"id"`
+	Slug           string    `json:"slug"`
+	Title          string    `json:"title"`
+	Description    string    `json:"description"`
+	ContentType    string    `json:"contentType"`
+	SourceURL      string    `json:"sourceUrl"`
+	District       string    `json:"district"`
+	Category       string    `json:"category"`
+	Language       string    `json:"language"`
+	Status         string    `json:"status"`
+	VideoID        string    `json:"videoId"`
+	VideoURL       string    `json:"videoUrl"`
+	VideoType      string    `json:"videoType"`
+	Thumbnail      string    `json:"thumbnail"`
+	CreatedAt      time.Time `json:"createdAt"`
+	IsViral        bool      `json:"isViral"`
+	Author         string    `json:"author"`
+	SourceType     string    `json:"sourceType,omitempty"`
+	AuthorUsername string    `json:"authorUsername,omitempty"`
 }
 
 // articleURL returns the full canonical URL for an article, preferring clean SEO /news/<slug> URLs.
@@ -198,6 +206,9 @@ func (h *PortalHandler) RegisterRoutes(mux *http.ServeMux) {
 
 	// ads.txt — required by Google AdSense to authorize ad sellers
 	mux.HandleFunc("/ads.txt", h.HandleAdsTxt)
+
+	// User Corner & Citizen Journalism routes
+	h.RegisterUserCornerRoutes(mux)
 }
 
 func (h *PortalHandler) HandlePortalPage(w http.ResponseWriter, r *http.Request) {
@@ -299,27 +310,33 @@ func (h *PortalHandler) HandleNewsArticlePage(w http.ResponseWriter, r *http.Req
 	var vidDuration int
 	var sourceURL, actualSlug string
 	var pubAt, createdAt time.Time
+	var srcType, authorFullName, authorUsername string
 
 	shortID := scraper.ExtractShortID(slug)
 
 	err := h.conn.QueryRow(ctx, `
-		SELECT c.id::text, c.title, COALESCE(c.description, ''),
+		SELECT c.id::text, c.title, COALESCE(s.body, c.description, ''),
 		       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
 		       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'),
 		       COALESCE(c.language, 'ta'),
 		       COALESCE(c.published_at, c.created_at), c.created_at,
 		       COALESCE(vl.platform, ''), COALESCE(vl.external_video_id, ''),
 		       COALESCE(vl.canonical_url, ''), COALESCE(vl.duration_seconds, 0),
-		       COALESCE(c.source_url, ''), COALESCE(c.slug, '')
+		       COALESCE(c.source_url, ''), COALESCE(c.slug, ''),
+		       COALESCE(c.source_type, 'SCRAPER'),
+		       COALESCE(up.full_name, u.username, ''),
+		       COALESCE(u.username, '')
 		FROM content c
 		LEFT JOIN video_links vl ON c.id = vl.content_id
 		LEFT JOIN stories s ON c.id = s.content_id
 		LEFT JOIN photos p ON c.id = p.content_id
 		LEFT JOIN districts d ON c.district_id = d.id
 		LEFT JOIN categories cat ON c.category_id = cat.id
+		LEFT JOIN users u ON c.author_user_id = u.id
+		LEFT JOIN user_profiles up ON u.id = up.user_id
 		WHERE c.slug = $1 OR c.id::text = $1 OR ($2 != '' AND c.id::text LIKE $2 || '%')
 		LIMIT 1
-	`, slug, shortID).Scan(&postID, &title, &desc, &thumb, &district, &category, &lang, &pubAt, &createdAt, &vidPlatform, &vidID, &vidURL, &vidDuration, &sourceURL, &actualSlug)
+	`, slug, shortID).Scan(&postID, &title, &desc, &thumb, &district, &category, &lang, &pubAt, &createdAt, &vidPlatform, &vidID, &vidURL, &vidDuration, &sourceURL, &actualSlug, &srcType, &authorFullName, &authorUsername)
 
 	if err != nil || strings.TrimSpace(title) == "" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -340,7 +357,7 @@ func (h *PortalHandler) HandleNewsArticlePage(w http.ResponseWriter, r *http.Req
 		canonicalSlug = slug
 	}
 
-	pageHTML = h.InjectPostMetadataValues(ctx, pageHTML, postID, title, desc, thumb, district, category, lang, pubAt, createdAt, vidPlatform, vidID, vidURL, vidDuration, r, sourceURL, canonicalSlug)
+	pageHTML = h.InjectPostMetadataValues(ctx, pageHTML, postID, title, desc, thumb, district, category, lang, pubAt, createdAt, vidPlatform, vidID, vidURL, vidDuration, r, sourceURL, canonicalSlug, authorFullName, authorUsername)
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "public, max-age=60, s-maxage=120")
@@ -377,23 +394,30 @@ func (h *PortalHandler) HandleGetSinglePost(w http.ResponseWriter, r *http.Reque
 
 	var it ArticleItem
 	var cid pgtype.UUID
+	var srcType, authorFullName, authorUsername string
 	err := h.conn.QueryRow(ctx, `
-		SELECT c.id, c.title, COALESCE(c.description, ''), c.content_type, COALESCE(c.source_url, ''),
+		SELECT c.id, c.title, COALESCE(s.body, c.description, ''), c.content_type, COALESCE(c.source_url, ''),
 		       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'), c.status,
 		       COALESCE(vl.external_video_id, ''), COALESCE(vl.canonical_url, ''), COALESCE(vl.platform, ''),
 		       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
 		       COALESCE(c.published_at, c.created_at), COALESCE(c.is_viral, false),
-		       COALESCE(c.slug, '')
+		       COALESCE(c.slug, ''),
+		       COALESCE(c.source_type, 'SCRAPER'),
+		       COALESCE(up.full_name, u.username, ''),
+		       COALESCE(u.username, '')
 		FROM content c
 		LEFT JOIN districts d ON c.district_id = d.id
 		LEFT JOIN categories cat ON c.category_id = cat.id
 		LEFT JOIN video_links vl ON c.id = vl.content_id
 		LEFT JOIN stories s ON c.id = s.content_id
 		LEFT JOIN photos p ON c.id = p.content_id
+		LEFT JOIN users u ON c.author_user_id = u.id
+		LEFT JOIN user_profiles up ON u.id = up.user_id
 		WHERE ($1 != '' AND c.id::text = $1) OR ($2 != '' AND c.slug = $2)
 		LIMIT 1
 	`, postID, slug).Scan(&cid, &it.Title, &it.Description, &it.ContentType, &it.SourceURL,
-		&it.District, &it.Category, &it.Status, &it.VideoID, &it.VideoURL, &it.VideoType, &it.Thumbnail, &it.CreatedAt, &it.IsViral, &it.Slug)
+		&it.District, &it.Category, &it.Status, &it.VideoID, &it.VideoURL, &it.VideoType, &it.Thumbnail, &it.CreatedAt, &it.IsViral, &it.Slug,
+		&srcType, &authorFullName, &authorUsername)
 
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -412,7 +436,19 @@ func (h *PortalHandler) HandleGetSinglePost(w http.ResponseWriter, r *http.Reque
 	if strings.TrimSpace(it.Thumbnail) == "" {
 		it.Thumbnail = scraper.GetFallbackImageWithPerson(it.Title, it.District, it.Category)
 	}
-	it.Author = "TN24 செய்திக் குழு"
+	it.SourceType = srcType
+	it.AuthorUsername = authorUsername
+	if srcType == "USER" {
+		if authorFullName != "" {
+			it.Author = authorFullName
+		} else if authorUsername != "" {
+			it.Author = authorUsername
+		} else {
+			it.Author = "வாசகர் நிருபர்"
+		}
+	} else {
+		it.Author = "TN24 செய்திக் குழு"
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -626,13 +662,33 @@ func (h *PortalHandler) InjectPostMetadataValues(ctx context.Context, baseHTML s
 		"dateModified":        dateMod.Format(time.RFC3339),
 		"inLanguage":          lang,
 		"isAccessibleForFree": true,
-		"author": []map[string]interface{}{
-			{
-				"@type": "NewsMediaOrganization",
-				"name":  "TN24 Editorial Desk",
-				"url":   "https://www.tn24.in/about",
-			},
-		},
+		"author": (func() []map[string]interface{} {
+			if len(sourceURL) > 3 && sourceURL[3] != "" {
+				authorName := sourceURL[2]
+				if authorName == "" {
+					authorName = sourceURL[3]
+				}
+				return []map[string]interface{}{
+					{
+						"@type": "Person",
+						"name":  authorName,
+						"url":   fmt.Sprintf("https://www.tn24.in/author/%s", sourceURL[3]),
+						"jobTitle": "Community Contributor",
+						"worksFor": map[string]string{
+							"@type": "NewsMediaOrganization",
+							"name":  "TN24 — Tamil Nadu News",
+						},
+					},
+				}
+			}
+			return []map[string]interface{}{
+				{
+					"@type": "NewsMediaOrganization",
+					"name":  "TN24 Editorial Desk",
+					"url":   "https://www.tn24.in/about",
+				},
+			}
+		})(),
 		"keywords": []string{
 			"news tamil nadu", "tamil nadu news", "tn 24", "news tamil 24x7 live",
 			"news live tamilnadu", "தமிழ் செய்திகள்", "today news in tamil",
@@ -1942,6 +1998,8 @@ func (h *PortalHandler) HandlePortalFeed(w http.ResponseWriter, r *http.Request)
 			whereClauses = append(whereClauses, "(cat.name ILIKE '%Entertainment%' OR cat.name ILIKE '%Cinema%' OR c.title ILIKE '%cinema%' OR c.title ILIKE '%movie%' OR c.title ILIKE '%actor%' OR c.title ILIKE '%திரைப்பட%' OR c.title ILIKE '%நடிக%' OR c.title ILIKE '%Bigg Boss%' OR c.title ILIKE '%படம்%' OR c.title ILIKE '%விஜய்%' OR c.title ILIKE '%அஜித்%' OR c.title ILIKE '%ரஜினி%' OR c.title ILIKE '%கமல்%' OR c.title ILIKE '%பாடல்%' OR COALESCE(c.description, '') ILIKE '%cinema%' OR COALESCE(c.description, '') ILIKE '%திரைப்பட%' OR COALESCE(c.description, '') ILIKE '%நடிக%')")
 		case "news", "civic":
 			whereClauses = append(whereClauses, "(cat.name ILIKE '%News%' OR cat.name ILIKE '%Civic%' OR cat.name ILIKE '%General%' OR c.title ILIKE '%செய்தி%' OR c.title ILIKE '%மக்கள்%' OR c.title ILIKE '%மாவட்டம்%' OR COALESCE(c.description, '') ILIKE '%செய்தி%')")
+		case "user corner", "user-corner", "வாசகர் அரங்கம்":
+			whereClauses = append(whereClauses, "(c.source_type = 'USER' OR cat.slug = 'user-corner' OR cat.name ILIKE '%User Corner%')")
 		default:
 			whereClauses = append(whereClauses, fmt.Sprintf("(cat.name ILIKE $%d OR c.title ILIKE $%d OR COALESCE(c.description, '') ILIKE $%d)", argIdx, argIdx, argIdx))
 			args = append(args, "%"+categoryFilter+"%", "%"+categoryFilter+"%", "%"+categoryFilter+"%")
@@ -1965,18 +2023,23 @@ func (h *PortalHandler) HandlePortalFeed(w http.ResponseWriter, r *http.Request)
 	_ = h.conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'portal_ad_banner_square_id'").Scan(&adSquareID)
 
 	query := fmt.Sprintf(`
-		SELECT c.id, c.title, COALESCE(c.description, ''), c.content_type, COALESCE(c.source_url, ''),
+		SELECT c.id, c.title, COALESCE(s.body, c.description, ''), c.content_type, COALESCE(c.source_url, ''),
 		       COALESCE(d.name, 'Tamil Nadu'), COALESCE(cat.name, 'News'), c.status,
 		       COALESCE(vl.external_video_id, ''), COALESCE(vl.canonical_url, ''), COALESCE(vl.platform, ''),
 		       COALESCE(vl.thumbnail_url, s.single_photo_url, (p.photo_urls)[1], ''),
 		       COALESCE(c.published_at, c.created_at), COALESCE(c.is_viral, false),
-		       COALESCE(c.slug, '')
+		       COALESCE(c.slug, ''),
+		       COALESCE(c.source_type, 'SCRAPER'),
+		       COALESCE(up.full_name, u.username, ''),
+		       COALESCE(u.username, '')
 		FROM content c
 		LEFT JOIN districts d ON c.district_id = d.id
 		LEFT JOIN categories cat ON c.category_id = cat.id
 		LEFT JOIN video_links vl ON c.id = vl.content_id
 		LEFT JOIN stories s ON c.id = s.content_id
 		LEFT JOIN photos p ON c.id = p.content_id
+		LEFT JOIN users u ON c.author_user_id = u.id
+		LEFT JOIN user_profiles up ON u.id = up.user_id
 		WHERE %s
 		ORDER BY COALESCE(c.published_at, c.created_at) DESC, c.id DESC
 		LIMIT 80
@@ -2002,8 +2065,10 @@ func (h *PortalHandler) HandlePortalFeed(w http.ResponseWriter, r *http.Request)
 	for rows.Next() {
 		var it ArticleItem
 		var cid pgtype.UUID
+		var srcType, authorFullName, authorUsername string
 		err := rows.Scan(&cid, &it.Title, &it.Description, &it.ContentType, &it.SourceURL,
-			&it.District, &it.Category, &it.Status, &it.VideoID, &it.VideoURL, &it.VideoType, &it.Thumbnail, &it.CreatedAt, &it.IsViral, &it.Slug)
+			&it.District, &it.Category, &it.Status, &it.VideoID, &it.VideoURL, &it.VideoType, &it.Thumbnail, &it.CreatedAt, &it.IsViral, &it.Slug,
+			&srcType, &authorFullName, &authorUsername)
 		if err == nil {
 			it.ID = fmtUUID(cid)
 			if it.Slug == "" {
@@ -2018,11 +2083,23 @@ func (h *PortalHandler) HandlePortalFeed(w http.ResponseWriter, r *http.Request)
 			if strings.TrimSpace(it.Thumbnail) == "" {
 				it.Thumbnail = scraper.GetFallbackImageWithPerson(it.Title, it.District, it.Category)
 			}
-			idx := 0
-			if len(it.ID) > 0 {
-				idx = int(it.ID[len(it.ID)-1]) % len(authorPool)
+			it.SourceType = srcType
+			it.AuthorUsername = authorUsername
+			if srcType == "USER" {
+				if authorFullName != "" {
+					it.Author = authorFullName
+				} else if authorUsername != "" {
+					it.Author = authorUsername
+				} else {
+					it.Author = "வாசகர் நிருபர்"
+				}
+			} else {
+				idx := 0
+				if len(it.ID) > 0 {
+					idx = int(it.ID[len(it.ID)-1]) % len(authorPool)
+				}
+				it.Author = authorPool[idx]
 			}
-			it.Author = authorPool[idx]
 			allItems = append(allItems, it)
 		}
 	}

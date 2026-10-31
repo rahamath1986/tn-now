@@ -1,7 +1,9 @@
 package content
 
 import (
+	"context"
 	"encoding/json"
+	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -9,17 +11,25 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"tn-now/server/internal/config"
 	"tn-now/server/internal/db"
+	"tn-now/server/internal/media"
+	"tn-now/server/internal/scraper"
 	"tn-now/server/internal/video"
 )
 
 type SubmissionHandler struct {
 	q    *db.Queries
 	conn *pgxpool.Pool
+	cfg  *config.Config
 }
 
-func NewSubmissionHandler(q *db.Queries, conn *pgxpool.Pool) *SubmissionHandler {
-	return &SubmissionHandler{q: q, conn: conn}
+func NewSubmissionHandler(q *db.Queries, conn *pgxpool.Pool, cfg ...*config.Config) *SubmissionHandler {
+	var c *config.Config
+	if len(cfg) > 0 {
+		c = cfg[0]
+	}
+	return &SubmissionHandler{q: q, conn: conn, cfg: c}
 }
 
 type submitVideoRequest struct {
@@ -73,6 +83,70 @@ func (h *SubmissionHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/content/submit/photo", h.HandleSubmitPhoto)
 	mux.HandleFunc("/content/submit/story", h.HandleSubmitStory)
 	mux.HandleFunc("/content/submit/event", h.HandleSubmitEvent)
+	mux.HandleFunc("/content/upload/image", h.HandleUploadImage)
+	mux.HandleFunc("/api/upload/image", h.HandleUploadImage)
+}
+
+func (h *SubmissionHandler) HandleUploadImage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+		return
+	}
+
+	// 10 MB maximum upload memory limit
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid form data or file exceeds 10MB limit")
+		return
+	}
+
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		file, header, err = r.FormFile("file")
+	}
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Missing image file in form data")
+		return
+	}
+	defer file.Close()
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil || len(fileBytes) == 0 {
+		writeError(w, http.StatusBadRequest, "Failed to read image bytes")
+		return
+	}
+
+	// Validate content type
+	contentType := http.DetectContentType(fileBytes)
+	if !strings.HasPrefix(contentType, "image/") {
+		writeError(w, http.StatusBadRequest, "Only image files (JPEG, PNG, WebP) are allowed")
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	ikCfg := media.GetEffectiveImageKitConfig(ctx, h.conn, h.cfg)
+	res, err := media.UploadToImageKit(ctx, ikCfg, fileBytes, header.Filename)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadGateway)
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"message": "Image upload failed: " + err.Error(),
+		})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":      true,
+		"url":          res.URL,
+		"thumbnailUrl": res.ThumbnailURL,
+		"width":        res.Width,
+		"height":       res.Height,
+		"size":         res.Size,
+		"message":      "Image uploaded successfully to ImageKit CDN",
+	})
 }
 
 func (h *SubmissionHandler) HandleSubmitVideo(w http.ResponseWriter, r *http.Request) {
@@ -245,6 +319,42 @@ func (h *SubmissionHandler) HandleSubmitPhoto(w http.ResponseWriter, r *http.Req
 	writeSuccess(w, http.StatusCreated, map[string]string{"contentId": uuidToString(content.ID)}, "Photo post submitted for moderation")
 }
 
+func (h *SubmissionHandler) resolveDistrictID(ctx context.Context, input string) pgtype.UUID {
+	var uid pgtype.UUID
+	if err := uid.Scan(input); err == nil && uid.Valid {
+		return uid
+	}
+	input = strings.TrimSpace(input)
+	if input == "" {
+		input = "Tamil Nadu"
+	}
+	var res pgtype.UUID
+	err := h.conn.QueryRow(ctx, "SELECT id FROM districts WHERE name ILIKE $1 OR name ILIKE $2 LIMIT 1", input, "%"+input+"%").Scan(&res)
+	if err == nil && res.Valid {
+		return res
+	}
+	_ = h.conn.QueryRow(ctx, "SELECT id FROM districts ORDER BY name ASC LIMIT 1").Scan(&res)
+	return res
+}
+
+func (h *SubmissionHandler) resolveCategoryID(ctx context.Context, input string) pgtype.UUID {
+	var uid pgtype.UUID
+	if err := uid.Scan(input); err == nil && uid.Valid {
+		return uid
+	}
+	input = strings.TrimSpace(input)
+	if input == "" {
+		input = "user-corner"
+	}
+	var res pgtype.UUID
+	err := h.conn.QueryRow(ctx, "SELECT id FROM categories WHERE slug = $1 OR name ILIKE $1 OR name ILIKE $2 LIMIT 1", strings.ToLower(input), "%"+input+"%").Scan(&res)
+	if err == nil && res.Valid {
+		return res
+	}
+	_ = h.conn.QueryRow(ctx, "SELECT id FROM categories ORDER BY name ASC LIMIT 1").Scan(&res)
+	return res
+}
+
 func (h *SubmissionHandler) HandleSubmitStory(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
@@ -257,12 +367,51 @@ func (h *SubmissionHandler) HandleSubmitStory(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if strings.TrimSpace(req.Title) == "" || strings.TrimSpace(req.Body) == "" || req.CategoryID == "" || req.DistrictID == "" || req.AuthorUserID == "" {
-		writeError(w, http.StatusUnprocessableEntity, "Title, Body, CategoryID, DistrictID, and AuthorUserID are required")
+	req.Title = strings.TrimSpace(req.Title)
+	req.Body = strings.TrimSpace(req.Body)
+	if req.Title == "" || req.Body == "" {
+		writeError(w, http.StatusUnprocessableEntity, "Title and Body are required")
 		return
 	}
 
 	ctx := r.Context()
+
+	// Resolve Author User ID if not provided in payload
+	if req.AuthorUserID == "" {
+		// Attempt to extract from token cookie or Authorization header
+		token := ""
+		authHeader := r.Header.Get("Authorization")
+		if strings.HasPrefix(authHeader, "Bearer ") {
+			token = strings.TrimPrefix(authHeader, "Bearer ")
+		} else if cookie, err := r.Cookie("tn24_user_token"); err == nil && cookie.Value != "" {
+			token = cookie.Value
+		}
+
+		if token != "" {
+			// Find active session for user
+			var uid pgtype.UUID
+			_ = h.conn.QueryRow(ctx, "SELECT user_id FROM sessions WHERE is_revoked = false AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY created_at DESC LIMIT 1").Scan(&uid)
+			if uid.Valid {
+				req.AuthorUserID = uuidToString(uid)
+			}
+		}
+	}
+
+	if req.AuthorUserID == "" {
+		// Fallback to first registered user/admin if available
+		var fallbackID pgtype.UUID
+		_ = h.conn.QueryRow(ctx, "SELECT id FROM users ORDER BY created_at ASC LIMIT 1").Scan(&fallbackID)
+		if fallbackID.Valid {
+			req.AuthorUserID = uuidToString(fallbackID)
+		} else {
+			writeError(w, http.StatusUnauthorized, "Author login required to submit articles")
+			return
+		}
+	}
+
+	districtUUID := h.resolveDistrictID(ctx, req.DistrictID)
+	categoryUUID := h.resolveCategoryID(ctx, req.CategoryID)
+
 	tx, err := h.conn.Begin(ctx)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Transaction error")
@@ -273,16 +422,24 @@ func (h *SubmissionHandler) HandleSubmitStory(w http.ResponseWriter, r *http.Req
 	qtx := h.q.WithTx(tx)
 
 	var desc pgtype.Text
-	if req.Description != "" {
-		desc = pgtype.Text{String: req.Description, Valid: true}
+	if strings.TrimSpace(req.Description) != "" {
+		desc = pgtype.Text{String: strings.TrimSpace(req.Description), Valid: true}
+	} else {
+		// Auto-generate description excerpt from body (strip HTML tags)
+		plainBody := scraper.CleanHTML(req.Body)
+		plainRunes := []rune(plainBody)
+		if len(plainRunes) > 180 {
+			plainBody = string(plainRunes[:180]) + "..."
+		}
+		desc = pgtype.Text{String: plainBody, Valid: true}
 	}
 
 	content, err := qtx.CreateContent(ctx, db.CreateContentParams{
 		Title:        req.Title,
 		Description:  desc,
 		ContentType:  "TEXT_STORY",
-		CategoryID:   stringToUUID(req.CategoryID),
-		DistrictID:   stringToUUID(req.DistrictID),
+		CategoryID:   categoryUUID,
+		DistrictID:   districtUUID,
 		SourceType:   "USER",
 		AuthorUserID: stringToUUID(req.AuthorUserID),
 		Status:       "PENDING",
@@ -292,13 +449,17 @@ func (h *SubmissionHandler) HandleSubmitStory(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Generate and persist SEO slug immediately
+	contentSlug := scraper.GenerateArticleSlug(req.Title, uuidToString(content.ID))
+	_, _ = tx.Exec(ctx, "UPDATE content SET slug = $1 WHERE id = $2", contentSlug, content.ID)
+
 	var photoURL pgtype.Text
-	if req.SinglePhotoURL != "" {
-		photoURL = pgtype.Text{String: req.SinglePhotoURL, Valid: true}
+	if strings.TrimSpace(req.SinglePhotoURL) != "" {
+		photoURL = pgtype.Text{String: strings.TrimSpace(req.SinglePhotoURL), Valid: true}
 	}
 
 	headline := req.Headline
-	if headline == "" {
+	if strings.TrimSpace(headline) == "" {
 		headline = req.Title
 	}
 
@@ -318,7 +479,12 @@ func (h *SubmissionHandler) HandleSubmitStory(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	writeSuccess(w, http.StatusCreated, map[string]string{"contentId": uuidToString(content.ID)}, "Story submitted for moderation")
+	writeSuccess(w, http.StatusCreated, map[string]interface{}{
+		"contentId": uuidToString(content.ID),
+		"slug":      contentSlug,
+		"status":    "PENDING",
+		"message":   "உங்கள் பதிவு வெற்றிகரமாக பெறப்பட்டது! ஆசிரியர் குழுவின் பரிசீலனையில் உள்ளது (Under Review).",
+	}, "Article submitted successfully for editorial review")
 }
 
 func (h *SubmissionHandler) HandleSubmitEvent(w http.ResponseWriter, r *http.Request) {

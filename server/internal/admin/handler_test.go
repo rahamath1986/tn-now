@@ -189,3 +189,86 @@ func TestAdminAuthFlow(t *testing.T) {
 	}
 }
 
+func TestAdminSMTPSettingsHandlers(t *testing.T) {
+	cfg := &config.Config{
+		SMTPHost: "smtp.test.example",
+		SMTPPort: "587",
+		SMTPUser: "testuser",
+		SMTPPass: "testpass",
+		SMTPFrom: "noreply@test.example",
+	}
+	handler := NewHandler(nil, nil, nil, nil, cfg)
+
+	// 1. GET /admin/api/settings/smtp
+	reqGet := httptest.NewRequest(http.MethodGet, "/admin/api/settings/smtp", nil)
+	rrGet := httptest.NewRecorder()
+	handler.HandleSMTPSettings(rrGet, reqGet)
+	if rrGet.Code != http.StatusOK {
+		t.Errorf("Expected 200 for GET smtp settings, got %d", rrGet.Code)
+	}
+
+	var res map[string]interface{}
+	if err := json.NewDecoder(rrGet.Body).Decode(&res); err != nil {
+		t.Fatalf("Failed to parse json: %v", err)
+	}
+	if res["success"] != true {
+		t.Error("Expected success: true in smtp response")
+	}
+
+	// 2. Test email validation in HandleTestSMTP
+	reqTestInvalid := httptest.NewRequest(http.MethodPost, "/admin/api/settings/smtp/test", strings.NewReader(`{"testEmail":"notanemail"}`))
+	rrTestInvalid := httptest.NewRecorder()
+	handler.HandleTestSMTP(rrTestInvalid, reqTestInvalid)
+	if rrTestInvalid.Code != http.StatusBadRequest {
+		t.Errorf("Expected 400 for invalid test email, got %d", rrTestInvalid.Code)
+	}
+}
+
+func TestAdminImageKitSettingsHandlers(t *testing.T) {
+	cfg := &config.Config{
+		ImageKitURLEndpoint: "https://ik.imagekit.io/tn24test",
+		ImageKitPublicKey:   "public_test_key_123",
+		ImageKitPrivateKey:  "private_test_key_456",
+		ImageKitFolder:      "articles_test",
+	}
+	handler := NewHandler(nil, nil, nil, nil, cfg)
+
+	// 1. GET /admin/api/settings/imagekit
+	reqGet := httptest.NewRequest(http.MethodGet, "/admin/api/settings/imagekit", nil)
+	rrGet := httptest.NewRecorder()
+	handler.HandleImageKitSettings(rrGet, reqGet)
+	if rrGet.Code != http.StatusOK {
+		t.Errorf("Expected 200 for GET imagekit settings, got %d", rrGet.Code)
+	}
+
+	var res map[string]interface{}
+	if err := json.NewDecoder(rrGet.Body).Decode(&res); err != nil {
+		t.Fatalf("Failed to parse json: %v", err)
+	}
+	if res["success"] != true {
+		t.Error("Expected success: true in imagekit response")
+	}
+	data, ok := res["data"].(map[string]interface{})
+	if !ok {
+		t.Fatal("Expected data object in imagekit response")
+	}
+	if data["urlEndpoint"] != "https://ik.imagekit.io/tn24test" {
+		t.Errorf("Expected urlEndpoint https://ik.imagekit.io/tn24test, got %v", data["urlEndpoint"])
+	}
+	if data["publicKey"] != "public_test_key_123" {
+		t.Errorf("Expected publicKey public_test_key_123, got %v", data["publicKey"])
+	}
+	if data["hasPrivateKey"] != true {
+		t.Errorf("Expected hasPrivateKey to be true, got %v", data["hasPrivateKey"])
+	}
+
+	// 2. Test invalid method for TestImageKit (e.g. GET instead of POST)
+	reqTestGet := httptest.NewRequest(http.MethodGet, "/admin/api/settings/imagekit/test", nil)
+	rrTestGet := httptest.NewRecorder()
+	handler.HandleTestImageKit(rrTestGet, reqTestGet)
+	if rrTestGet.Code != http.StatusMethodNotAllowed {
+		t.Errorf("Expected 405 for GET on test endpoint, got %d", rrTestGet.Code)
+	}
+}
+
+

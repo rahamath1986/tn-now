@@ -729,6 +729,16 @@ func RenderAdminDashboard() string {
                         📜 Compliance Audit Log
                     </button>
                 </li>
+                <li>
+                    <button role="tab" id="tab-smtp" aria-selected="false" aria-controls="panel-smtp" class="nav-btn" onclick="switchTab('smtp')">
+                        📧 SMTP &amp; Email Config
+                    </button>
+                </li>
+                <li>
+                    <button role="tab" id="tab-imagekit" aria-selected="false" aria-controls="panel-imagekit" class="nav-btn" onclick="switchTab('imagekit')">
+                        🖼️ ImageKit CDN
+                    </button>
+                </li>
             </ul>
         </nav>
 
@@ -1109,6 +1119,7 @@ func RenderAdminDashboard() string {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
                 <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
                     <button id="filter-btn-pending" class="action-btn" style="background: rgba(56,189,248,0.15); color: #38bdf8; border-color: #38bdf8;" onclick="filterContentStatus('PENDING')">🟡 Pending Review (<span id="mod-tab-count-pending">0</span>)</button>
+                    <button id="filter-btn-user" class="action-btn" style="color: #f59e0b; border-color: rgba(245,158,11,0.4);" onclick="filterContentSource('USER')">✍️ User Submissions</button>
                     <button id="filter-btn-viral" class="action-btn" style="color: #f97316; border-color: rgba(249,115,22,0.4);" onclick="toggleViralFilter()">🔥 Viral Priority</button>
                     <button id="filter-btn-published" class="action-btn" onclick="filterContentStatus('PUBLISHED')">🟢 Approved (Live) (<span id="mod-tab-count-published">0</span>)</button>
                     <button id="filter-btn-rejected" class="action-btn" style="color: #f43f5e; border-color: rgba(244,63,94,0.3);" onclick="filterContentStatus('REJECTED')">🔴 Rejected (<span id="discarded-count-badge">0</span>)</button>
@@ -1411,6 +1422,193 @@ func RenderAdminDashboard() string {
                         <tr><td colspan="5" style="color: var(--text-muted);">No administrative events recorded yet.</td></tr>
                     </tbody>
                 </table>
+            </div>
+        </section>
+
+        <!-- SMTP & Outgoing Email Settings Panel -->
+        <section id="panel-smtp" role="tabpanel" aria-labelledby="tab-smtp" style="display: none;">
+            <header>
+                <div class="header-title">
+                    <h1>Outgoing SMTP &amp; Email Gateway</h1>
+                    <p>Configure mail server credentials for real-time citizen journalism Email OTP verifications, author notifications, and system alerts.</p>
+                </div>
+                <div id="smtp-status-pill" class="live-status-pill" style="border-color: rgba(56,189,248,0.4); color: #38bdf8;">
+                    <span class="status-dot"></span>
+                    <span id="smtp-status-badge">Checking SMTP...</span>
+                </div>
+            </header>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; margin-top: 20px;">
+                <!-- Configuration Card -->
+                <div class="panel-box" style="background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 12px; padding: 24px;">
+                    <h3 style="font-size: 16px; font-weight: 700; color: #f8fafc; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                        <span>⚙️ SMTP Server Credentials</span>
+                    </h3>
+                    <p style="font-size: 12px; color: #94a3b8; margin-bottom: 20px;">
+                        Settings are stored securely in PostgreSQL system_settings and loaded dynamically without requiring application restarts.
+                    </p>
+
+                    <form id="smtpConfigForm" onsubmit="saveSMTPSettings(event)">
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label for="smtp-host" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">SMTP Host / Relay:</label>
+                            <input id="smtp-host" class="form-control" placeholder="e.g. smtp.gmail.com, smtp.sendgrid.net, smtp-relay.brevo.com" required style="width: 100%;" />
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label for="smtp-port" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">SMTP Port:</label>
+                            <select id="smtp-port" class="form-control" style="width: 100%;">
+                                <option value="587">587 (Standard TLS / STARTTLS — Recommended)</option>
+                                <option value="465">465 (Direct SSL / TLS)</option>
+                                <option value="2525">2525 (Alternative TLS Port)</option>
+                                <option value="25">25 (Unencrypted / Local)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label for="smtp-user" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">SMTP Username / Account Email:</label>
+                            <input id="smtp-user" class="form-control" placeholder="e.g. alerts@tn24.in or API User" required style="width: 100%;" />
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label for="smtp-pass" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">SMTP Password / App Password / API Key:</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="password" id="smtp-pass" class="form-control" placeholder="••••••••" style="flex: 1;" />
+                                <button type="button" class="action-btn" onclick="toggleSMTPPasswordVisibility()" style="padding: 6px 12px;" title="Toggle visibility">👁️</button>
+                            </div>
+                            <span id="smtp-pass-note" style="font-size: 11px; color: #64748b; margin-top: 4px; display: block;">Leave unchanged to preserve existing saved password.</span>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label for="smtp-from" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">From Address / Sender Header:</label>
+                            <input id="smtp-from" class="form-control" placeholder="e.g. TN24 News &lt;noreply@tn24.in&gt;" style="width: 100%;" />
+                        </div>
+
+                        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                            <button type="submit" id="btn-save-smtp" class="btn-primary" style="padding: 8px 18px; font-weight: 700;">
+                                💾 Save SMTP Credentials
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Live Test & Diagnostics Card -->
+                <div class="panel-box" style="background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; display: flex; flex-direction: column;">
+                    <h3 style="font-size: 16px; font-weight: 700; color: #f8fafc; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                        <span>🧪 Live Email Dispatch Tester</span>
+                    </h3>
+                    <p style="font-size: 12px; color: #94a3b8; margin-bottom: 20px;">
+                        Send a test 6-digit OTP email to your inbox to verify end-to-end SMTP authentication and TLS handshake.
+                    </p>
+
+                    <form id="smtpTestForm" onsubmit="sendTestSMTPEmail(event)" style="margin-bottom: auto;">
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label for="smtp-test-email" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">Recipient Test Email Address:</label>
+                            <input type="email" id="smtp-test-email" class="form-control" placeholder="your_personal_email@example.com" required style="width: 100%;" />
+                        </div>
+
+                        <button type="submit" id="btn-test-smtp" class="btn-secondary" style="width: 100%; padding: 10px; font-weight: 700; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; cursor: pointer;">
+                            📨 Send Test OTP Email Now
+                        </button>
+                    </form>
+
+                    <div id="smtp-test-result" style="display: none; margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 12px; line-height: 1.5;"></div>
+
+                    <div style="margin-top: 20px; padding: 12px; background: rgba(30, 41, 59, 0.5); border-radius: 8px; font-size: 11px; color: #94a3b8; line-height: 1.6;">
+                        <strong>💡 Provider Tips:</strong><br>
+                        • <strong>Gmail:</strong> Enable 2-Step Verification and create an <em>App Password</em> (16-char code) for SMTP.<br>
+                        • <strong>Brevo / Sendgrid / Mailgun:</strong> Use port 587 and API key as password.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ImageKit CDN & Media Optimizer Settings Panel -->
+        <section id="panel-imagekit" role="tabpanel" aria-labelledby="tab-imagekit" style="display: none;">
+            <header>
+                <div class="header-title">
+                    <h1>ImageKit.io Cloud CDN &amp; Media Optimizer</h1>
+                    <p>Store citizen journalism images in the cloud with zero server disk usage, real-time WebP optimization, and global CDN delivery.</p>
+                </div>
+                <div id="imagekit-status-pill" class="live-status-pill" style="border-color: rgba(56,189,248,0.4); color: #38bdf8;">
+                    <span class="status-dot"></span>
+                    <span id="imagekit-status-badge">Checking ImageKit...</span>
+                </div>
+            </header>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; margin-top: 20px;">
+                <!-- Configuration Card -->
+                <div class="panel-box" style="background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 12px; padding: 24px;">
+                    <h3 style="font-size: 16px; font-weight: 700; color: #f8fafc; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                        <span>⚙️ ImageKit API Credentials</span>
+                    </h3>
+                    <p style="font-size: 12px; color: #94a3b8; margin-bottom: 20px;">
+                        Credentials can be found in your <a href="https://imagekit.io/dashboard/developer/api-keys" target="_blank" style="color: #38bdf8; text-decoration: underline;">ImageKit Developer Dashboard</a>. 25GB free tier included every month.
+                    </p>
+
+                    <form id="imagekitConfigForm" onsubmit="saveImageKitSettings(event)">
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label for="ik-endpoint" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">URL-Endpoint:</label>
+                            <input id="ik-endpoint" class="form-control" placeholder="https://ik.imagekit.io/your_imagekit_id" required style="width: 100%;" />
+                            <span style="font-size: 11px; color: #64748b; margin-top: 3px; display: block;">Your base ImageKit CDN URL</span>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label for="ik-public" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">Public Key:</label>
+                            <input id="ik-public" class="form-control" placeholder="public_xxxxxxxxxxxxxxxxxxxx" style="width: 100%;" />
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label for="ik-private" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">Private API Key:</label>
+                            <div style="display: flex; gap: 8px;">
+                                <input type="password" id="ik-private" class="form-control" placeholder="••••••••" style="flex: 1;" />
+                                <button type="button" class="action-btn" onclick="toggleImageKitKeyVisibility()" style="padding: 6px 12px;" title="Toggle visibility">👁️</button>
+                            </div>
+                            <span id="ik-pass-note" style="font-size: 11px; color: #64748b; margin-top: 4px; display: block;">Leave unchanged to preserve existing saved key.</span>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 14px;">
+                            <label for="ik-folder" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">Upload Folder Path:</label>
+                            <input id="ik-folder" class="form-control" value="/articles" placeholder="/articles" style="width: 100%;" />
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #f8fafc; cursor: pointer;">
+                                <input type="checkbox" id="ik-auto-optimize" checked style="cursor: pointer;" />
+                                <span>⚡ Auto-Convert to 1200px Retina WebP (SEO &amp; Google Discover Optimized)</span>
+                            </label>
+                        </div>
+
+                        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                            <button type="submit" id="btn-save-imagekit" class="btn-primary" style="padding: 8px 18px; font-weight: 700;">
+                                💾 Save ImageKit Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Test Connection & Benefits Card -->
+                <div class="panel-box" style="background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 12px; padding: 24px; display: flex; flex-direction: column;">
+                    <h3 style="font-size: 16px; font-weight: 700; color: #f8fafc; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                        <span>🧪 Live CDN Connection Tester</span>
+                    </h3>
+                    <p style="font-size: 12px; color: #94a3b8; margin-bottom: 20px;">
+                        Verifies your Private Key and URL Endpoint with the ImageKit API.
+                    </p>
+
+                    <button type="button" id="btn-test-imagekit" onclick="testImageKitConnection()" class="btn-secondary" style="width: 100%; padding: 12px; font-weight: 700; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; cursor: pointer;">
+                        🚀 Test ImageKit Connection Now
+                    </button>
+
+                    <div id="imagekit-test-result" style="display: none; margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 12px; line-height: 1.5;"></div>
+
+                    <div style="margin-top: auto; padding: 14px; background: rgba(30, 41, 59, 0.5); border-radius: 8px; font-size: 12px; color: #94a3b8; line-height: 1.6;">
+                        <strong style="color: #38bdf8;">Why ImageKit for TN24?</strong><br>
+                        • <strong>0 MB Server Disk:</strong> Images never touch your server storage.<br>
+                        • <strong>Automatic WebP:</strong> Converts large user camera photos to light, sharp WebP images automatically.<br>
+                        • <strong>Retina Sharpness:</strong> Serves responsive 1200px images matching Google Discover requirements.<br>
+                        • <strong>No Broken Images:</strong> Unlike Google Drive, ImageKit handles thousands of simultaneous readers effortlessly.
+                    </div>
+                </div>
             </div>
         </section>
     </main>
@@ -1963,6 +2161,10 @@ func RenderAdminDashboard() string {
                 fetchAuditLogs();
             } else if (tabId === 'contributors') {
                 fetchContributors();
+            } else if (tabId === 'smtp') {
+                fetchSMTPSettings();
+            } else if (tabId === 'imagekit') {
+                fetchImageKitSettings();
             }
 
             announce('Switched to ' + tabId);
@@ -3426,14 +3628,29 @@ func RenderAdminDashboard() string {
 
             const srcName = getSourceHostName(item.sourceUrl);
             const dateDisplay = formatSourceDate(item.createdAt);
-            const sourceCell = '<div style="font-size: 12px; font-weight: 600; color: #f1f5f9; white-space: nowrap;">' +
-                (item.sourceUrl ? '<a href="' + item.sourceUrl + '" target="_blank" style="color:#38bdf8; text-decoration:none;" title="' + item.sourceUrl + '">🔗 ' + escapeHtml(srcName) + '</a>' : '<span style="color:var(--text-muted);">Direct</span>') +
-                '</div>' +
-                '<div style="font-size: 11px; color: #94a3b8; margin-top: 4px; white-space: nowrap;">' +
-                '🕒 ' + dateDisplay +
-                '</div>';
+            let sourceCell = '';
+            if (item.sourceType === 'USER') {
+                sourceCell = '<div style="font-size: 12px; font-weight: 700; color: #f59e0b; white-space: nowrap;">' +
+                    '✍️ User Corner' +
+                    '</div>' +
+                    '<div style="font-size: 11px; color: #38bdf8; margin-top: 2px;">' +
+                    '👤 ' + escapeHtml(item.authorName || 'Citizen Reporter') +
+                    '</div>' +
+                    '<div style="font-size: 10px; color: #64748b; margin-top: 2px;">🕒 ' + dateDisplay + '</div>';
+            } else {
+                sourceCell = '<div style="font-size: 12px; font-weight: 600; color: #f1f5f9; white-space: nowrap;">' +
+                    (item.sourceUrl ? '<a href="' + item.sourceUrl + '" target="_blank" style="color:#38bdf8; text-decoration:none;" title="' + item.sourceUrl + '">🔗 ' + escapeHtml(srcName) + '</a>' : '<span style="color:var(--text-muted);">Direct</span>') +
+                    '</div>' +
+                    '<div style="font-size: 11px; color: #94a3b8; margin-top: 4px; white-space: nowrap;">' +
+                    '🕒 ' + dateDisplay +
+                    '</div>';
+            }
 
-            const rowStyle = item.isViral ? 'background: rgba(249,115,22,0.03); border-left: 3px solid #f97316;' : '';
+            const rowStyle = item.isViral ? 'background: rgba(249,115,22,0.03); border-left: 3px solid #f97316;' : (item.sourceType === 'USER' ? 'background: rgba(245,158,11,0.03); border-left: 3px solid #f59e0b;' : '');
+
+            const userCornerBadge = item.sourceType === 'USER'
+                ? '<span class="badge-pill" style="background: rgba(245,158,11,0.2); color: #f59e0b; border: 1px solid rgba(245,158,11,0.6); font-weight: 800; font-size: 10px; padding: 2px 6px; letter-spacing: 0.5px; margin-right: 4px;">✍️ USER CORNER</span> '
+                : '';
 
             const mainBannerBadge = item.isMainBanner 
                 ? '<span class="badge-pill" style="background: rgba(234,179,8,0.2); color: #eab308; border: 1px solid rgba(234,179,8,0.6); font-weight: 800; font-size: 10px; padding: 2px 6px; letter-spacing: 0.5px; margin-right: 4px;">🌟 MAIN BANNER</span> ' 
@@ -3466,7 +3683,7 @@ func RenderAdminDashboard() string {
                 '<td style="text-align: center;"><input type="checkbox" class="content-row-checkbox" value="' + item.id + '" onchange="updateSelectionState()" style="cursor: pointer; width: 16px; height: 16px;" /></td>' +
                 '<td>' + mediaHtml + '</td>' +
                 '<td>' +
-                    mainBannerBadge + aiRewrittenBadge +
+                    userCornerBadge + mainBannerBadge + aiRewrittenBadge +
                     '<strong style="font-size: 14px; color: #f8fafc; cursor:pointer;" onclick="openContentViewModal(\'' + item.id + '\')">' + cleanTitle + '</strong><br>' +
                     '<span style="font-size: 12px; color: var(--text-muted); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">' + cleanDesc + '</span>' +
                 '</td>' +
@@ -3478,6 +3695,26 @@ func RenderAdminDashboard() string {
                 '<td>' + sourceCell + '</td>' +
                 '<td style="white-space: nowrap;">' + rowActions + '</td>' +
             '</tr>';
+        }
+
+        let activeModSource = '';
+        function filterContentSource(src) {
+            const btn = document.getElementById('filter-btn-user');
+            if (activeModSource === src) {
+                activeModSource = '';
+                if (btn) {
+                    btn.style.background = 'transparent';
+                    btn.style.borderColor = 'rgba(245,158,11,0.4)';
+                }
+            } else {
+                activeModSource = src;
+                if (btn) {
+                    btn.style.background = 'rgba(245,158,11,0.2)';
+                    btn.style.borderColor = '#f59e0b';
+                }
+            }
+            currentContentPage = 1;
+            fetchPendingContent();
         }
 
         function fetchPendingContent() {
@@ -3492,8 +3729,9 @@ func RenderAdminDashboard() string {
             const distParam = (activeModDistrict && activeModDistrict !== 'all') ? ('&district=' + encodeURIComponent(activeModDistrict)) : '';
             const catParam = (activeModCategory && activeModCategory !== 'all') ? ('&category=' + encodeURIComponent(activeModCategory)) : '';
             const sortParam = activeModSort ? ('&sort=' + encodeURIComponent(activeModSort)) : '';
+            const sourceParam = activeModSource ? ('&source=' + encodeURIComponent(activeModSource)) : '';
 
-            fetch('/admin/api/scraper/pending?status=' + activeContentFilter + '&page=' + currentContentPage + '&limit=' + currentContentLimit + viralParam + searchParam + langParam + distParam + catParam + sortParam)
+            fetch('/admin/api/scraper/pending?status=' + activeContentFilter + '&page=' + currentContentPage + '&limit=' + currentContentLimit + viralParam + searchParam + langParam + distParam + catParam + sortParam + sourceParam)
                 .then(res => res.json())
                 .then(res => {
                     const tbody = document.getElementById('mod-table-body');
@@ -4965,6 +5203,269 @@ func RenderAdminDashboard() string {
             .catch(() => showToast('✗ Failed to update post'));
         }
 
+        function toggleSMTPPasswordVisibility() {
+            const input = document.getElementById('smtp-pass');
+            if (input) {
+                input.type = input.type === 'password' ? 'text' : 'password';
+            }
+        }
+
+        function fetchSMTPSettings() {
+            const badge = document.getElementById('smtp-status-badge');
+            const pill = document.getElementById('smtp-status-pill');
+            fetch('/admin/api/settings/smtp')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        const s = data.data;
+                        const hInput = document.getElementById('smtp-host');
+                        if (hInput) hInput.value = s.host || '';
+                        const pInput = document.getElementById('smtp-port');
+                        if (pInput) pInput.value = s.port || '587';
+                        const uInput = document.getElementById('smtp-user');
+                        if (uInput) uInput.value = s.user || '';
+                        const fInput = document.getElementById('smtp-from');
+                        if (fInput) fInput.value = s.from || 'noreply@tn24.in';
+
+                        const passInput = document.getElementById('smtp-pass');
+                        if (passInput) {
+                            if (s.hasPassword) {
+                                passInput.value = '••••••••';
+                                document.getElementById('smtp-pass-note').textContent = 'Password is saved. Leave as •••••••• to keep existing password, or enter a new one to replace.';
+                            } else {
+                                passInput.value = '';
+                                document.getElementById('smtp-pass-note').textContent = 'No password currently saved.';
+                            }
+                        }
+
+                        if (badge && pill) {
+                            if (s.isConfigured) {
+                                badge.textContent = '🟢 SMTP Gateway Active';
+                                pill.style.borderColor = 'rgba(74, 222, 128, 0.4)';
+                                pill.style.color = '#4ade80';
+                            } else {
+                                badge.textContent = '🟡 Dev Console Fallback';
+                                pill.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+                                pill.style.color = '#f59e0b';
+                            }
+                        }
+                    }
+                })
+                .catch(err => {
+                    if (badge) badge.textContent = 'Error loading SMTP';
+                });
+        }
+
+        async function saveSMTPSettings(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-save-smtp');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            const payload = {
+                host: document.getElementById('smtp-host').value.trim(),
+                port: document.getElementById('smtp-port').value,
+                user: document.getElementById('smtp-user').value.trim(),
+                pass: document.getElementById('smtp-pass').value,
+                from: document.getElementById('smtp-from').value.trim()
+            };
+
+            try {
+                const res = await fetch('/admin/api/settings/smtp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('✓ ' + data.message);
+                    fetchSMTPSettings();
+                } else {
+                    showToast('✗ ' + (data.message || 'Failed to save SMTP settings'));
+                }
+            } catch (err) {
+                showToast('✗ Connection error: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '💾 Save SMTP Credentials';
+            }
+        }
+
+        async function sendTestSMTPEmail(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-test-smtp');
+            const resultBox = document.getElementById('smtp-test-result');
+            const email = document.getElementById('smtp-test-email').value.trim();
+
+            if (!email) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '🔄 Sending test email...';
+            resultBox.style.display = 'none';
+
+            try {
+                const res = await fetch('/admin/api/settings/smtp/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ testEmail: email })
+                });
+                const data = await res.json();
+                resultBox.style.display = 'block';
+                if (data.success) {
+                    resultBox.style.background = 'rgba(34, 197, 94, 0.15)';
+                    resultBox.style.color = '#4ade80';
+                    resultBox.style.border = '1px solid rgba(74, 222, 128, 0.3)';
+                    resultBox.innerHTML = '<strong>✅ Success!</strong> ' + (data.message || 'Test OTP email delivered.');
+                    showToast('✓ Test email dispatched!');
+                } else {
+                    resultBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    resultBox.style.color = '#f87171';
+                    resultBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+                    resultBox.innerHTML = '<strong>✗ Dispatch Failed:</strong> ' + (data.message || 'Error occurred');
+                    showToast('✗ SMTP Test failed');
+                }
+            } catch (err) {
+                resultBox.style.display = 'block';
+                resultBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                resultBox.style.color = '#f87171';
+                resultBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+                resultBox.innerHTML = '<strong>✗ Network Error:</strong> ' + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '📨 Send Test OTP Email Now';
+            }
+        }
+
+        function toggleImageKitKeyVisibility() {
+            const input = document.getElementById('ik-private');
+            if (input) {
+                input.type = input.type === 'password' ? 'text' : 'password';
+            }
+        }
+
+        function fetchImageKitSettings() {
+            const badge = document.getElementById('imagekit-status-badge');
+            const pill = document.getElementById('imagekit-status-pill');
+            fetch('/admin/api/settings/imagekit')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        const s = data.data;
+                        const ep = document.getElementById('ik-endpoint');
+                        if (ep) ep.value = s.urlEndpoint || '';
+                        const pub = document.getElementById('ik-public');
+                        if (pub) pub.value = s.publicKey || '';
+                        const fld = document.getElementById('ik-folder');
+                        if (fld) fld.value = s.folder || '/articles';
+                        const opt = document.getElementById('ik-auto-optimize');
+                        if (opt) opt.checked = (s.autoOptimize !== false);
+
+                        const priv = document.getElementById('ik-private');
+                        if (priv) {
+                            if (s.hasPrivateKey) {
+                                priv.value = '••••••••';
+                                document.getElementById('ik-pass-note').textContent = 'Private Key is saved. Leave as •••••••• to keep existing key.';
+                            } else {
+                                priv.value = '';
+                                document.getElementById('ik-pass-note').textContent = 'No private key currently saved.';
+                            }
+                        }
+
+                        if (badge && pill) {
+                            if (s.isConfigured) {
+                                badge.textContent = '🟢 ImageKit CDN Active';
+                                pill.style.borderColor = 'rgba(74, 222, 128, 0.4)';
+                                pill.style.color = '#4ade80';
+                            } else {
+                                badge.textContent = '🟡 Not Configured (URL-only mode)';
+                                pill.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+                                pill.style.color = '#f59e0b';
+                            }
+                        }
+                    }
+                })
+                .catch(() => {
+                    if (badge) badge.textContent = 'Error loading ImageKit';
+                });
+        }
+
+        async function saveImageKitSettings(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-save-imagekit');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            const payload = {
+                urlEndpoint: document.getElementById('ik-endpoint').value.trim(),
+                publicKey: document.getElementById('ik-public').value.trim(),
+                privateKey: document.getElementById('ik-private').value,
+                folder: document.getElementById('ik-folder').value.trim(),
+                autoOptimize: document.getElementById('ik-auto-optimize').checked
+            };
+
+            try {
+                const res = await fetch('/admin/api/settings/imagekit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('✓ ' + data.message);
+                    fetchImageKitSettings();
+                } else {
+                    showToast('✗ ' + (data.message || 'Failed to save ImageKit settings'));
+                }
+            } catch (err) {
+                showToast('✗ Connection error: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '💾 Save ImageKit Settings';
+            }
+        }
+
+        async function testImageKitConnection() {
+            const btn = document.getElementById('btn-test-imagekit');
+            const resultBox = document.getElementById('imagekit-test-result');
+
+            btn.disabled = true;
+            btn.innerHTML = '🔄 Testing connection with ImageKit API...';
+            resultBox.style.display = 'none';
+
+            try {
+                const res = await fetch('/admin/api/settings/imagekit/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: '{}'
+                });
+                const data = await res.json();
+                resultBox.style.display = 'block';
+                if (data.success) {
+                    resultBox.style.background = 'rgba(34, 197, 94, 0.15)';
+                    resultBox.style.color = '#4ade80';
+                    resultBox.style.border = '1px solid rgba(74, 222, 128, 0.3)';
+                    resultBox.innerHTML = '<strong>✅ Connection Verified!</strong> ' + (data.message || 'ImageKit API is responding.');
+                    showToast('✓ ImageKit connected!');
+                    fetchImageKitSettings();
+                } else {
+                    resultBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    resultBox.style.color = '#f87171';
+                    resultBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+                    resultBox.innerHTML = '<strong>✗ Connection Failed:</strong> ' + (data.message || 'Check Private Key and Endpoint');
+                    showToast('✗ ImageKit test failed');
+                }
+            } catch (err) {
+                resultBox.style.display = 'block';
+                resultBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                resultBox.style.color = '#f87171';
+                resultBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+                resultBox.innerHTML = '<strong>✗ Network Error:</strong> ' + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🚀 Test ImageKit Connection Now';
+            }
+        }
+
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeCustomConfirm(false);
@@ -4981,10 +5482,12 @@ func RenderAdminDashboard() string {
         fetchRetentionSettings();
         loadBannerConfig();
         loadLanguageConfig();
+        fetchSMTPSettings();
+        fetchImageKitSettings();
         updateDiscardedCountBadge();
         if (window.location.hash) {
             const h = window.location.hash.substring(1);
-            if (['dashboard', 'moderation', 'agent', 'cron', 'audit', 'contributors'].includes(h)) {
+            if (['dashboard', 'moderation', 'agent', 'cron', 'audit', 'contributors', 'smtp', 'imagekit'].includes(h)) {
                 switchTab(h);
             }
         }
