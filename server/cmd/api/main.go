@@ -63,6 +63,18 @@ func main() {
 		} else {
 			logger.Info("Connected to PostgreSQL pool successfully.")
 			defer pool.Close()
+
+			// Auto-heal schema: Ensure essential columns exist across tables
+			ctxSchema, cancelSchema := context.WithTimeout(context.Background(), 10*time.Second)
+			_, _ = pool.Exec(ctxSchema, `
+				ALTER TABLE content ADD COLUMN IF NOT EXISTS is_viral BOOLEAN DEFAULT FALSE;
+				ALTER TABLE content ADD COLUMN IF NOT EXISTS language VARCHAR(20) DEFAULT 'ta';
+				ALTER TABLE content ADD COLUMN IF NOT EXISTS is_ai_rewritten BOOLEAN DEFAULT FALSE;
+				ALTER TABLE content ADD COLUMN IF NOT EXISTS source_type VARCHAR(50) DEFAULT 'SCRAPER';
+				ALTER TABLE content ADD COLUMN IF NOT EXISTS slug VARCHAR(300);
+				CREATE INDEX IF NOT EXISTS idx_content_is_ai_rewritten ON content(is_ai_rewritten);
+			`)
+			cancelSchema()
 		}
 	}
 

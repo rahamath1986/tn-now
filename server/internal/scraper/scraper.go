@@ -886,6 +886,9 @@ func ScrapeAndStage(ctx context.Context, conn *pgxpool.Pool, targetURL string) (
 	_, _ = conn.Exec(dbCtx, `
 		ALTER TABLE content ADD COLUMN IF NOT EXISTS is_viral BOOLEAN DEFAULT FALSE;
 		ALTER TABLE content ADD COLUMN IF NOT EXISTS language VARCHAR(20) DEFAULT 'ta';
+		ALTER TABLE content ADD COLUMN IF NOT EXISTS is_ai_rewritten BOOLEAN DEFAULT FALSE;
+		ALTER TABLE content ADD COLUMN IF NOT EXISTS source_type VARCHAR(50) DEFAULT 'SCRAPER';
+		ALTER TABLE content ADD COLUMN IF NOT EXISTS slug VARCHAR(300);
 	`)
 
 	// Ensure system author exists

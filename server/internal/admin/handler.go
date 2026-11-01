@@ -47,6 +47,9 @@ func NewHandler(q *db.Queries, conn *pgxpool.Pool, rdb *redis.Client, scheduler 
 		cfg:       cfg,
 		rewriter:  NewArticleRewriter(apiKey),
 	}
+	if conn != nil {
+		go h.cleanExistingDatabaseEntities()
+	}
 	return h
 }
 
@@ -1027,6 +1030,20 @@ func (h *Handler) HandleGetPendingContent(w http.ResponseWriter, r *http.Request
 	`, whereClause, orderByClause, argIndex, argIndex+1)
 
 	rows, err := h.conn.Query(ctx, query, queryArgs...)
+	if err != nil {
+		// Self-healing: if error is due to missing columns in relation, auto-heal and retry once
+		errStr := strings.ToLower(err.Error())
+		if strings.Contains(errStr, "is_ai_rewritten") || strings.Contains(errStr, "column") {
+			_, _ = h.conn.Exec(ctx, `
+				ALTER TABLE content ADD COLUMN IF NOT EXISTS is_viral BOOLEAN DEFAULT FALSE;
+				ALTER TABLE content ADD COLUMN IF NOT EXISTS language VARCHAR(20) DEFAULT 'ta';
+				ALTER TABLE content ADD COLUMN IF NOT EXISTS is_ai_rewritten BOOLEAN DEFAULT FALSE;
+				ALTER TABLE content ADD COLUMN IF NOT EXISTS source_type VARCHAR(50) DEFAULT 'SCRAPER';
+				ALTER TABLE content ADD COLUMN IF NOT EXISTS slug VARCHAR(300);
+			`)
+			rows, err = h.conn.Query(ctx, query, queryArgs...)
+		}
+	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
