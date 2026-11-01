@@ -10,9 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/redis/go-redis/v9"
 	"tn-now/server/internal/auth"
 	"tn-now/server/internal/config"
 	"tn-now/server/internal/cron"
@@ -20,6 +17,10 @@ import (
 	"tn-now/server/internal/media"
 	"tn-now/server/internal/scraper"
 	"tn-now/server/internal/video"
+
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 )
 
 type Handler struct {
@@ -986,7 +987,7 @@ func (h *Handler) HandleGetPendingContent(w http.ResponseWriter, r *http.Request
 	}
 	offset := (page - 1) * limit
 
-	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 
 	// Get total count for pagination
@@ -2201,7 +2202,7 @@ func (h *Handler) HandleRetentionCleanupNow(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 
 	var hoursStr string
@@ -2720,7 +2721,7 @@ func (h *Handler) HandleTestSMTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
 	defer cancel()
 
 	effectiveCfg := auth.GetEffectiveSMTPConfig(ctx, h.conn, h.cfg)
@@ -3157,5 +3158,3 @@ func (h *Handler) HandleAIRewriteAllPending(w http.ResponseWriter, r *http.Reque
 		"message":   fmt.Sprintf("Successfully AI-rewritten %d pending articles with clean journalistic quality", processedCount),
 	})
 }
-
-

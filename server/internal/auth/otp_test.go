@@ -2,9 +2,11 @@ package auth
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -153,6 +155,26 @@ func TestHandleUpdateProfileValidation(t *testing.T) {
 	h.HandleUpdateProfile(rec, req)
 	if rec.Code != http.StatusUnauthorized {
 		t.Errorf("Expected 401 Unauthorized for missing token, got %d", rec.Code)
+	}
+}
+
+func TestLiveGmailSMTP(t *testing.T) {
+	if os.Getenv("TEST_LIVE_SMTP") == "" {
+		t.Skip("skipping live SMTP test; set TEST_LIVE_SMTP=1 to run")
+	}
+	cfg := &config.Config{
+		SMTPHost: "smtp.gmail.com",
+		SMTPPort: "465",
+		SMTPUser: "tn24now@gmail.com",
+		SMTPPass: "gcatermqkobrzjlr",
+		SMTPFrom: "tn24now@gmail.com",
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	defer cancel()
+
+	err := SendOTPEmailWithContext(ctx, cfg, "tn24now@gmail.com", "773322")
+	if err != nil {
+		t.Fatalf("Live SMTP dispatch failed: %v", err)
 	}
 }
 

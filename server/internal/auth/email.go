@@ -12,8 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"tn-now/server/internal/config"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // GenerateNumericOTP generates a secure 6-digit numeric OTP string (e.g. "849201")
@@ -173,15 +174,19 @@ func SendOTPEmailWithContext(ctx context.Context, cfg *config.Config, toEmail, o
 	}
 	addr := net.JoinHostPort(host, port)
 
-	// Enforce 10-second timeout context for connection and dispatch
-	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	// Enforce 25-second timeout context for connection and dispatch
+	timeoutCtx, cancel := context.WithTimeout(ctx, 25*time.Second)
 	defer cancel()
 
 	dialer := &net.Dialer{
-		Timeout: 7 * time.Second,
+		Timeout: 15 * time.Second,
 	}
 
 	rawConn, err := dialer.DialContext(timeoutCtx, "tcp", addr)
+	if err != nil {
+		// Fallback to IPv4 (tcp4) in case dual-stack IPv6 DNS delays or drops
+		rawConn, err = dialer.DialContext(timeoutCtx, "tcp4", addr)
+	}
 	if err != nil {
 		slog.Error("Failed to connect to SMTP server", slog.String("addr", addr), slog.String("error", err.Error()))
 		return fmt.Errorf("failed to connect to SMTP server %s: %w", addr, err)
@@ -284,5 +289,3 @@ func SendOTPEmailWithContext(ctx context.Context, cfg *config.Config, toEmail, o
 func SendOTPEmail(cfg *config.Config, toEmail, otp string) error {
 	return SendOTPEmailWithContext(context.Background(), cfg, toEmail, otp)
 }
-
-
