@@ -2734,7 +2734,7 @@ func (h *Handler) HandleTestSMTP(w http.ResponseWriter, r *http.Request) {
 	err := auth.SendOTPEmailWithContext(ctx, effectiveCfg, req.TestEmail, testOTP)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadGateway)
+		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
 			"message": "SMTP test dispatch failed: " + err.Error(),
@@ -2867,7 +2867,7 @@ func (h *Handler) HandleTestImageKit(w http.ResponseWriter, r *http.Request) {
 	err := media.TestImageKitConnection(ctx, effectiveCfg)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadGateway)
+		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
 			"message": "ImageKit connection test failed: " + err.Error(),
