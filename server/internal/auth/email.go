@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"log/slog"
 	"math/big"
+	"net"
 	"net/smtp"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"tn-now/server/internal/config"
@@ -70,33 +72,37 @@ func GetEffectiveSMTPConfig(ctx context.Context, conn *pgxpool.Pool, baseCfg *co
 	return effective
 }
 
-// SendOTPEmail sends a formatted email containing the 6-digit OTP code
-func SendOTPEmail(cfg *config.Config, toEmail, otp string) error {
-	toEmail = strings.TrimSpace(toEmail)
+// loginAuth implements smtp.Auth for AUTH LOGIN mechanism (widely used by Exchange, Office365, Brevo, SendGrid, and cPanel)
+type loginAuth struct {
+	username, password string
+}
 
-	// If SMTP is not configured, gracefully log the OTP to server console (ideal for dev/testing)
-	if cfg == nil || cfg.SMTPHost == "" || cfg.SMTPUser == "" {
-		slog.Info("✉️ [EMAIL OTP DISPATCH - DEV LOG]",
-			slog.String("to", toEmail),
-			slog.String("otp_code", otp),
-			slog.String("note", "Configure SMTP credentials in Admin Console (or .env) to dispatch real emails"),
-		)
-		return nil
+func LoginAuth(username, password string) smtp.Auth {
+	return &loginAuth{username: username, password: password}
+}
+
+func (a *loginAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
+	return "LOGIN", []byte(a.username), nil
+}
+
+func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
+	if more {
+		serverPrompt := strings.ToLower(string(fromServer))
+		if strings.Contains(serverPrompt, "username") || strings.Contains(serverPrompt, "user") || strings.Contains(serverPrompt, "vxnlyw5hbwu") {
+			return []byte(a.username), nil
+		}
+		if strings.Contains(serverPrompt, "password") || strings.Contains(serverPrompt, "pass") || strings.Contains(serverPrompt, "ugfzc3dvcmq") {
+			return []byte(a.password), nil
+		}
+		// Default to password if username already sent in Start
+		return []byte(a.password), nil
 	}
+	return nil, nil
+}
 
-	subject := fmt.Sprintf("TN24 சரிபார்ப்புக் குறியீடு (OTP): %s", otp)
-	from := cfg.SMTPFrom
-	if from == "" {
-		from = cfg.SMTPUser
-	}
-
-	body := fmt.Sprintf(`From: TN24 News <%s>
-To: %s
-Subject: %s
-MIME-Version: 1.0
-Content-Type: text/html; charset=UTF-8
-
-<!DOCTYPE html>
+// renderEmailOTPBody builds the HTML email template for the OTP
+func renderEmailOTPBody(from, toEmail, subject, otp string) string {
+	return fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -125,58 +131,158 @@ Content-Type: text/html; charset=UTF-8
     </div>
   </div>
 </body>
-</html>
-`, from, toEmail, subject, otp)
+</html>`, otp)
+}
 
-	auth := smtp.PlainAuth("", cfg.SMTPUser, cfg.SMTPPass, cfg.SMTPHost)
-	addr := fmt.Sprintf("%s:%s", cfg.SMTPHost, cfg.SMTPPort)
+// SendOTPEmailWithContext sends a formatted email containing the 6-digit OTP code with strict context timeout
+func SendOTPEmailWithContext(ctx context.Context, cfg *config.Config, toEmail, otp string) error {
+	toEmail = strings.TrimSpace(toEmail)
 
-	// SSL/TLS connection for port 465
-	if cfg.SMTPPort == "465" {
-		tlsconfig := &tls.Config{
-			ServerName: cfg.SMTPHost,
-		}
-		conn, err := tls.Dial("tcp", addr, tlsconfig)
-		if err != nil {
-			slog.Error("Failed to dial SMTP SSL (465)", slog.String("error", err.Error()), slog.String("to", toEmail))
-			return err
-		}
-		defer conn.Close()
-
-		c, err := smtp.NewClient(conn, cfg.SMTPHost)
-		if err != nil {
-			return err
-		}
-		defer c.Quit()
-
-		if err = c.Auth(auth); err != nil {
-			return err
-		}
-		if err = c.Mail(from); err != nil {
-			return err
-		}
-		if err = c.Rcpt(toEmail); err != nil {
-			return err
-		}
-		w, err := c.Data()
-		if err != nil {
-			return err
-		}
-		_, err = w.Write([]byte(body))
-		if err != nil {
-			return err
-		}
-		return w.Close()
+	// If SMTP is not configured, gracefully log the OTP to server console (ideal for dev/testing)
+	if cfg == nil || strings.TrimSpace(cfg.SMTPHost) == "" || strings.TrimSpace(cfg.SMTPUser) == "" {
+		slog.Info("✉️ [EMAIL OTP DISPATCH - DEV LOG]",
+			slog.String("to", toEmail),
+			slog.String("otp_code", otp),
+			slog.String("note", "Configure SMTP credentials in Admin Console (or .env) to dispatch real emails"),
+		)
+		return nil
 	}
 
-	// Standard STARTTLS connection for port 587
-	err := smtp.SendMail(addr, auth, from, []string{toEmail}, []byte(body))
+	subject := fmt.Sprintf("TN24 சரிபார்ப்புக் குறியீடு (OTP): %s", otp)
+	from := strings.TrimSpace(cfg.SMTPFrom)
+	if from == "" {
+		from = strings.TrimSpace(cfg.SMTPUser)
+	}
+
+	htmlContent := renderEmailOTPBody(from, toEmail, subject, otp)
+	body := fmt.Sprintf("From: TN24 News <%s>\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n%s",
+		from, toEmail, subject, htmlContent)
+
+	host := strings.TrimSpace(cfg.SMTPHost)
+	port := strings.TrimSpace(cfg.SMTPPort)
+
+	// In case the user entered "smtp.example.com:587" in the host field
+	if h, p, err := net.SplitHostPort(host); err == nil {
+		host = h
+		if port == "" {
+			port = p
+		}
+	}
+	if port == "" {
+		port = "587"
+	}
+	addr := net.JoinHostPort(host, port)
+
+	// Enforce 10-second timeout context for connection and dispatch
+	timeoutCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	dialer := &net.Dialer{
+		Timeout: 7 * time.Second,
+	}
+
+	rawConn, err := dialer.DialContext(timeoutCtx, "tcp", addr)
 	if err != nil {
-		slog.Error("Failed to send OTP email via SMTP", slog.String("error", err.Error()), slog.String("to", toEmail))
-		return err
+		slog.Error("Failed to connect to SMTP server", slog.String("addr", addr), slog.String("error", err.Error()))
+		return fmt.Errorf("failed to connect to SMTP server %s: %w", addr, err)
+	}
+	defer rawConn.Close()
+
+	var client *smtp.Client
+
+	if port == "465" {
+		tlsConfig := &tls.Config{
+			ServerName: host,
+			MinVersion: tls.VersionTLS12,
+		}
+		tlsConn := tls.Client(rawConn, tlsConfig)
+		if err := tlsConn.HandshakeContext(timeoutCtx); err != nil {
+			slog.Error("TLS handshake failed with SMTP server", slog.String("host", host), slog.String("error", err.Error()))
+			return fmt.Errorf("TLS handshake failed with %s: %w", host, err)
+		}
+		c, err := smtp.NewClient(tlsConn, host)
+		if err != nil {
+			return fmt.Errorf("failed creating SMTP SSL client: %w", err)
+		}
+		client = c
+	} else {
+		c, err := smtp.NewClient(rawConn, host)
+		if err != nil {
+			return fmt.Errorf("failed creating SMTP client: %w", err)
+		}
+		client = c
+
+		// Opportunistically upgrade with STARTTLS if advertised or if port 587
+		if ok, _ := client.Extension("STARTTLS"); ok {
+			tlsConfig := &tls.Config{
+				ServerName: host,
+				MinVersion: tls.VersionTLS12,
+			}
+			if err := client.StartTLS(tlsConfig); err != nil {
+				client.Close()
+				slog.Error("STARTTLS negotiation failed", slog.String("host", host), slog.String("error", err.Error()))
+				return fmt.Errorf("STARTTLS encryption failed with %s: %w", host, err)
+			}
+		}
+	}
+	defer client.Quit()
+
+	// Authenticate if credentials are provided
+	if cfg.SMTPUser != "" && cfg.SMTPPass != "" {
+		hasAuth, authExt := client.Extension("AUTH")
+		authUpper := strings.ToUpper(authExt)
+
+		var auth smtp.Auth
+		if hasAuth && strings.Contains(authUpper, "LOGIN") && !strings.Contains(authUpper, "PLAIN") {
+			auth = LoginAuth(cfg.SMTPUser, cfg.SMTPPass)
+		} else {
+			auth = smtp.PlainAuth("", cfg.SMTPUser, cfg.SMTPPass, host)
+		}
+
+		if err := client.Auth(auth); err != nil {
+			// If PLAIN failed and LOGIN is available, attempt LOGIN fallback
+			if strings.Contains(authUpper, "LOGIN") {
+				if errLogin := client.Auth(LoginAuth(cfg.SMTPUser, cfg.SMTPPass)); errLogin == nil {
+					err = nil
+				}
+			}
+			if err != nil {
+				slog.Error("SMTP authentication failed", slog.String("user", cfg.SMTPUser), slog.String("error", err.Error()))
+				return fmt.Errorf("SMTP authentication failed for user %s: %w", cfg.SMTPUser, err)
+			}
+		}
 	}
 
-	slog.Info("Successfully dispatched OTP email via SMTP", slog.String("to", toEmail))
+	if err := client.Mail(from); err != nil {
+		slog.Error("SMTP sender rejected", slog.String("from", from), slog.String("error", err.Error()))
+		return fmt.Errorf("SMTP sender (%s) rejected: %w", from, err)
+	}
+
+	if err := client.Rcpt(toEmail); err != nil {
+		slog.Error("SMTP recipient rejected", slog.String("to", toEmail), slog.String("error", err.Error()))
+		return fmt.Errorf("SMTP recipient (%s) rejected: %w", toEmail, err)
+	}
+
+	w, err := client.Data()
+	if err != nil {
+		return fmt.Errorf("SMTP data initialization failed: %w", err)
+	}
+
+	if _, err := w.Write([]byte(body)); err != nil {
+		return fmt.Errorf("failed writing email message: %w", err)
+	}
+
+	if err := w.Close(); err != nil {
+		return fmt.Errorf("failed finalizing email delivery: %w", err)
+	}
+
+	slog.Info("Successfully dispatched OTP email via SMTP", slog.String("to", toEmail), slog.String("host", host))
 	return nil
 }
+
+// SendOTPEmail sends a formatted email containing the 6-digit OTP code
+func SendOTPEmail(cfg *config.Config, toEmail, otp string) error {
+	return SendOTPEmailWithContext(context.Background(), cfg, toEmail, otp)
+}
+
 

@@ -2730,7 +2730,7 @@ func (h *Handler) HandleTestSMTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	testOTP, _ := auth.GenerateNumericOTP()
-	err := auth.SendOTPEmail(effectiveCfg, req.TestEmail, testOTP)
+	err := auth.SendOTPEmailWithContext(ctx, effectiveCfg, req.TestEmail, testOTP)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadGateway)

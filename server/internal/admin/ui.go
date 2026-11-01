@@ -5276,8 +5276,14 @@ func RenderAdminDashboard() string {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const data = await res.json();
-                if (data.success) {
+                let data = {};
+                const text = await res.text();
+                try {
+                    data = JSON.parse(text);
+                } catch (_) {
+                    data = { success: false, message: text || ('Server returned HTTP ' + res.status) };
+                }
+                if (res.ok && data.success) {
                     showToast('✓ ' + data.message);
                     fetchSMTPSettings();
                 } else {
@@ -5309,9 +5315,16 @@ func RenderAdminDashboard() string {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ testEmail: email })
                 });
-                const data = await res.json();
+                let data = {};
+                const text = await res.text();
+                try {
+                    data = JSON.parse(text);
+                } catch (_) {
+                    data = { success: false, message: text || ('Server returned HTTP ' + res.status) };
+                }
+
                 resultBox.style.display = 'block';
-                if (data.success) {
+                if (res.ok && data.success) {
                     resultBox.style.background = 'rgba(34, 197, 94, 0.15)';
                     resultBox.style.color = '#4ade80';
                     resultBox.style.border = '1px solid rgba(74, 222, 128, 0.3)';
@@ -5321,7 +5334,7 @@ func RenderAdminDashboard() string {
                     resultBox.style.background = 'rgba(239, 68, 68, 0.15)';
                     resultBox.style.color = '#f87171';
                     resultBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
-                    resultBox.innerHTML = '<strong>✗ Dispatch Failed:</strong> ' + (data.message || 'Error occurred');
+                    resultBox.innerHTML = '<strong>✗ Dispatch Failed:</strong> ' + (data.message || data.error || ('Server error ' + res.status));
                     showToast('✗ SMTP Test failed');
                 }
             } catch (err) {
@@ -5329,7 +5342,7 @@ func RenderAdminDashboard() string {
                 resultBox.style.background = 'rgba(239, 68, 68, 0.15)';
                 resultBox.style.color = '#f87171';
                 resultBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
-                resultBox.innerHTML = '<strong>✗ Network Error:</strong> ' + err.message;
+                resultBox.innerHTML = '<strong>✗ Network Error:</strong> ' + (err.message || 'Connection failed');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '📨 Send Test OTP Email Now';
@@ -5438,9 +5451,15 @@ func RenderAdminDashboard() string {
                     headers: { 'Content-Type': 'application/json' },
                     body: '{}'
                 });
-                const data = await res.json();
+                let data = {};
+                const text = await res.text();
+                try {
+                    data = JSON.parse(text);
+                } catch (_) {
+                    data = { success: false, message: text || ('Server returned HTTP ' + res.status) };
+                }
                 resultBox.style.display = 'block';
-                if (data.success) {
+                if (res.ok && data.success) {
                     resultBox.style.background = 'rgba(34, 197, 94, 0.15)';
                     resultBox.style.color = '#4ade80';
                     resultBox.style.border = '1px solid rgba(74, 222, 128, 0.3)';
@@ -5451,7 +5470,7 @@ func RenderAdminDashboard() string {
                     resultBox.style.background = 'rgba(239, 68, 68, 0.15)';
                     resultBox.style.color = '#f87171';
                     resultBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
-                    resultBox.innerHTML = '<strong>✗ Connection Failed:</strong> ' + (data.message || 'Check Private Key and Endpoint');
+                    resultBox.innerHTML = '<strong>✗ Connection Failed:</strong> ' + (data.message || data.error || 'Check Private Key and Endpoint');
                     showToast('✗ ImageKit test failed');
                 }
             } catch (err) {
@@ -5459,7 +5478,7 @@ func RenderAdminDashboard() string {
                 resultBox.style.background = 'rgba(239, 68, 68, 0.15)';
                 resultBox.style.color = '#f87171';
                 resultBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
-                resultBox.innerHTML = '<strong>✗ Network Error:</strong> ' + err.message;
+                resultBox.innerHTML = '<strong>✗ Network Error:</strong> ' + (err.message || 'Connection failed');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = '🚀 Test ImageKit Connection Now';
