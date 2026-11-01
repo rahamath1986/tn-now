@@ -7,3 +7,4 @@ VALUES
     ('resend_api_key', '', NOW()),
     ('resend_from_email', 'TN24 News <onboarding@resend.dev>', NOW())
 ON CONFLICT (key) DO NOTHING;
+
