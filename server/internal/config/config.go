@@ -26,6 +26,9 @@ type Config struct {
 	SMTPUser            string
 	SMTPPass            string
 	SMTPFrom            string
+	EmailProvider       string
+	ResendAPIKey        string
+	ResendFromEmail     string
 	ImageKitURLEndpoint string
 	ImageKitPublicKey   string
 	ImageKitPrivateKey  string
@@ -86,6 +89,10 @@ func Load() *Config {
 	smtpPass := getEnv("SMTP_PASS", "")
 	smtpFrom := getEnv("SMTP_FROM", "noreply@tn24.in")
 
+	emailProvider := getEnv("EMAIL_PROVIDER", "resend")
+	resendAPIKey := getEnv("RESEND_API_KEY", "")
+	resendFromEmail := getEnv("RESEND_FROM_EMAIL", "TN24 News <onboarding@resend.dev>")
+
 	ikEndpoint := getEnv("IMAGEKIT_URL_ENDPOINT", "")
 	ikPublic := getEnv("IMAGEKIT_PUBLIC_KEY", "")
 	ikPrivate := getEnv("IMAGEKIT_PRIVATE_KEY", "")
@@ -112,6 +119,9 @@ func Load() *Config {
 		SMTPUser:            smtpUser,
 		SMTPPass:            smtpPass,
 		SMTPFrom:            smtpFrom,
+		EmailProvider:       emailProvider,
+		ResendAPIKey:        resendAPIKey,
+		ResendFromEmail:     resendFromEmail,
 		ImageKitURLEndpoint: ikEndpoint,
 		ImageKitPublicKey:   ikPublic,
 		ImageKitPrivateKey:  ikPrivate,

@@ -1,20 +1,23 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"math/big"
 	"net"
+	"net/http"
 	"net/smtp"
 	"strings"
 	"time"
 
-	"tn-now/server/internal/config"
-
 	"github.com/jackc/pgx/v5/pgxpool"
+	"tn-now/server/internal/config"
 )
 
 // GenerateNumericOTP generates a secure 6-digit numeric OTP string (e.g. "849201")
@@ -26,33 +29,41 @@ func GenerateNumericOTP() (string, error) {
 	return fmt.Sprintf("%06d", n.Int64()+100000), nil
 }
 
-// GetEffectiveSMTPConfig retrieves active SMTP settings from database system_settings table, falling back to env config
+// GetEffectiveSMTPConfig retrieves active email settings from database system_settings table, falling back to env config
 func GetEffectiveSMTPConfig(ctx context.Context, conn *pgxpool.Pool, baseCfg *config.Config) *config.Config {
 	if baseCfg == nil {
 		baseCfg = &config.Config{
-			SMTPPort: "587",
-			SMTPFrom: "noreply@tn24.in",
+			SMTPPort:        "587",
+			SMTPFrom:        "noreply@tn24.in",
+			EmailProvider:   "resend",
+			ResendFromEmail: "TN24 News <onboarding@resend.dev>",
 		}
 	}
 
 	effective := &config.Config{
-		SMTPHost: baseCfg.SMTPHost,
-		SMTPPort: baseCfg.SMTPPort,
-		SMTPUser: baseCfg.SMTPUser,
-		SMTPPass: baseCfg.SMTPPass,
-		SMTPFrom: baseCfg.SMTPFrom,
+		SMTPHost:        baseCfg.SMTPHost,
+		SMTPPort:        baseCfg.SMTPPort,
+		SMTPUser:        baseCfg.SMTPUser,
+		SMTPPass:        baseCfg.SMTPPass,
+		SMTPFrom:        baseCfg.SMTPFrom,
+		EmailProvider:   baseCfg.EmailProvider,
+		ResendAPIKey:    baseCfg.ResendAPIKey,
+		ResendFromEmail: baseCfg.ResendFromEmail,
 	}
 
 	if conn == nil {
 		return effective
 	}
 
-	var host, port, user, pass, from string
+	var host, port, user, pass, from, provider, resendKey, resendFrom string
 	_ = conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'smtp_host'").Scan(&host)
 	_ = conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'smtp_port'").Scan(&port)
 	_ = conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'smtp_user'").Scan(&user)
 	_ = conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'smtp_pass'").Scan(&pass)
 	_ = conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'smtp_from'").Scan(&from)
+	_ = conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'email_provider'").Scan(&provider)
+	_ = conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'resend_api_key'").Scan(&resendKey)
+	_ = conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'resend_from_email'").Scan(&resendFrom)
 
 	if strings.TrimSpace(host) != "" {
 		effective.SMTPHost = strings.TrimSpace(host)
@@ -69,8 +80,83 @@ func GetEffectiveSMTPConfig(ctx context.Context, conn *pgxpool.Pool, baseCfg *co
 	if strings.TrimSpace(from) != "" {
 		effective.SMTPFrom = strings.TrimSpace(from)
 	}
+	if strings.TrimSpace(provider) != "" {
+		effective.EmailProvider = strings.TrimSpace(provider)
+	}
+	if strings.TrimSpace(resendKey) != "" {
+		effective.ResendAPIKey = strings.TrimSpace(resendKey)
+	}
+	if strings.TrimSpace(resendFrom) != "" {
+		effective.ResendFromEmail = strings.TrimSpace(resendFrom)
+	}
 
 	return effective
+}
+
+// SendEmailViaResend dispatches an OTP verification email using Resend's REST API over HTTPS (Port 443)
+func SendEmailViaResend(ctx context.Context, apiKey, fromEmail, toEmail, otp string) error {
+	apiKey = strings.TrimSpace(apiKey)
+	if apiKey == "" {
+		return fmt.Errorf("resend API key is not configured")
+	}
+
+	from := strings.TrimSpace(fromEmail)
+	if from == "" {
+		from = "TN24 News <onboarding@resend.dev>"
+	}
+
+	subject := fmt.Sprintf("TN24 சரிபார்ப்புக் குறியீடு (OTP): %s", otp)
+	htmlContent := renderEmailOTPBody(from, toEmail, subject, otp)
+
+	payload := map[string]interface{}{
+		"from":    from,
+		"to":      []string{toEmail},
+		"subject": subject,
+		"html":    htmlContent,
+	}
+
+	jsonBytes, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed encoding email payload: %w", err)
+	}
+
+	reqCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, "POST", "https://api.resend.com/emails", bytes.NewReader(jsonBytes))
+	if err != nil {
+		return fmt.Errorf("failed creating HTTP request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "TN24-News/1.0")
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		slog.Error("Resend API HTTP request failed", slog.String("error", err.Error()), slog.String("to", toEmail))
+		return fmt.Errorf("failed connecting to Resend API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		var errResp struct {
+			Message string `json:"message"`
+			Name    string `json:"name"`
+		}
+		_ = json.Unmarshal(respBody, &errResp)
+		msg := errResp.Message
+		if msg == "" {
+			msg = string(respBody)
+		}
+		slog.Error("Resend API error response", slog.Int("status", resp.StatusCode), slog.String("message", msg))
+		return fmt.Errorf("Resend error (HTTP %d): %s", resp.StatusCode, msg)
+	}
+
+	slog.Info("Successfully dispatched OTP email via Resend HTTPS API", slog.String("to", toEmail), slog.Int("status", resp.StatusCode))
+	return nil
 }
 
 // loginAuth implements smtp.Auth for AUTH LOGIN mechanism (widely used by Exchange, Office365, Brevo, SendGrid, and cPanel)
@@ -135,20 +221,8 @@ func renderEmailOTPBody(from, toEmail, subject, otp string) string {
 </html>`, otp)
 }
 
-// SendOTPEmailWithContext sends a formatted email containing the 6-digit OTP code with strict context timeout
-func SendOTPEmailWithContext(ctx context.Context, cfg *config.Config, toEmail, otp string) error {
-	toEmail = strings.TrimSpace(toEmail)
-
-	// If SMTP is not configured, gracefully log the OTP to server console (ideal for dev/testing)
-	if cfg == nil || strings.TrimSpace(cfg.SMTPHost) == "" || strings.TrimSpace(cfg.SMTPUser) == "" {
-		slog.Info("✉️ [EMAIL OTP DISPATCH - DEV LOG]",
-			slog.String("to", toEmail),
-			slog.String("otp_code", otp),
-			slog.String("note", "Configure SMTP credentials in Admin Console (or .env) to dispatch real emails"),
-		)
-		return nil
-	}
-
+// sendEmailViaSMTP performs standard SMTP TCP dispatch
+func sendEmailViaSMTP(ctx context.Context, cfg *config.Config, toEmail, otp string) error {
 	subject := fmt.Sprintf("TN24 சரிபார்ப்புக் குறியீடு (OTP): %s", otp)
 	from := strings.TrimSpace(cfg.SMTPFrom)
 	if from == "" {
@@ -162,7 +236,6 @@ func SendOTPEmailWithContext(ctx context.Context, cfg *config.Config, toEmail, o
 	host := strings.TrimSpace(cfg.SMTPHost)
 	port := strings.TrimSpace(cfg.SMTPPort)
 
-	// In case the user entered "smtp.example.com:587" in the host field
 	if h, p, err := net.SplitHostPort(host); err == nil {
 		host = h
 		if port == "" {
@@ -174,7 +247,6 @@ func SendOTPEmailWithContext(ctx context.Context, cfg *config.Config, toEmail, o
 	}
 	addr := net.JoinHostPort(host, port)
 
-	// Enforce 25-second timeout context for connection and dispatch
 	timeoutCtx, cancel := context.WithTimeout(ctx, 25*time.Second)
 	defer cancel()
 
@@ -184,7 +256,6 @@ func SendOTPEmailWithContext(ctx context.Context, cfg *config.Config, toEmail, o
 
 	rawConn, err := dialer.DialContext(timeoutCtx, "tcp", addr)
 	if err != nil {
-		// Fallback to IPv4 (tcp4) in case dual-stack IPv6 DNS delays or drops
 		rawConn, err = dialer.DialContext(timeoutCtx, "tcp4", addr)
 	}
 	if err != nil {
@@ -217,7 +288,6 @@ func SendOTPEmailWithContext(ctx context.Context, cfg *config.Config, toEmail, o
 		}
 		client = c
 
-		// Opportunistically upgrade with STARTTLS if advertised or if port 587
 		if ok, _ := client.Extension("STARTTLS"); ok {
 			tlsConfig := &tls.Config{
 				ServerName: host,
@@ -232,7 +302,6 @@ func SendOTPEmailWithContext(ctx context.Context, cfg *config.Config, toEmail, o
 	}
 	defer client.Quit()
 
-	// Authenticate if credentials are provided
 	if cfg.SMTPUser != "" && cfg.SMTPPass != "" {
 		hasAuth, authExt := client.Extension("AUTH")
 		authUpper := strings.ToUpper(authExt)
@@ -245,7 +314,6 @@ func SendOTPEmailWithContext(ctx context.Context, cfg *config.Config, toEmail, o
 		}
 
 		if err := client.Auth(auth); err != nil {
-			// If PLAIN failed and LOGIN is available, attempt LOGIN fallback
 			if strings.Contains(authUpper, "LOGIN") {
 				if errLogin := client.Auth(LoginAuth(cfg.SMTPUser, cfg.SMTPPass)); errLogin == nil {
 					err = nil
@@ -282,6 +350,34 @@ func SendOTPEmailWithContext(ctx context.Context, cfg *config.Config, toEmail, o
 	}
 
 	slog.Info("Successfully dispatched OTP email via SMTP", slog.String("to", toEmail), slog.String("host", host))
+	return nil
+}
+
+// SendOTPEmailWithContext sends a formatted email containing the 6-digit OTP code using Resend (HTTPS) or SMTP (TCP)
+func SendOTPEmailWithContext(ctx context.Context, cfg *config.Config, toEmail, otp string) error {
+	toEmail = strings.TrimSpace(toEmail)
+	if toEmail == "" {
+		return fmt.Errorf("recipient email address is empty")
+	}
+
+	// 1. If provider is "resend" (or if Resend API key is available and provider is not forced to smtp), use Resend HTTPS API
+	if cfg != nil && (cfg.EmailProvider == "resend" || cfg.ResendAPIKey != "") && cfg.EmailProvider != "smtp" {
+		if strings.TrimSpace(cfg.ResendAPIKey) != "" {
+			return SendEmailViaResend(ctx, cfg.ResendAPIKey, cfg.ResendFromEmail, toEmail, otp)
+		}
+	}
+
+	// 2. If SMTP is configured, use standard SMTP
+	if cfg != nil && strings.TrimSpace(cfg.SMTPHost) != "" && strings.TrimSpace(cfg.SMTPUser) != "" {
+		return sendEmailViaSMTP(ctx, cfg, toEmail, otp)
+	}
+
+	// 3. Graceful dev console log fallback
+	slog.Info("✉️ [EMAIL OTP DISPATCH - DEV LOG]",
+		slog.String("to", toEmail),
+		slog.String("otp_code", otp),
+		slog.String("note", "Configure Resend API key or SMTP in Admin Console (or .env) to dispatch real emails"),
+	)
 	return nil
 }
 

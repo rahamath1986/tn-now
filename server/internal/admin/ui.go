@@ -731,7 +731,7 @@ func RenderAdminDashboard() string {
                 </li>
                 <li>
                     <button role="tab" id="tab-smtp" aria-selected="false" aria-controls="panel-smtp" class="nav-btn" onclick="switchTab('smtp')">
-                        📧 SMTP &amp; Email Config
+                        📧 Email Gateway (Resend / SMTP)
                     </button>
                 </li>
                 <li>
@@ -1429,12 +1429,12 @@ func RenderAdminDashboard() string {
         <section id="panel-smtp" role="tabpanel" aria-labelledby="tab-smtp" style="display: none;">
             <header>
                 <div class="header-title">
-                    <h1>Outgoing SMTP &amp; Email Gateway</h1>
-                    <p>Configure mail server credentials for real-time citizen journalism Email OTP verifications, author notifications, and system alerts.</p>
+                    <h1>Outgoing Email Gateway (Resend.com &amp; SMTP)</h1>
+                    <p>Configure outgoing email delivery for real-time citizen journalism Email OTP verifications, author notifications, and system alerts. Use Resend over HTTPS to bypass cloud firewall SMTP port blocks.</p>
                 </div>
                 <div id="smtp-status-pill" class="live-status-pill" style="border-color: rgba(56,189,248,0.4); color: #38bdf8;">
                     <span class="status-dot"></span>
-                    <span id="smtp-status-badge">Checking SMTP...</span>
+                    <span id="smtp-status-badge">Checking Email Config...</span>
                 </div>
             </header>
 
@@ -1442,50 +1442,100 @@ func RenderAdminDashboard() string {
                 <!-- Configuration Card -->
                 <div class="panel-box" style="background: rgba(15, 23, 42, 0.7); border: 1px solid #1e293b; border-radius: 12px; padding: 24px;">
                     <h3 style="font-size: 16px; font-weight: 700; color: #f8fafc; margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
-                        <span>⚙️ SMTP Server Credentials</span>
+                        <span>⚙️ Email Delivery Credentials</span>
                     </h3>
                     <p style="font-size: 12px; color: #94a3b8; margin-bottom: 20px;">
                         Settings are stored securely in PostgreSQL system_settings and loaded dynamically without requiring application restarts.
                     </p>
 
                     <form id="smtpConfigForm" onsubmit="saveSMTPSettings(event)">
-                        <div class="form-group" style="margin-bottom: 14px;">
-                            <label for="smtp-host" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">SMTP Host / Relay:</label>
-                            <input id="smtp-host" class="form-control" placeholder="e.g. smtp.gmail.com, smtp.sendgrid.net, smtp-relay.brevo.com" required style="width: 100%;" />
-                        </div>
-
-                        <div class="form-group" style="margin-bottom: 14px;">
-                            <label for="smtp-port" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">SMTP Port:</label>
-                            <select id="smtp-port" class="form-control" style="width: 100%;">
-                                <option value="587">587 (Standard TLS / STARTTLS — Recommended)</option>
-                                <option value="465">465 (Direct SSL / TLS)</option>
-                                <option value="2525">2525 (Alternative TLS Port)</option>
-                                <option value="25">25 (Unencrypted / Local)</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group" style="margin-bottom: 14px;">
-                            <label for="smtp-user" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">SMTP Username / Account Email:</label>
-                            <input id="smtp-user" class="form-control" placeholder="e.g. alerts@tn24.in or API User" required style="width: 100%;" />
-                        </div>
-
-                        <div class="form-group" style="margin-bottom: 14px;">
-                            <label for="smtp-pass" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">SMTP Password / App Password / API Key:</label>
-                            <div style="display: flex; gap: 8px;">
-                                <input type="password" id="smtp-pass" class="form-control" placeholder="••••••••" style="flex: 1;" />
-                                <button type="button" class="action-btn" onclick="toggleSMTPPasswordVisibility()" style="padding: 6px 12px;" title="Toggle visibility">👁️</button>
+                        <!-- Provider Selection Radio Cards -->
+                        <div style="background: rgba(30, 41, 59, 0.6); padding: 14px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #334155;">
+                            <label style="display: block; font-size: 12px; font-weight: 700; color: #f8fafc; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Active Delivery Provider:</label>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 10px; background: rgba(15, 23, 42, 0.5); border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.2);">
+                                    <input type="radio" name="email_provider" value="resend" id="provider-resend" onchange="switchEmailProviderView('resend')" checked style="margin-top: 3px; accent-color: #38bdf8; transform: scale(1.15);" />
+                                    <div>
+                                        <div style="font-size: 13px; font-weight: 700; color: #38bdf8;">🚀 Resend.com (HTTPS Port 443 — Recommended)</div>
+                                        <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
+                                            Delivers via REST API over standard HTTPS (Port 443). Immune to DigitalOcean / AWS / GCP outbound SMTP port 587/465 firewall blocks. Free 100 emails/day.
+                                        </div>
+                                    </div>
+                                </label>
+                                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 10px; background: rgba(15, 23, 42, 0.5); border-radius: 6px; border: 1px solid rgba(148, 163, 184, 0.2);">
+                                    <input type="radio" name="email_provider" value="smtp" id="provider-smtp" onchange="switchEmailProviderView('smtp')" style="margin-top: 3px; accent-color: #38bdf8; transform: scale(1.15);" />
+                                    <div>
+                                        <div style="font-size: 13px; font-weight: 700; color: #cbd5e1;">⚙️ Custom SMTP Relay (Port 587 / 465)</div>
+                                        <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
+                                            Traditional SMTP server (Gmail App Password, Brevo, SendGrid, Mailgun). Requires host outbound ports to be unblocked.
+                                        </div>
+                                    </div>
+                                </label>
                             </div>
-                            <span id="smtp-pass-note" style="font-size: 11px; color: #64748b; margin-top: 4px; display: block;">Leave unchanged to preserve existing saved password.</span>
                         </div>
 
-                        <div class="form-group" style="margin-bottom: 20px;">
-                            <label for="smtp-from" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">From Address / Sender Header:</label>
-                            <input id="smtp-from" class="form-control" placeholder="e.g. TN24 News &lt;noreply@tn24.in&gt;" style="width: 100%;" />
+                        <!-- Resend.com Configuration Block -->
+                        <div id="resend-config-section">
+                            <div class="form-group" style="margin-bottom: 14px;">
+                                <label for="resend-api-key" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">Resend API Key:</label>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="password" id="resend-api-key" class="form-control" placeholder="re_xxxxxxxxxxxxxx" style="flex: 1;" />
+                                    <button type="button" class="action-btn" onclick="toggleResendKeyVisibility()" style="padding: 6px 12px;" title="Toggle visibility">👁️</button>
+                                </div>
+                                <span id="resend-key-note" style="font-size: 11px; color: #64748b; margin-top: 4px; display: block;">
+                                    Get your API Key at <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; text-decoration: underline;">resend.com/api-keys</a>. Leave unchanged to keep existing saved key.
+                                </span>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label for="resend-from" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">Resend "From" Sender Header:</label>
+                                <input id="resend-from" class="form-control" placeholder="TN24 News &lt;onboarding@resend.dev&gt;" style="width: 100%;" />
+                                <span style="font-size: 11px; color: #64748b; margin-top: 4px; display: block;">
+                                    Use <code>TN24 News &lt;onboarding@resend.dev&gt;</code> for instant OTP testing to your signup email, or your verified domain sender e.g. <code>TN24 News &lt;alerts@tn24.in&gt;</code>.
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- SMTP Configuration Block -->
+                        <div id="smtp-config-section" style="display: none;">
+                            <div class="form-group" style="margin-bottom: 14px;">
+                                <label for="smtp-host" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">SMTP Host / Relay:</label>
+                                <input id="smtp-host" class="form-control" placeholder="e.g. smtp.gmail.com, smtp.sendgrid.net, smtp-relay.brevo.com" style="width: 100%;" />
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 14px;">
+                                <label for="smtp-port" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">SMTP Port:</label>
+                                <select id="smtp-port" class="form-control" style="width: 100%;">
+                                    <option value="465">465 (Direct SSL / TLS — Recommended for Gmail)</option>
+                                    <option value="587">587 (Standard TLS / STARTTLS)</option>
+                                    <option value="2525">2525 (Alternative TLS Port)</option>
+                                    <option value="25">25 (Unencrypted / Local)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 14px;">
+                                <label for="smtp-user" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">SMTP Username / Account Email:</label>
+                                <input id="smtp-user" class="form-control" placeholder="e.g. tn24now@gmail.com or API User" style="width: 100%;" />
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 14px;">
+                                <label for="smtp-pass" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">SMTP Password / App Password / API Key:</label>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="password" id="smtp-pass" class="form-control" placeholder="••••••••" style="flex: 1;" />
+                                    <button type="button" class="action-btn" onclick="toggleSMTPPasswordVisibility()" style="padding: 6px 12px;" title="Toggle visibility">👁️</button>
+                                </div>
+                                <span id="smtp-pass-note" style="font-size: 11px; color: #64748b; margin-top: 4px; display: block;">Leave unchanged to preserve existing saved password.</span>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 20px;">
+                                <label for="smtp-from" style="display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 5px;">From Address / Sender Header:</label>
+                                <input id="smtp-from" class="form-control" placeholder="e.g. TN24 News &lt;noreply@tn24.in&gt;" style="width: 100%;" />
+                            </div>
                         </div>
 
                         <div style="display: flex; justify-content: flex-end; gap: 10px;">
                             <button type="submit" id="btn-save-smtp" class="btn-primary" style="padding: 8px 18px; font-weight: 700;">
-                                💾 Save SMTP Credentials
+                                💾 Save Email Settings
                             </button>
                         </div>
                     </form>
@@ -1497,7 +1547,7 @@ func RenderAdminDashboard() string {
                         <span>🧪 Live Email Dispatch Tester</span>
                     </h3>
                     <p style="font-size: 12px; color: #94a3b8; margin-bottom: 20px;">
-                        Send a test 6-digit OTP email to your inbox to verify end-to-end SMTP authentication and TLS handshake.
+                        Send a test 6-digit OTP email to verify end-to-end delivery using your active email configuration.
                     </p>
 
                     <form id="smtpTestForm" onsubmit="sendTestSMTPEmail(event)" style="margin-bottom: auto;">
@@ -1514,9 +1564,9 @@ func RenderAdminDashboard() string {
                     <div id="smtp-test-result" style="display: none; margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 12px; line-height: 1.5;"></div>
 
                     <div style="margin-top: 20px; padding: 12px; background: rgba(30, 41, 59, 0.5); border-radius: 8px; font-size: 11px; color: #94a3b8; line-height: 1.6;">
-                        <strong>💡 Provider Tips:</strong><br>
-                        • <strong>Gmail:</strong> Enable 2-Step Verification and create an <em>App Password</em> (16-char code) for SMTP.<br>
-                        • <strong>Brevo / Sendgrid / Mailgun:</strong> Use port 587 and API key as password.
+                        <strong>💡 Delivery Provider Insights:</strong><br>
+                        • <strong>Resend.com (Recommended):</strong> Delivers through Port 443 HTTPS. 100% reliable on Cloud/VPS hosts like DigitalOcean and AWS that block SMTP ports.<br>
+                        • <strong>Gmail SMTP:</strong> Requires 2-Step Verification and a 16-character <em>App Password</em> (never your main Gmail password). Use Port 465 SSL.
                     </div>
                 </div>
             </div>
@@ -5210,50 +5260,115 @@ func RenderAdminDashboard() string {
             }
         }
 
-        function fetchSMTPSettings() {
+        function toggleResendKeyVisibility() {
+            const input = document.getElementById('resend-api-key');
+            if (input) {
+                input.type = input.type === 'password' ? 'text' : 'password';
+            }
+        }
+
+        function switchEmailProviderView(provider) {
+            const resendSection = document.getElementById('resend-config-section');
+            const smtpSection = document.getElementById('smtp-config-section');
+            const descResend = document.getElementById('provider-desc-resend');
+            const descSmtp = document.getElementById('provider-desc-smtp');
+
+            if (provider === 'smtp') {
+                if (resendSection) resendSection.style.display = 'none';
+                if (smtpSection) smtpSection.style.display = 'block';
+                if (descResend) descResend.style.display = 'none';
+                if (descSmtp) descSmtp.style.display = 'block';
+            } else {
+                if (resendSection) resendSection.style.display = 'block';
+                if (smtpSection) smtpSection.style.display = 'none';
+                if (descResend) descResend.style.display = 'block';
+                if (descSmtp) descSmtp.style.display = 'none';
+            }
+        }
+
+        async function fetchSMTPSettings() {
             const badge = document.getElementById('smtp-status-badge');
             const pill = document.getElementById('smtp-status-pill');
-            fetch('/admin/api/settings/smtp')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success && data.data) {
-                        const s = data.data;
-                        const hInput = document.getElementById('smtp-host');
-                        if (hInput) hInput.value = s.host || '';
-                        const pInput = document.getElementById('smtp-port');
-                        if (pInput) pInput.value = s.port || '587';
-                        const uInput = document.getElementById('smtp-user');
-                        if (uInput) uInput.value = s.user || '';
-                        const fInput = document.getElementById('smtp-from');
-                        if (fInput) fInput.value = s.from || 'noreply@tn24.in';
+            try {
+                const res = await fetch('/admin/api/settings/smtp');
+                const text = await res.text();
+                let data = {};
+                try {
+                    data = JSON.parse(text);
+                } catch (_) {
+                    data = { success: false, message: text || ('Server returned HTTP ' + res.status) };
+                }
 
-                        const passInput = document.getElementById('smtp-pass');
-                        if (passInput) {
-                            if (s.hasPassword) {
-                                passInput.value = '••••••••';
-                                document.getElementById('smtp-pass-note').textContent = 'Password is saved. Leave as •••••••• to keep existing password, or enter a new one to replace.';
-                            } else {
-                                passInput.value = '';
-                                document.getElementById('smtp-pass-note').textContent = 'No password currently saved.';
-                            }
-                        }
+                if (data.success && data.data) {
+                    const s = data.data;
 
-                        if (badge && pill) {
-                            if (s.isConfigured) {
-                                badge.textContent = '🟢 SMTP Gateway Active';
-                                pill.style.borderColor = 'rgba(74, 222, 128, 0.4)';
-                                pill.style.color = '#4ade80';
-                            } else {
-                                badge.textContent = '🟡 Dev Console Fallback';
-                                pill.style.borderColor = 'rgba(245, 158, 11, 0.4)';
-                                pill.style.color = '#f59e0b';
-                            }
+                    // Provider toggle
+                    const provider = s.provider || 'resend';
+                    const radioResend = document.getElementById('provider-resend');
+                    const radioSmtp = document.getElementById('provider-smtp');
+                    if (provider === 'smtp') {
+                        if (radioSmtp) radioSmtp.checked = true;
+                        switchEmailProviderView('smtp');
+                    } else {
+                        if (radioResend) radioResend.checked = true;
+                        switchEmailProviderView('resend');
+                    }
+
+                    // Resend fields
+                    const resendKeyInput = document.getElementById('resend-api-key');
+                    const resendKeyNote = document.getElementById('resend-key-note');
+                    if (resendKeyInput) {
+                        if (s.hasResendKey) {
+                            resendKeyInput.value = '••••••••';
+                            if (resendKeyNote) resendKeyNote.innerHTML = 'API Key is saved. Leave as •••••••• to keep existing key, or enter a new one to replace.';
+                        } else {
+                            resendKeyInput.value = '';
+                            if (resendKeyNote) resendKeyNote.innerHTML = 'Get your API Key at <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" style="color: #38bdf8; text-decoration: underline;">resend.com/api-keys</a>. No key currently saved.';
                         }
                     }
-                })
-                .catch(err => {
-                    if (badge) badge.textContent = 'Error loading SMTP';
-                });
+                    const resendFromInput = document.getElementById('resend-from');
+                    if (resendFromInput) resendFromInput.value = s.resendFromEmail || 'TN24 News <onboarding@resend.dev>';
+
+                    // SMTP fields
+                    const hInput = document.getElementById('smtp-host');
+                    if (hInput) hInput.value = s.host || '';
+                    const pInput = document.getElementById('smtp-port');
+                    if (pInput) pInput.value = s.port || '465';
+                    const uInput = document.getElementById('smtp-user');
+                    if (uInput) uInput.value = s.user || '';
+                    const fInput = document.getElementById('smtp-from');
+                    if (fInput) fInput.value = s.from || 'noreply@tn24.in';
+
+                    const passInput = document.getElementById('smtp-pass');
+                    if (passInput) {
+                        if (s.hasPassword) {
+                            passInput.value = '••••••••';
+                            document.getElementById('smtp-pass-note').textContent = 'Password is saved. Leave as •••••••• to keep existing password, or enter a new one to replace.';
+                        } else {
+                            passInput.value = '';
+                            document.getElementById('smtp-pass-note').textContent = 'No password currently saved.';
+                        }
+                    }
+
+                    if (badge && pill) {
+                        if (s.isConfigured) {
+                            if (provider === 'resend') {
+                                badge.textContent = '🟢 Resend HTTPS Active';
+                            } else {
+                                badge.textContent = '🟢 SMTP Gateway Active';
+                            }
+                            pill.style.borderColor = 'rgba(74, 222, 128, 0.4)';
+                            pill.style.color = '#4ade80';
+                        } else {
+                            badge.textContent = '🟡 Dev Console Fallback';
+                            pill.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+                            pill.style.color = '#f59e0b';
+                        }
+                    }
+                }
+            } catch (err) {
+                if (badge) badge.textContent = 'Error loading email config';
+            }
         }
 
         async function saveSMTPSettings(e) {
@@ -5262,12 +5377,18 @@ func RenderAdminDashboard() string {
             btn.disabled = true;
             btn.textContent = 'Saving...';
 
+            const providerRadio = document.querySelector('input[name="email_provider"]:checked');
+            const provider = providerRadio ? providerRadio.value : 'resend';
+
             const payload = {
-                host: document.getElementById('smtp-host').value.trim(),
-                port: document.getElementById('smtp-port').value,
-                user: document.getElementById('smtp-user').value.trim(),
-                pass: document.getElementById('smtp-pass').value,
-                from: document.getElementById('smtp-from').value.trim()
+                provider: provider,
+                resendApiKey: document.getElementById('resend-api-key') ? document.getElementById('resend-api-key').value.trim() : '',
+                resendFromEmail: document.getElementById('resend-from') ? document.getElementById('resend-from').value.trim() : '',
+                host: document.getElementById('smtp-host') ? document.getElementById('smtp-host').value.trim() : '',
+                port: document.getElementById('smtp-port') ? document.getElementById('smtp-port').value : '465',
+                user: document.getElementById('smtp-user') ? document.getElementById('smtp-user').value.trim() : '',
+                pass: document.getElementById('smtp-pass') ? document.getElementById('smtp-pass').value : '',
+                from: document.getElementById('smtp-from') ? document.getElementById('smtp-from').value.trim() : ''
             };
 
             try {
@@ -5287,13 +5408,13 @@ func RenderAdminDashboard() string {
                     showToast('✓ ' + data.message);
                     fetchSMTPSettings();
                 } else {
-                    showToast('✗ ' + (data.message || 'Failed to save SMTP settings'));
+                    showToast('✗ ' + (data.message || 'Failed to save email settings'));
                 }
             } catch (err) {
                 showToast('✗ Connection error: ' + err.message);
             } finally {
                 btn.disabled = false;
-                btn.textContent = '💾 Save SMTP Credentials';
+                btn.textContent = '💾 Save Email Settings';
             }
         }
 
@@ -5306,7 +5427,7 @@ func RenderAdminDashboard() string {
             if (!email) return;
 
             btn.disabled = true;
-            btn.innerHTML = '🔄 Sending test email...';
+            btn.innerHTML = '🔄 Sending test OTP email...';
             resultBox.style.display = 'none';
 
             try {
@@ -5328,14 +5449,14 @@ func RenderAdminDashboard() string {
                     resultBox.style.background = 'rgba(34, 197, 94, 0.15)';
                     resultBox.style.color = '#4ade80';
                     resultBox.style.border = '1px solid rgba(74, 222, 128, 0.3)';
-                    resultBox.innerHTML = '<strong>✅ Success!</strong> ' + (data.message || 'Test OTP email delivered.');
+                    resultBox.innerHTML = '<strong>✅ Delivery Succeeded!</strong> ' + (data.message || 'Test OTP email delivered.');
                     showToast('✓ Test email dispatched!');
                 } else {
                     resultBox.style.background = 'rgba(239, 68, 68, 0.15)';
                     resultBox.style.color = '#f87171';
                     resultBox.style.border = '1px solid rgba(239, 68, 68, 0.3)';
                     resultBox.innerHTML = '<strong>✗ Dispatch Failed:</strong> ' + (data.message || data.error || ('Server error ' + res.status));
-                    showToast('✗ SMTP Test failed');
+                    showToast('✗ Test email failed');
                 }
             } catch (err) {
                 resultBox.style.display = 'block';

@@ -191,11 +191,14 @@ func TestAdminAuthFlow(t *testing.T) {
 
 func TestAdminSMTPSettingsHandlers(t *testing.T) {
 	cfg := &config.Config{
-		SMTPHost: "smtp.test.example",
-		SMTPPort: "587",
-		SMTPUser: "testuser",
-		SMTPPass: "testpass",
-		SMTPFrom: "noreply@test.example",
+		EmailProvider:   "resend",
+		ResendAPIKey:    "re_test_123456",
+		ResendFromEmail: "TN24 News <onboarding@resend.dev>",
+		SMTPHost:        "smtp.test.example",
+		SMTPPort:        "587",
+		SMTPUser:        "testuser",
+		SMTPPass:        "testpass",
+		SMTPFrom:        "noreply@test.example",
 	}
 	handler := NewHandler(nil, nil, nil, nil, cfg)
 
@@ -214,8 +217,30 @@ func TestAdminSMTPSettingsHandlers(t *testing.T) {
 	if res["success"] != true {
 		t.Error("Expected success: true in smtp response")
 	}
+	data, ok := res["data"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("Expected data map in response")
+	}
+	if data["provider"] != "resend" {
+		t.Errorf("Expected provider 'resend', got %v", data["provider"])
+	}
+	if data["hasResendKey"] != true {
+		t.Errorf("Expected hasResendKey true, got %v", data["hasResendKey"])
+	}
 
-	// 2. Test email validation in HandleTestSMTP
+	// 2. POST /admin/api/settings/smtp (updating email settings)
+	postBody := `{"provider":"resend","resendApiKey":"re_newkey_789","resendFromEmail":"TN24 <alerts@tn24.in>","host":"smtp.gmail.com","port":"465","user":"user@gmail.com","pass":"apppassword","from":"TN24 <alerts@tn24.in>"}`
+	reqPost := httptest.NewRequest(http.MethodPost, "/admin/api/settings/smtp", strings.NewReader(postBody))
+	rrPost := httptest.NewRecorder()
+	handler.HandleSMTPSettings(rrPost, reqPost)
+	if rrPost.Code != http.StatusOK {
+		t.Errorf("Expected 200 for POST email settings, got %d", rrPost.Code)
+	}
+	if cfg.ResendAPIKey != "re_newkey_789" {
+		t.Errorf("Expected cfg.ResendAPIKey updated to re_newkey_789, got %s", cfg.ResendAPIKey)
+	}
+
+	// 3. Test email validation in HandleTestSMTP
 	reqTestInvalid := httptest.NewRequest(http.MethodPost, "/admin/api/settings/smtp/test", strings.NewReader(`{"testEmail":"notanemail"}`))
 	rrTestInvalid := httptest.NewRecorder()
 	handler.HandleTestSMTP(rrTestInvalid, reqTestInvalid)

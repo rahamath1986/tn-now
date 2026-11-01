@@ -2573,48 +2573,21 @@ func (h *Handler) HandleSMTPSettings(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	if r.Method == http.MethodGet {
-		var host, port, user, pass, from string
-		if h.conn != nil {
-			_ = h.conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'smtp_host'").Scan(&host)
-			_ = h.conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'smtp_port'").Scan(&port)
-			_ = h.conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'smtp_user'").Scan(&user)
-			_ = h.conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'smtp_pass'").Scan(&pass)
-			_ = h.conn.QueryRow(ctx, "SELECT value FROM system_settings WHERE key = 'smtp_from'").Scan(&from)
-		}
-
-		// Fall back to config if DB setting is empty
-		if host == "" && h.cfg != nil {
-			host = h.cfg.SMTPHost
-		}
-		if port == "" && h.cfg != nil {
-			port = h.cfg.SMTPPort
-		}
-		if port == "" {
-			port = "587"
-		}
-		if user == "" && h.cfg != nil {
-			user = h.cfg.SMTPUser
-		}
-		if pass == "" && h.cfg != nil {
-			pass = h.cfg.SMTPPass
-		}
-		if from == "" && h.cfg != nil {
-			from = h.cfg.SMTPFrom
-		}
-		if from == "" {
-			from = "noreply@tn24.in"
-		}
+		effectiveCfg := auth.GetEffectiveSMTPConfig(ctx, h.conn, h.cfg)
 
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
 			"data": map[string]interface{}{
-				"host":         host,
-				"port":         port,
-				"user":         user,
-				"from":         from,
-				"hasPassword":  pass != "",
-				"isConfigured": host != "" && user != "",
+				"host":            effectiveCfg.SMTPHost,
+				"port":            effectiveCfg.SMTPPort,
+				"user":            effectiveCfg.SMTPUser,
+				"from":            effectiveCfg.SMTPFrom,
+				"hasPassword":     effectiveCfg.SMTPPass != "",
+				"isConfigured":    (effectiveCfg.EmailProvider == "resend" && effectiveCfg.ResendAPIKey != "") || (effectiveCfg.SMTPHost != "" && effectiveCfg.SMTPUser != ""),
+				"provider":        effectiveCfg.EmailProvider,
+				"hasResendKey":    effectiveCfg.ResendAPIKey != "",
+				"resendFromEmail": effectiveCfg.ResendFromEmail,
 			},
 		})
 		return
@@ -2622,21 +2595,34 @@ func (h *Handler) HandleSMTPSettings(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == http.MethodPost {
 		var req struct {
-			Host string `json:"host"`
-			Port string `json:"port"`
-			User string `json:"user"`
-			Pass string `json:"pass"`
-			From string `json:"from"`
+			Provider        string `json:"provider"`
+			ResendAPIKey    string `json:"resendApiKey"`
+			ResendFromEmail string `json:"resendFromEmail"`
+			Host            string `json:"host"`
+			Port            string `json:"port"`
+			User            string `json:"user"`
+			Pass            string `json:"pass"`
+			From            string `json:"from"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "Invalid request payload")
 			return
 		}
 
+		req.Provider = strings.TrimSpace(req.Provider)
+		if req.Provider == "" {
+			req.Provider = "resend"
+		}
+		req.ResendAPIKey = strings.TrimSpace(req.ResendAPIKey)
+		req.ResendFromEmail = strings.TrimSpace(req.ResendFromEmail)
+		if req.ResendFromEmail == "" {
+			req.ResendFromEmail = "TN24 News <onboarding@resend.dev>"
+		}
+
 		req.Host = strings.TrimSpace(req.Host)
 		req.Port = strings.TrimSpace(req.Port)
 		if req.Port == "" {
-			req.Port = "587"
+			req.Port = "465"
 		}
 		req.User = strings.TrimSpace(req.User)
 		req.From = strings.TrimSpace(req.From)
@@ -2645,6 +2631,26 @@ func (h *Handler) HandleSMTPSettings(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if h.conn != nil {
+			_, _ = h.conn.Exec(ctx, `
+				INSERT INTO system_settings (key, value, updated_at)
+				VALUES ('email_provider', $1, NOW())
+				ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+			`, req.Provider)
+
+			if req.ResendAPIKey != "" && req.ResendAPIKey != "••••••••" {
+				_, _ = h.conn.Exec(ctx, `
+					INSERT INTO system_settings (key, value, updated_at)
+					VALUES ('resend_api_key', $1, NOW())
+					ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+				`, req.ResendAPIKey)
+			}
+
+			_, _ = h.conn.Exec(ctx, `
+				INSERT INTO system_settings (key, value, updated_at)
+				VALUES ('resend_from_email', $1, NOW())
+				ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
+			`, req.ResendFromEmail)
+
 			_, _ = h.conn.Exec(ctx, `
 				INSERT INTO system_settings (key, value, updated_at)
 				VALUES ('smtp_host', $1, NOW())
@@ -2669,7 +2675,6 @@ func (h *Handler) HandleSMTPSettings(w http.ResponseWriter, r *http.Request) {
 				ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW();
 			`, req.From)
 
-			// Only update password if a new non-empty password was typed
 			if strings.TrimSpace(req.Pass) != "" && req.Pass != "••••••••" {
 				_, _ = h.conn.Exec(ctx, `
 					INSERT INTO system_settings (key, value, updated_at)
@@ -2679,21 +2684,25 @@ func (h *Handler) HandleSMTPSettings(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		if strings.TrimSpace(req.Pass) != "" && req.Pass != "••••••••" && h.cfg != nil {
-			h.cfg.SMTPPass = req.Pass
-		}
-
 		if h.cfg != nil {
+			h.cfg.EmailProvider = req.Provider
+			if req.ResendAPIKey != "" && req.ResendAPIKey != "••••••••" {
+				h.cfg.ResendAPIKey = req.ResendAPIKey
+			}
+			h.cfg.ResendFromEmail = req.ResendFromEmail
 			h.cfg.SMTPHost = req.Host
 			h.cfg.SMTPPort = req.Port
 			h.cfg.SMTPUser = req.User
 			h.cfg.SMTPFrom = req.From
+			if strings.TrimSpace(req.Pass) != "" && req.Pass != "••••••••" {
+				h.cfg.SMTPPass = req.Pass
+			}
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": true,
-			"message": "SMTP configuration saved successfully",
+			"message": "Email settings saved successfully",
 		})
 		return
 	}
@@ -2725,7 +2734,12 @@ func (h *Handler) HandleTestSMTP(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	effectiveCfg := auth.GetEffectiveSMTPConfig(ctx, h.conn, h.cfg)
-	if effectiveCfg.SMTPHost == "" || effectiveCfg.SMTPUser == "" {
+	if effectiveCfg.EmailProvider == "resend" || (effectiveCfg.ResendAPIKey != "" && effectiveCfg.EmailProvider != "smtp") {
+		if strings.TrimSpace(effectiveCfg.ResendAPIKey) == "" {
+			writeError(w, http.StatusBadRequest, "Resend API Key is required before testing")
+			return
+		}
+	} else if effectiveCfg.SMTPHost == "" || effectiveCfg.SMTPUser == "" {
 		writeError(w, http.StatusBadRequest, "SMTP Host and Username must be configured before testing")
 		return
 	}
@@ -2737,7 +2751,7 @@ func (h *Handler) HandleTestSMTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"success": false,
-			"message": "SMTP test dispatch failed: " + err.Error(),
+			"message": "Email test dispatch failed: " + err.Error(),
 		})
 		return
 	}
