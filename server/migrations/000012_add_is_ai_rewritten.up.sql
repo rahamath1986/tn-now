@@ -9,3 +9,4 @@ CREATE INDEX IF NOT EXISTS idx_content_is_ai_rewritten ON content(is_ai_rewritte
 CREATE INDEX IF NOT EXISTS idx_content_status_created ON content(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_content_created_at ON content(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_content_source_url ON content(source_url);
+
