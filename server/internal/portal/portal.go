@@ -134,14 +134,20 @@ func (h *PortalHandler) RegisterRoutes(mux *http.ServeMux) {
 
 		if postID != "" {
 			if h.conn != nil {
-				var targetSlug string
-				err := h.conn.QueryRow(r.Context(), "SELECT COALESCE(slug, '') FROM content WHERE id::text = $1 LIMIT 1", postID).Scan(&targetSlug)
-				if err == nil && targetSlug != "" {
-					http.Redirect(w, r, "/news/"+targetSlug, http.StatusMovedPermanently)
-					return
+				var targetSlug, title string
+				err := h.conn.QueryRow(r.Context(), "SELECT COALESCE(slug, ''), title FROM content WHERE id::text = $1 LIMIT 1", postID).Scan(&targetSlug, &title)
+				if err == nil {
+					if targetSlug == "" && title != "" {
+						targetSlug = scraper.GenerateArticleSlug(title, postID)
+						_, _ = h.conn.Exec(r.Context(), "UPDATE content SET slug = $1 WHERE id::text = $2", targetSlug, postID)
+					}
+					if targetSlug != "" {
+						http.Redirect(w, r, "/news/"+targetSlug, http.StatusMovedPermanently)
+						return
+					}
 				}
 			}
-			http.Redirect(w, r, "/?post="+url.QueryEscape(postID), http.StatusMovedPermanently)
+			http.Redirect(w, r, "/", http.StatusMovedPermanently)
 			return
 		}
 		if district != "" && district != "All Districts" && district != "ALL" && district != "TN-ALL / REGIONAL" {
@@ -242,6 +248,12 @@ func (h *PortalHandler) HandlePortalPage(w http.ResponseWriter, r *http.Request)
 				http.Redirect(w, r, "/news/"+targetSlug, http.StatusMovedPermanently)
 				return
 			}
+		} else {
+			// Specified post does not exist or was deleted -> return 404 to avoid Soft 404 indexing
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(renderArticleNotFoundHTML()))
+			return
 		}
 	}
 
@@ -281,6 +293,12 @@ func (h *PortalHandler) HandlePortalPage(w http.ResponseWriter, r *http.Request)
 
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(pageHTML))
+}
+
+// renderArticleNotFoundHTML returns a clean, mobile-responsive 404 error page
+// with noindex to prevent Soft 404 indexing by Googlebot.
+func renderArticleNotFoundHTML() string {
+	return `<!DOCTYPE html><html lang="ta"><head><meta charset="UTF-8"><title>Article Not Found | TN24 News</title><meta name="robots" content="noindex, follow"><link rel="shortcut icon" href="/favicon.ico"></head><body style="background:#080f1c;color:#f8fafc;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;padding:20px;"><h1 style="font-size:2rem;color:#ef4444;margin-bottom:8px;">404 — செய்தி கிடைக்கவில்லை</h1><p style="color:#94a3b8;margin-bottom:20px;">நீங்கள் தேடிய செய்தி மாற்றப்பட்டிருக்கலாம் அல்லது நீக்கப்பட்டிருக்கலாம்.</p><a href="/" style="display:inline-block;padding:10px 20px;background:#1557bf;color:#fff;text-decoration:none;border-radius:6px;font-weight:700;">முகப்புப் பக்கம் செல்க →</a></div></body></html>`
 }
 
 // HandleNewsArticlePage handles clean article URLs (/news/<slug>).
@@ -341,8 +359,7 @@ func (h *PortalHandler) HandleNewsArticlePage(w http.ResponseWriter, r *http.Req
 	if err != nil || strings.TrimSpace(title) == "" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusNotFound)
-		notFoundHTML := fmt.Sprintf(`<!DOCTYPE html><html lang="ta"><head><title>Article Not Found | TN24</title><meta name="robots" content="noindex, follow"><link rel="stylesheet" href="/assets/brand/tn24-logo.svg"></head><body style="background:#080f1c;color:#f8fafc;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;"><div style="text-align:center;padding:20px;"><h1 style="font-size:2rem;color:#ef4444;margin-bottom:8px;">404 — செய்தி கிடைக்கவில்லை</h1><p style="color:#94a3b8;margin-bottom:20px;">நீங்கள் தேடிய செய்தி மாற்றப்பட்டிருக்கலாம் அல்லது நீக்கப்பட்டிருக்கலாம்.</p><a href="/" style="display:inline-block;padding:10px 20px;background:#1557bf;color:#fff;text-decoration:none;border-radius:6px;font-weight:700;">முகப்புப் பக்கம் செல்க →</a></div></body></html>`)
-		_, _ = w.Write([]byte(notFoundHTML))
+		_, _ = w.Write([]byte(renderArticleNotFoundHTML()))
 		return
 	}
 
@@ -1620,7 +1637,7 @@ func (h *PortalHandler) injectDistrictMetadata(baseHTML string, district string,
 	pageURL := fmt.Sprintf("%s://%s/district/%s", scheme, host, slug)
 
 	title := fmt.Sprintf("%s News Today – Latest %s Tamil News (%s) | TN24", html.EscapeString(district), html.EscapeString(district), html.EscapeString(taName))
-	desc := fmt.Sprintf("Latest %s news in Tamil (%s) including breaking news, politics, crime, education, traffic and important local updates from TN24.", html.EscapeString(district), html.EscapeString(taName))
+	desc := fmt.Sprintf("%s செய்திகள்: Latest %s news in Tamil (%s) including breaking news, politics, crime, education, traffic and important local updates from TN24.", html.EscapeString(taName), html.EscapeString(district), html.EscapeString(taName))
 
 	reTitle := regexp.MustCompile(`(?i)<title>.*?</title>`)
 	baseHTML = reTitle.ReplaceAllString(baseHTML, "<title>"+title+"</title>")
@@ -1659,7 +1676,7 @@ func (h *PortalHandler) injectCategoryMetadata(baseHTML string, category string,
 	pageURL := fmt.Sprintf("%s://%s/category/%s", scheme, host, slug)
 
 	title := fmt.Sprintf("Tamil Nadu %s News – Latest %s News (%s) | TN24", html.EscapeString(category), html.EscapeString(category), html.EscapeString(taName))
-	desc := fmt.Sprintf("Latest Tamil Nadu %s news in Tamil (%s). Breaking updates, news coverage and analysis from across Tamil Nadu on TN24.", strings.ToLower(category), html.EscapeString(taName))
+	desc := fmt.Sprintf("%s செய்திகள்: Latest Tamil Nadu %s news in Tamil (%s). Breaking updates, news coverage and analysis from across Tamil Nadu on TN24.", html.EscapeString(taName), strings.ToLower(category), html.EscapeString(taName))
 
 	reTitle := regexp.MustCompile(`(?i)<title>.*?</title>`)
 	baseHTML = reTitle.ReplaceAllString(baseHTML, "<title>"+title+"</title>")
@@ -3068,21 +3085,24 @@ func (h *PortalHandler) HandleSitemapXML(w http.ResponseWriter, r *http.Request)
 `, base, d, dMod))
 	}
 
-	// Dynamic Published Articles (Top 100 recent articles)
+	// Dynamic Published Articles (Top 1000 recent articles)
 	if h.conn != nil {
 		rows, err := h.conn.Query(r.Context(), `
-			SELECT c.id::text, COALESCE(c.slug, ''), COALESCE(c.published_at, c.created_at)
+			SELECT c.id::text, COALESCE(c.slug, ''), COALESCE(c.published_at, c.created_at), c.title
 			FROM content c
 			WHERE c.status = 'PUBLISHED'
 			ORDER BY COALESCE(c.published_at, c.created_at) DESC
-			LIMIT 100
+			LIMIT 1000
 		`)
 		if err == nil {
 			defer rows.Close()
 			for rows.Next() {
-				var aID, aSlug string
+				var aID, aSlug, aTitle string
 				var aMod time.Time
-				if err := rows.Scan(&aID, &aSlug, &aMod); err == nil {
+				if err := rows.Scan(&aID, &aSlug, &aMod, &aTitle); err == nil {
+					if aSlug == "" && aTitle != "" {
+						aSlug = scraper.GenerateArticleSlug(aTitle, aID)
+					}
 					sb.WriteString(fmt.Sprintf(`    <url>
         <loc>%s</loc>
         <lastmod>%s</lastmod>

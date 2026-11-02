@@ -37,7 +37,7 @@ func TestPortalSEOKeywords(t *testing.T) {
 	}
 
 	// Verify SEO Title
-	if !strings.Contains(html, "<title>TN24 – Tamil News | Latest Tamil Nadu News &amp; District News</title>") {
+	if !strings.Contains(html, "<title>TN24 News – தமிழ் செய்திகள் | Latest Tamil Nadu News &amp; District News</title>") {
 		t.Errorf("expected target title tag not found")
 	}
 
@@ -160,7 +160,7 @@ func TestGoogleAdSenseUnit(t *testing.T) {
 func TestFaviconAndWebsiteTitle(t *testing.T) {
 	// Test website title in main portal page
 	portalHTML := RenderPortalPage()
-	if !strings.Contains(portalHTML, "<title>TN24 – Tamil News | Latest Tamil Nadu News &amp; District News</title>") {
+	if !strings.Contains(portalHTML, "<title>TN24 News – தமிழ் செய்திகள் | Latest Tamil Nadu News &amp; District News</title>") {
 		t.Errorf("expected primary title in RenderPortalPage")
 	}
 
@@ -360,13 +360,13 @@ func TestP0HomepageSEO(t *testing.T) {
 	html := RenderPortalPage()
 
 	// 1. Preferred Title Check
-	expectedTitle := "<title>TN24 – Tamil News | Latest Tamil Nadu News &amp; District News</title>"
+	expectedTitle := "<title>TN24 News – தமிழ் செய்திகள் | Latest Tamil Nadu News &amp; District News</title>"
 	if !strings.Contains(html, expectedTitle) {
 		t.Errorf("P0: Homepage title mismatch, expected %s", expectedTitle)
 	}
 
 	// 2. Meta Description Check
-	expectedDesc := `<meta name="description" content="TN24 brings the latest Tamil news, Tamil Nadu district news, politics, cinema, sports and breaking news from across Tamil Nadu.">`
+	expectedDesc := `<meta name="description" content="TN24 News (tn 24) – தமிழ்நாட்டின் 38 மாவட்ட செய்திகள், அரசியல், வானிலை, குற்றப் பிரிவு மற்றும் முக்கிய நிகழ்வுகளின் உடனுக்குடனான 24x7 நேரலை செய்தித் தளம். Latest Tamil Nadu breaking news.">`
 	if !strings.Contains(html, expectedDesc) {
 		t.Errorf("P0: Homepage meta description mismatch, expected %s", expectedDesc)
 	}

@@ -6,14 +6,14 @@ func RenderPortalPage() string {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TN24 – Tamil News | Latest Tamil Nadu News &amp; District News</title>
+    <title>TN24 News – தமிழ் செய்திகள் | Latest Tamil Nadu News &amp; District News</title>
 
     <!-- ═══════════════════════════════════════════════════════
          CORE SEO META TAGS — TN24 Tamil News Portal
          Optimized for: TN24, tn 24, Tamil News, Tamil Nadu News,
          District News, Latest News, Breaking News
     ═══════════════════════════════════════════════════════ -->
-    <meta name="description" content="TN24 brings the latest Tamil news, Tamil Nadu district news, politics, cinema, sports and breaking news from across Tamil Nadu.">
+    <meta name="description" content="TN24 News (tn 24) – தமிழ்நாட்டின் 38 மாவட்ட செய்திகள், அரசியல், வானிலை, குற்றப் பிரிவு மற்றும் முக்கிய நிகழ்வுகளின் உடனுக்குடனான 24x7 நேரலை செய்தித் தளம். Latest Tamil Nadu breaking news.">
 
     <!-- Primary High-Volume Target Keywords -->
     <meta name="keywords" content="
@@ -76,23 +76,23 @@ func RenderPortalPage() string {
     <meta property="og:site_name" content="TN24 — Tamil Nadu News">
     <meta property="og:locale" content="ta_IN">
     <meta property="og:locale:alternate" content="en_IN">
-    <meta property="og:title" content="TN24 – Tamil News | Latest Tamil Nadu News &amp; District News">
-    <meta property="og:description" content="TN24 brings the latest Tamil news, Tamil Nadu district news, politics, cinema, sports and breaking news from across Tamil Nadu.">
+    <meta property="og:title" content="TN24 News – தமிழ் செய்திகள் | Latest Tamil Nadu News &amp; District News">
+    <meta property="og:description" content="TN24 News (tn 24) – தமிழ்நாட்டின் 38 மாவட்ட செய்திகள், அரசியல், வானிலை, குற்றப் பிரிவு மற்றும் முக்கிய நிகழ்வுகளின் உடனுக்குடனான 24x7 நேரலை செய்தித் தளம். Latest Tamil Nadu breaking news.">
     <meta property="og:url" content="https://www.tn24.in/">
     <meta property="og:image" content="https://www.tn24.in/assets/brand/tn24-profile.jpg">
     <meta property="og:image:width" content="1024">
     <meta property="og:image:height" content="1024">
     <meta property="og:image:type" content="image/jpeg">
-    <meta property="og:image:alt" content="TN24 – Tamil News | Latest Tamil Nadu News &amp; District News">
+    <meta property="og:image:alt" content="TN24 News – தமிழ் செய்திகள் | Latest Tamil Nadu News &amp; District News">
 
     <!-- Twitter / X Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@TN24Now">
     <meta name="twitter:creator" content="@TN24Now">
-    <meta name="twitter:title" content="TN24 – Tamil News | Latest Tamil Nadu News &amp; District News">
-    <meta name="twitter:description" content="TN24 brings the latest Tamil news, Tamil Nadu district news, politics, cinema, sports and breaking news from across Tamil Nadu.">
+    <meta name="twitter:title" content="TN24 News – தமிழ் செய்திகள் | Latest Tamil Nadu News &amp; District News">
+    <meta name="twitter:description" content="TN24 News (tn 24) – தமிழ்நாட்டின் 38 மாவட்ட செய்திகள், அரசியல், வானிலை, குற்றப் பிரிவு மற்றும் முக்கிய நிகழ்வுகளின் உடனுக்குடனான 24x7 நேரலை செய்தித் தளம். Latest Tamil Nadu breaking news.">
     <meta name="twitter:image" content="https://www.tn24.in/assets/brand/tn24-profile.jpg">
-    <meta name="twitter:image:alt" content="TN24 – Tamil News | Latest Tamil Nadu News &amp; District News">
+    <meta name="twitter:image:alt" content="TN24 News – தமிழ் செய்திகள் | Latest Tamil Nadu News &amp; District News">
 
     <!-- Structured Data: Schema.org JSON-LD -->
     <script type="application/ld+json">
@@ -113,7 +113,7 @@ func RenderPortalPage() string {
             "TN24 Now",
             "tn24.in"
           ],
-          "description": "TN24 brings the latest Tamil news, Tamil Nadu district news, politics, cinema, sports and breaking news from across Tamil Nadu.",
+          "description": "TN24 News (tn 24) – தமிழ்நாட்டின் 38 மாவட்ட செய்திகள், அரசியல், வானிலை, குற்றப் பிரிவு மற்றும் முக்கிய நிகழ்வுகளின் உடனுக்குடனான 24x7 நேரலை செய்தித் தளம். Latest Tamil Nadu breaking news.",
           "url": "https://www.tn24.in/",
           "logo": {
             "@type": "ImageObject",
@@ -148,10 +148,10 @@ func RenderPortalPage() string {
           "@type": "WebSite",
           "@id": "https://www.tn24.in/#website",
           "url": "https://www.tn24.in/",
-          "name": "TN24",
-          "alternateName": "TN24 — Tamil News",
+          "name": "TN24 News",
+          "alternateName": "TN24 — தமிழ் செய்திகள் | Latest Tamil Nadu News",
           "headline": "TN24 – Latest Tamil News & Tamil Nadu News",
-          "description": "TN24 brings the latest Tamil news, Tamil Nadu district news, politics, cinema, sports and breaking news from across Tamil Nadu.",
+          "description": "TN24 News (tn 24) – தமிழ்நாட்டின் 38 மாவட்ட செய்திகள், அரசியல், வானிலை, குற்றப் பிரிவு மற்றும் முக்கிய நிகழ்வுகளின் உடனுக்குடனான 24x7 நேரலை செய்தித் தளம். Latest Tamil Nadu breaking news.",
           "inLanguage": ["ta", "en-IN"],
           "keywords": "TN24, tn 24, Tamil News, Tamil Nadu News, District News, Latest News, Breaking News, தமிழ் செய்திகள்",
           "publisher": {
